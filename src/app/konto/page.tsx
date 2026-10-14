@@ -2,7 +2,9 @@
 
 import type { User } from "@supabase/supabase-js";
 import { useEffect, useState } from "react";
-import { clearLocalData } from "@/lib/db";
+import { ProfileForm } from "@/components/ProfileForm";
+import { clearLocalData, listItems, putItems } from "@/lib/db";
+import { DEFAULT_PROFILE, profileMark, readProfile } from "@/lib/profile";
 import { supabase, syncConfigured } from "@/lib/supabase";
 import { getSyncStatus, onSyncStatus, syncNow, type SyncStatus } from "@/lib/sync";
 
@@ -22,6 +24,7 @@ export default function AccountPage() {
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ kind: "ok" | "error"; text: string } | null>(null);
 
@@ -59,6 +62,11 @@ export default function AccountPage() {
       if (error) setMessage({ kind: "error", text: translateAuthError(error.message) });
       else setPassword("");
     } else {
+      if (name.trim()) {
+        // Name gleich ins Profil übernehmen; es wird mit dem Konto abgeglichen
+        const current = readProfile(await listItems("marks")) ?? DEFAULT_PROFILE;
+        await putItems("marks", [profileMark({ ...current, name: name.trim() })]);
+      }
       const { data, error } = await sb.auth.signUp({
         email,
         password,
@@ -119,6 +127,7 @@ export default function AccountPage() {
           </div>
           {message && <p className={message.kind === "ok" ? "verdict-ok small" : "error small"}>{message.text}</p>}
         </section>
+        <ProfileForm />
       </>
     );
   }
@@ -135,6 +144,12 @@ export default function AccountPage() {
         </div>
       </div>
       <form className="sheet stat-panel" style={{ maxWidth: 440, display: "grid", gap: 14 }} onSubmit={submit}>
+        {mode === "signup" && (
+          <label className="field">
+            Name
+            <input autoComplete="given-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Wie soll Jarvis dich nennen?" />
+          </label>
+        )}
         <label className="field">
           E-Mail
           <input type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
@@ -168,6 +183,7 @@ export default function AccountPage() {
           Was schon auf diesem Gerät gespeichert ist, wird nach der Anmeldung in dein Konto übernommen.
         </p>
       </form>
+      <ProfileForm />
     </>
   );
 }

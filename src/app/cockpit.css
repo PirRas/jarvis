@@ -18,6 +18,37 @@
   margin-top: 18px;
 }
 
+.hud-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 14px 0 0;
+}
+
+.hud-tag {
+  padding: 3px 10px;
+  border: 1px solid var(--card-line);
+  border-radius: var(--radius-s);
+  font-family: var(--font-hud), var(--font-ui), sans-serif;
+  font-size: var(--step--1);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--ink-soft);
+  text-decoration: none;
+}
+
+.hud-tag.is-level {
+  color: #04121f;
+  background: var(--royal);
+  border-color: var(--royal);
+  box-shadow: var(--glow);
+}
+
+.hud-tag.is-action {
+  color: var(--amber);
+  border-color: var(--amber);
+}
+
 /* ---------- HUD-Ring ---------- */
 
 .hud-ring {

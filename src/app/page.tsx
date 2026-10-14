@@ -30,6 +30,7 @@ import { PushSetup } from "@/components/PushSetup";
 import { TodoItem } from "@/components/TodoItem";
 import { examPlans, pendingPrep } from "@/lib/lernplan";
 import { groupTodos } from "@/lib/todos";
+import { levelLabel, readProfile, semesterAt, semesterLabel, studyLevel } from "@/lib/profile";
 import { usePlanner } from "@/lib/usePlanner";
 
 export default function Today() {
@@ -76,6 +77,7 @@ export default function Today() {
   const plans = examPlans(p.data, lite, p.cards, p.marks, now).filter((x) => x.daysLeft <= 60);
   const newToday = plans.reduce((sum, x) => sum + x.daily.newCards, 0);
   const reviewsToday = plans.reduce((sum, x) => sum + x.daily.reviews, 0);
+  const profile = readProfile(p.marks);
   const linkGroups = groupLinks(p.links);
   const daily = linkGroups[0];
 
@@ -87,7 +89,20 @@ export default function Today() {
           <span className="hud-day">{new Date(now).toLocaleDateString("de-CH", { weekday: "short", day: "numeric", month: "short" })}</span>
         </HudRing>
         <div className="jarvis-head-text">
-          <h1 className="page-title">{greeting(now)}.</h1>
+          <h1 className="page-title">
+            {greeting(now)}
+            {profile?.name ? `, ${profile.name}` : ""}.
+          </h1>
+          <p className="hud-tags">
+            {profile && <span className="hud-tag is-level">{levelLabel(studyLevel(profile, now))}</span>}
+            {profile?.program && <span className="hud-tag">{profile.program}</span>}
+            <span className="hud-tag">{semesterLabel(semesterAt(now))}</span>
+            {!profile && (
+              <Link className="hud-tag is-action" href="/konto#profil">
+                Name und Studiengang eintragen
+              </Link>
+            )}
+          </p>
           <p className="lede">{status}</p>
           <div className="row">
             <CopyButton text={askJarvisPrompt({ list, tips: advice, now })} label="Wochenplan mit Claude besprechen" />
