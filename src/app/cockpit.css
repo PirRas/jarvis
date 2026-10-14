@@ -724,3 +724,192 @@ details.panel > summary {
   border-radius: var(--radius-s);
 }
 
+/* Aufgaben */
+.todo-groups {
+  display: grid;
+  gap: 24px;
+}
+.todo-list {
+  list-style: none;
+  margin: 0;
+  padding: 4px 16px;
+}
+.todo {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: start;
+  padding: 12px 0;
+}
+.todo + .todo {
+  border-top: 1px solid var(--rule);
+}
+.todo input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  accent-color: var(--royal);
+  cursor: pointer;
+}
+.todo-title {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.todo.is-done .todo-title {
+  text-decoration: line-through;
+  color: var(--ink-faint);
+}
+.todo-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  align-items: center;
+  color: var(--ink-soft);
+  margin-top: 2px;
+}
+.todo.is-overdue .todo-due {
+  color: var(--red);
+  font-weight: 700;
+}
+.todo-note {
+  margin: 6px 0 0;
+  white-space: pre-line;
+}
+.group-overdue .course-title {
+  color: var(--red);
+}
+
+/* Push */
+.push-setup {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+.push-setup.is-unconfigured,
+.push-setup.is-denied {
+  border-color: var(--amber);
+}
+.push-on {
+  background: var(--green-wash);
+  color: var(--green);
+}
+.push-kinds {
+  border: none;
+  margin: 4px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+/* Lernplan */
+.lp-today-list {
+  margin: 10px 0 0;
+  padding-left: 1.2em;
+  display: grid;
+  gap: 6px;
+}
+.lp-exams {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr));
+  gap: 16px;
+}
+.lp-exam {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+.lp-exam.is-urgent {
+  border-color: var(--red);
+}
+.lp-exam-title {
+  margin: 0;
+  font-size: var(--step-1);
+}
+.lp-exam .pill {
+  justify-self: start;
+  margin: 0;
+}
+.lp-days {
+  display: grid;
+  justify-items: center;
+  min-width: 3.4rem;
+  padding: 6px 8px;
+  border-radius: var(--radius-s);
+  background: var(--royal-wash);
+  font-size: var(--step-1);
+  font-weight: 700;
+  line-height: 1.1;
+}
+.lp-exam.is-urgent .lp-days {
+  background: var(--red-wash);
+  color: var(--red);
+}
+.lp-days small {
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+.lp-meter {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: center;
+}
+.lp-facts {
+  margin: 0;
+  display: grid;
+  gap: 4px;
+}
+.lp-facts div {
+  display: grid;
+  grid-template-columns: 7rem 1fr;
+  gap: 8px;
+}
+.lp-facts dt {
+  color: var(--ink-soft);
+}
+.lp-facts dd {
+  margin: 0;
+}
+.lp-todo {
+  margin: 0;
+  padding-left: 1.2em;
+}
+.lp-pending {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.lp-pending li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  padding: 10px 0;
+  border-top: 1px solid var(--rule);
+}
+.lp-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+.lp-stats div {
+  display: grid;
+  gap: 2px;
+}
+.lp-stats strong {
+  font-size: var(--step-2);
+}
+.lp-upcoming {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+.lp-upcoming .kind-exam {
+  color: var(--red);
+  font-weight: 600;
+}
+
