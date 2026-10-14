@@ -9,8 +9,8 @@ export default function manifest(): MetadataRoute.Manifest {
     description: "Stundenplan mit Live-Räumen, Kalender, Prüfungen, Links und Nachbereitung.",
     start_url: "/",
     display: "standalone",
-    background_color: "#eef1f6",
-    theme_color: "#2c46c8",
+    background_color: "#050f1b",
+    theme_color: "#050f1b",
     lang: "de",
     icons: [
       { src: "/icon-192.png", sizes: "192x192", type: "image/png" },

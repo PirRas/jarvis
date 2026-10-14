@@ -4,18 +4,81 @@
 
 .jarvis-head {
   display: flex;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 16px 24px;
+  align-items: center;
+  gap: 20px clamp(24px, 5vw, 56px);
   flex-wrap: wrap;
-  margin-bottom: 20px;
+  margin-bottom: 28px;
 }
 
-.jarvis-date {
-  margin: 0 0 4px;
-  color: var(--royal);
+.jarvis-head-text {
+  flex: 1 1 320px;
+}
+
+.jarvis-head-text .row {
+  margin-top: 18px;
+}
+
+/* ---------- HUD-Ring ---------- */
+
+.hud-ring {
+  position: relative;
+  flex: none;
+  max-width: 100%;
+  aspect-ratio: 1;
+}
+
+.hud-ring svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+  overflow: visible;
+}
+
+.hud-spin {
+  transform-origin: 160px 160px;
+  animation: hud-spin 90s linear infinite;
+}
+
+@keyframes hud-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.hud-ring-center {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  text-align: center;
+}
+
+.hud-time {
+  font-family: var(--font-hud), var(--font-ui), sans-serif;
+  font-size: clamp(2.2rem, 9vw, 3.1rem);
   font-weight: 600;
-  letter-spacing: 0.02em;
+  line-height: 1;
+  letter-spacing: 0.06em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  text-shadow: 0 0 14px rgba(70, 213, 245, 0.7);
+}
+
+.hud-day {
+  margin-top: 6px;
+  font-size: 0.8rem;
+  color: var(--royal);
+  letter-spacing: 0.04em;
+}
+
+@media (max-width: 640px) {
+  .jarvis-head {
+    justify-content: center;
+  }
+  .hud-ring {
+    width: 220px !important;
+    height: 220px !important;
+  }
 }
 
 .quick-tiles {
@@ -164,19 +227,19 @@
   gap: 4px 10px;
   padding: 6px 12px;
   border-radius: var(--radius-s);
-  background: #ffe65a;
-  color: #1a1400;
-  border: 2px solid #d8423a;
-  box-shadow: 0 0 0 3px rgba(216, 66, 58, 0.18);
+  background: rgba(242, 177, 61, 0.14);
+  color: var(--ink);
+  border: 1.5px solid var(--amber);
+  box-shadow: 0 0 0 3px rgba(242, 177, 61, 0.15), 0 0 16px rgba(242, 177, 61, 0.25);
   animation: room-pulse 1.6s ease-in-out 3;
 }
 
 .room-alert .room-checked {
-  color: #5c5000;
+  color: var(--ink-soft);
 }
 
 .room-alert-label {
-  color: #b3261e;
+  color: var(--amber);
   font-weight: 800;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -198,12 +261,12 @@
 
 .room-alert.is-large .room-alert-room {
   font-size: var(--step-2);
-  font-family: var(--font-read), serif;
+  font-family: var(--font-hud), var(--font-ui), sans-serif;
 }
 
 @keyframes room-pulse {
   50% {
-    box-shadow: 0 0 0 8px rgba(216, 66, 58, 0.3);
+    box-shadow: 0 0 0 8px rgba(242, 177, 61, 0.3);
   }
 }
 
@@ -242,7 +305,7 @@
 }
 
 .preview-summary {
-  font-family: var(--font-read), serif;
+  font-family: var(--font-ui), system-ui, sans-serif;
   line-height: 1.6;
 }
 
@@ -402,7 +465,7 @@
 }
 
 .countdown strong {
-  font-family: var(--font-read), serif;
+  font-family: var(--font-hud), var(--font-ui), sans-serif;
   font-size: var(--step-2);
   font-variant-numeric: tabular-nums;
 }

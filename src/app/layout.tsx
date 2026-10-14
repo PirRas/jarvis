@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
-import { Hanken_Grotesk, Literata } from "next/font/google";
+import { Chakra_Petch, Hanken_Grotesk } from "next/font/google";
 import Link from "next/link";
+import { HudMark } from "@/components/HudRing";
 import { MainNav } from "@/components/MainNav";
 import { RegisterSW } from "@/components/RegisterSW";
 import { SyncBadge } from "@/components/SyncBadge";
@@ -8,7 +9,7 @@ import "katex/dist/katex.min.css";
 import "./globals.css";
 import "./cockpit.css";
 
-const literata = Literata({ subsets: ["latin"], variable: "--font-read", display: "swap" });
+const chakra = Chakra_Petch({ subsets: ["latin"], weight: ["500", "600", "700"], variable: "--font-hud", display: "swap" });
 const hanken = Hanken_Grotesk({ subsets: ["latin"], variable: "--font-ui", display: "swap" });
 
 export const metadata: Metadata = {
@@ -21,19 +22,16 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   viewportFit: "cover",
-  themeColor: [
-    { media: "(prefers-color-scheme: light)", color: "#ffffff" },
-    { media: "(prefers-color-scheme: dark)", color: "#1a2150" },
-  ],
+  themeColor: "#050f1b",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="de" className={`${literata.variable} ${hanken.variable}`}>
+    <html lang="de" className={`${chakra.variable} ${hanken.variable}`}>
       <body>
         <header className="topbar">
           <Link href="/" className="brand">
-            <span className="brand-mark" aria-hidden />
+            <HudMark />
             Jarvis
           </Link>
           <SyncBadge />

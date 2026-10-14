@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { CopyButton } from "@/components/CopyButton";
+import { HudRing } from "@/components/HudRing";
 import { LessonPreview } from "@/components/LessonPreview";
 import { OccurrenceRow } from "@/components/OccurrenceRow";
 import { RoomBadge } from "@/components/RoomBadge";
@@ -81,13 +82,16 @@ export default function Today() {
   return (
     <>
       <header className="jarvis-head">
-        <div>
-          <p className="jarvis-date">{fmtDay(now)}</p>
+        <HudRing>
+          <span className="hud-time">{fmtTime(now)}</span>
+          <span className="hud-day">{new Date(now).toLocaleDateString("de-CH", { weekday: "short", day: "numeric", month: "short" })}</span>
+        </HudRing>
+        <div className="jarvis-head-text">
           <h1 className="page-title">{greeting(now)}.</h1>
           <p className="lede">{status}</p>
-        </div>
-        <div className="row">
-          <CopyButton text={askJarvisPrompt({ list, tips: advice, now })} label="Wochenplan mit Claude besprechen" />
+          <div className="row">
+            <CopyButton text={askJarvisPrompt({ list, tips: advice, now })} label="Wochenplan mit Claude besprechen" />
+          </div>
         </div>
       </header>
 

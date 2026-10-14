@@ -19,7 +19,7 @@
   font-size: var(--step--1);
 }
 .fx-clock {
-  font-family: var(--font-read), serif;
+  font-family: var(--font-hud), var(--font-ui), sans-serif;
   font-size: clamp(3.5rem, 16vw, 6.5rem);
   font-weight: 600;
   line-height: 1;

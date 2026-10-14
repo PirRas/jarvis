@@ -24,7 +24,8 @@ const MORE = [
   { href: "/links", label: "Links" },
   { href: "/karten", label: "Karten" },
   { href: "/statistik", label: "Statistik" },
-  { href: "/konto", label: "Konto" },
+  // Am Desktop führt der Abgleich-Status oben rechts zum Konto
+  { href: "/konto", label: "Konto", mobileOnly: true },
 ];
 
 const isActive = (path: string, href: string) => (href === "/" ? path === "/" : path === href || path.startsWith(`${href}/`));
@@ -33,8 +34,14 @@ export function MainNav() {
   const path = usePathname() ?? "/";
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
-  const item = ({ href, label }: { href: string; label: string }) => (
-    <Link key={href} href={href} onClick={close} aria-current={isActive(path, href) ? "page" : undefined}>
+  const item = ({ href, label, mobileOnly }: { href: string; label: string; mobileOnly?: boolean }) => (
+    <Link
+      key={href}
+      href={href}
+      onClick={close}
+      className={mobileOnly ? "nav-mobile-only" : undefined}
+      aria-current={isActive(path, href) ? "page" : undefined}
+    >
       {label}
     </Link>
   );
