@@ -21,8 +21,10 @@ import {
   weekStart,
   type CalEvent,
   type EventKind,
+  type Feed,
 } from "@/lib/planner";
 import { findDates, type FoundDate } from "@/lib/textDates";
+import { isTimetableUrl, TIMETABLE_FEED_ID, TIMETABLE_FEED_NAME } from "@/lib/timetable";
 import { usePlanner } from "@/lib/usePlanner";
 
 type Panel = null | "event" | "text" | "feeds";
@@ -330,7 +332,10 @@ function Feeds({ p }: { p: ReturnType<typeof usePlanner> }) {
   async function add() {
     if (!url.trim()) return;
     setBusy(true);
-    const feed = { id: crypto.randomUUID(), name: name.trim() || "Kalender", url: url.trim(), createdAt: Date.now() };
+    // Stundenplan-Abo der Uni: daraus werden Stundenplan und Prüfungen gebaut (feste ID, damit es nur eines gibt)
+    const feed: Feed = isTimetableUrl(url)
+      ? { id: TIMETABLE_FEED_ID, name: TIMETABLE_FEED_NAME, url: url.trim(), role: "timetable", createdAt: Date.now() }
+      : { id: crypto.randomUUID(), name: name.trim() || "Kalender", url: url.trim(), createdAt: Date.now() };
     await putItem("feeds", feed);
     await fetchFeed(feed);
     await refreshFeeds(false);
@@ -384,6 +389,7 @@ function Feeds({ p }: { p: ReturnType<typeof usePlanner> }) {
               <li key={f.id} className="feed">
                 <div>
                   <strong>{f.name}</strong>
+                  {f.role === "timetable" && <span className="small muted"> · füllt Stundenplan und Prüfungen</span>}
                   <div className="small muted">
                     {c?.error ? (
                       <span className="text-red">{c.error}</span>

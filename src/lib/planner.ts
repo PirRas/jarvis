@@ -28,6 +28,7 @@ export type Slot = Synced & {
   until: string; // "2026-12-18" (letzter möglicher Termin)
   biweekly?: boolean; // nur alle zwei Wochen, ab `from`
   skip?: string[]; // ausfallende Tage, z. B. Dies Academicus ("2026-11-27")
+  roomOn?: Record<string, string>; // abweichender Raum an einzelnen Tagen ("2026-10-22": "Kollegienhaus, Hörsaal 118")
   createdAt: number;
 };
 
@@ -51,6 +52,8 @@ export type Feed = Synced & {
   id: string;
   name: string;
   url: string;
+  /** "timetable": Stundenplan-Abo der Uni; daraus werden Stundenplan und Prüfungen gebaut, statt die Termine einzeln zu zeigen. */
+  role?: "timetable";
   createdAt: number;
 };
 
@@ -239,7 +242,7 @@ export function slotOccurrences(slot: Slot, from: number, to: number): Occurrenc
       start,
       end,
       allDay: false,
-      location: slot.room,
+      location: slot.roomOn?.[isoDate(day)] ?? slot.room,
       note: "",
       origin: { kind: "slot", id: slot.id },
     });
@@ -308,6 +311,7 @@ export function occurrences(data: PlannerData, from: number, to: number, courses
     if (o.end > from && o.start < to) out.push(o);
   }
   for (const feed of data.feeds) {
+    if (feed.role === "timetable") continue; // steckt schon in Stundenplan und Prüfungen
     const cache = data.caches.find((c) => c.id === feed.id);
     for (const e of cache?.events ?? []) {
       const o = feedOccurrence(feed, e, courses);

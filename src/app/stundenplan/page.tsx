@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { CopyButton } from "@/components/CopyButton";
 import { RoomBadge } from "@/components/RoomBadge";
 import { TemplateSetup } from "@/components/TemplateSetup";
+import { TimetableFeed, timetableFeed } from "@/components/TimetableFeed";
 import { deleteItems, putItem, putItems } from "@/lib/db";
 import { TIMETABLE_PROMPT, TimetableSchema } from "@/lib/jarvis";
 import { defaultSemester, slotOccurrences, WEEKDAYS, addDays, dayStart, type Slot } from "@/lib/planner";
@@ -70,7 +71,9 @@ export default function TimetablePage() {
         </div>
       </div>
 
-      {slots.length === 0 && (
+      <TimetableFeed feeds={p.data.feeds} caches={p.data.caches} now={p.now} />
+
+      {slots.length === 0 && !timetableFeed(p.data.feeds) && (
         <section className="sheet panel" style={{ marginBottom: 24 }}>
           <TemplateSetup />
         </section>
@@ -126,7 +129,7 @@ export default function TimetablePage() {
         })}
       </div>
 
-      {slots.length > 0 && (
+      {slots.length > 0 && !timetableFeed(p.data.feeds) && (
         <details className="sheet panel" style={{ marginTop: 32 }}>
           <summary>Vorlage Pharmazie erneut übernehmen</summary>
           <TemplateSetup compact />
@@ -153,14 +156,20 @@ function SlotCard({ slot, now, onEdit, onDelete }: { slot: Slot; now: number; on
       <div className="small slot-room">
         {next ? <RoomBadge occ={next} /> : <span className="muted">{slot.room || "Semester vorbei"}</span>}
       </div>
-      <div className="row slot-actions">
-        <button className="btn btn-quiet" onClick={onEdit}>
-          Bearbeiten
-        </button>
-        <button className="btn btn-quiet" onClick={onDelete}>
-          Löschen
-        </button>
-      </div>
+      {slot.id.startsWith("abo-") ? (
+        <div className="small muted slot-actions" title="Wird bei jedem Abruf aus den Online-Services aktualisiert">
+          aus dem Abo
+        </div>
+      ) : (
+        <div className="row slot-actions">
+          <button className="btn btn-quiet" onClick={onEdit}>
+            Bearbeiten
+          </button>
+          <button className="btn btn-quiet" onClick={onDelete}>
+            Löschen
+          </button>
+        </div>
+      )}
     </article>
   );
 }

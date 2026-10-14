@@ -701,3 +701,26 @@ details.panel > summary {
     white-space: nowrap;
   }
 }
+
+/* Stundenplan-Abo */
+.tt {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 24px;
+}
+.tt-warn {
+  border-color: var(--amber);
+}
+.tt-form {
+  display: grid;
+  gap: 10px;
+  max-width: 640px;
+}
+.tt-hint {
+  margin: 0;
+  padding: 10px 14px;
+  border-left: 3px solid var(--amber);
+  background: color-mix(in srgb, var(--amber) 10%, var(--sheet));
+  border-radius: var(--radius-s);
+}
+

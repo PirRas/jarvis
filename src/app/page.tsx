@@ -6,6 +6,8 @@ import { LessonPreview } from "@/components/LessonPreview";
 import { OccurrenceRow } from "@/components/OccurrenceRow";
 import { RoomBadge } from "@/components/RoomBadge";
 import { TemplateSetup } from "@/components/TemplateSetup";
+import { TimetableFeed, timetableFeed } from "@/components/TimetableFeed";
+import { hasUpcomingLessons } from "@/lib/timetable";
 import { askJarvisPrompt, greeting, latestLecture, readiness, tips } from "@/lib/jarvis";
 import {
   addDays,
@@ -86,11 +88,17 @@ export default function Today() {
         </nav>
       )}
 
-      {p.data.slots.length === 0 && (
-        <section className="sheet panel" style={{ marginBottom: 24 }}>
-          <TemplateSetup />
-        </section>
+      {p.data.slots.length === 0 && !timetableFeed(p.data.feeds) && (
+        <>
+          <TimetableFeed feeds={p.data.feeds} caches={p.data.caches} now={p.now} />
+          <details className="sheet panel" style={{ marginBottom: 24 }}>
+            <summary>Ohne Abo: Vorlage des Departements verwenden</summary>
+            <TemplateSetup compact />
+          </details>
+        </>
       )}
+
+      <TimetableNotice p={p} />
 
       <section id="als-naechstes" className="nextup-wrap">
         {focus.length === 0 ? (
@@ -254,5 +262,22 @@ function NextUp({
         </p>
       )}
     </article>
+  );
+}
+
+/** Hinweis, wenn das Stundenplan-Abo nicht mehr lädt oder keine Lektionen mehr enthält (neues Semester). */
+function TimetableNotice({ p }: { p: ReturnType<typeof usePlanner> }) {
+  const feed = timetableFeed(p.data.feeds);
+  const cache = feed && p.data.caches.find((c) => c.id === feed.id);
+  if (!feed || !cache) return null;
+  const empty = !cache.error && !hasUpcomingLessons(cache.events, p.now);
+  if (!cache.error && !empty) return null;
+  return (
+    <p className="sheet panel tt-hint" style={{ marginBottom: 24 }}>
+      {cache.error
+        ? `Dein Stundenplan-Abo lädt gerade nicht: ${cache.error} `
+        : "In deinem Stundenplan-Abo stehen keine kommenden Lektionen mehr. Neues Semester? "}
+      <Link href="/stundenplan">Neuen Link einsetzen</Link>
+    </p>
   );
 }
