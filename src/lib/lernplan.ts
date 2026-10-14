@@ -39,7 +39,7 @@ const isLectureType = (o: Occurrence) => o.kind === "lecture" && /vorlesung|haup
  * Nachbereitungs-Wächter: vergangene Vorlesungen, für die noch keine Nachbereitung gespeichert ist.
  * Jede gespeicherte Vorlesung deckt die jüngste noch offene Lektion desselben Fachs vor ihrem Speicherzeitpunkt ab.
  */
-export function pendingPrep(data: PlannerData, lectures: LectureLite[], marks: Mark[], now = Date.now(), days = 14) {
+export function pendingPrep(data: PlannerData, lectures: LectureLite[], marks: Mark[], now = Date.now(), days = 7) {
   const from = addDays(dayStart(now), -days);
   const past = occurrences({ ...data, todos: [] }, addDays(from, -120), now).filter((o) => isLectureType(o) && o.end <= now);
   const done = new Set(marks.filter((m) => m.id.startsWith("nachbereitet:")).map((m) => m.id.slice("nachbereitet:".length)));
