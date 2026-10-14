@@ -690,7 +690,7 @@ details.panel > summary {
 }
 
 /* Die Navigation hat jetzt mehr Einträge: auf schmalen Bildschirmen seitlich scrollen statt umbrechen */
-@media (max-width: 760px) {
+@media (min-width: 641px) and (max-width: 760px) {
   .topnav {
     flex-wrap: nowrap;
     overflow-x: auto;

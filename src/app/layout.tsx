@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Hanken_Grotesk, Literata } from "next/font/google";
 import Link from "next/link";
+import { MainNav } from "@/components/MainNav";
 import { RegisterSW } from "@/components/RegisterSW";
 import { SyncBadge } from "@/components/SyncBadge";
 import "katex/dist/katex.min.css";
@@ -36,22 +37,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             Jarvis
           </Link>
           <SyncBadge />
-          <nav className="topnav">
-            <Link href="/">Heute</Link>
-            <Link href="/aufgaben">Aufgaben</Link>
-            <Link href="/stundenplan">Stundenplan</Link>
-            <Link href="/kalender">Kalender</Link>
-            <Link href="/lernplan">Lernplan</Link>
-            <Link href="/vorlesungen">Vorlesungen</Link>
-            <Link href="/lernen">Lernen</Link>
-            <Link href="/fokus">Fokus</Link>
-            <Link href="/studium">Studium</Link>
-            <Link href="/pharmazie">Pharmazie</Link>
-            <Link href="/links">Links</Link>
-            <Link href="/karten">Karten</Link>
-            <Link href="/statistik">Statistik</Link>
-            <Link href="/konto">Konto</Link>
-          </nav>
+          <MainNav />
         </header>
         <main className="page">{children}</main>
         <RegisterSW />

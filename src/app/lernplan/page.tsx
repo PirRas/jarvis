@@ -81,7 +81,7 @@ export default function LernplanPage() {
       <section id="waechter" className="sheet panel" style={{ marginTop: 32 }}>
         <h2 className="panel-title">Noch nicht nachbereitet</h2>
         <p className="small muted" style={{ margin: "4px 0 12px" }}>
-          Vorlesungen der letzten zwei Wochen, zu denen noch keine Nachbereitung gespeichert ist. Übungen zählen nicht.
+          Vorlesungen der letzten sieben Tage, zu denen noch keine Nachbereitung gespeichert ist. Übungen zählen nicht.
         </p>
         {pending.length === 0 ? (
           <p className="ok-note">Alles nachbereitet.</p>
