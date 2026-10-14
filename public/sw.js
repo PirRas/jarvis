@@ -1,8 +1,8 @@
 // Service Worker: hält die App-Oberfläche offline verfügbar, damit Lernen ohne Netz funktioniert.
-const CACHE = "nachbereitung-v1";
+const CACHE = "jarvis-v2";
 
 self.addEventListener("install", (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(["/", "/lernen", "/karten", "/statistik"])));
+  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(["/", "/stundenplan", "/kalender", "/vorlesungen", "/lernen", "/links", "/karten", "/statistik"])));
   self.skipWaiting();
 });
 

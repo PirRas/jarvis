@@ -56,7 +56,7 @@ function LectureInner() {
     return (
       <div className="sheet empty">
         <h2>Diese Vorlesung gibt es nicht mehr</h2>
-        <Link className="btn" href="/">
+        <Link className="btn" href="/vorlesungen">
           Zu den Vorlesungen
         </Link>
       </div>
@@ -82,7 +82,7 @@ function LectureInner() {
 
   return (
     <>
-      <Link href="/" className="crumb">
+      <Link href="/vorlesungen" className="crumb">
         Vorlesungen / {lecture.course}
       </Link>
 

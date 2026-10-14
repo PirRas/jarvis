@@ -1,5 +1,5 @@
-// Findet Termine in kopiertem Text, z. B. einer Prüfungsankündigung aus ADAM oder einer Mail.
-// Erkennt "15.01.2027", "15.1.27", "15. Januar 2027", "Fr, 15. Jan." sowie Uhrzeiten wie "14:15", "14.15 Uhr", "14–16 Uhr".
+// Findet Termine in kopiertem Text, z. B. einer Prüfungsankündigung aus ADAM oder der Prüfungsübersicht in MOnA.
+// Erkennt "15.01.2027", "15.1.27", "15. Januar 2027", "Fr, 15. Jan." sowie Uhrzeiten wie "14:15", "14.15 Uhr", "14–16 Uhr", "12 Uhr".
 
 import { guessKind, type EventKind } from "./planner";
 
@@ -27,15 +27,13 @@ const MONTHS: Record<string, number> = {
   dez: 12, dec: 12, dezember: 12, december: 12,
 };
 
-const NUMERIC = /\b(\d{1,2})\.\s?(\d{1,2})\.(\d{4}|\d{2})?(?!\d)/g;
-const WORDY =
-  /\b(\d{1,2})\.?\s+(januar|jänner|january|jan|februar|february|feb|märz|maerz|march|mär|mar|april|apr|mai|may|juni|june|jun|juli|july|jul|august|aug|september|sept|sep|oktober|october|okt|oct|november|nov|dezember|december|dez|dec)\.?(?:\s+(\d{4}))?/gi;
-const TIME =
-  /\b(\d{1,2})[:.](\d{2})(?:\s*(?:uhr|h))?(?:\s*(?:-|–|—|bis)\s*(\d{1,2})(?:[:.](\d{2}))?)?|\b(\d{1,2})\s*(?:-|–|bis)\s*(\d{1,2})\s*uhr/gi;
+const NUMERIC = /\b(\d{1,2})\.\s?(\d{1,2})\.(\d{2,4})?(?!\d)/g;
+const WORDY = /\b(\d{1,2})\.?\s+(jan(?:uar)?|jänner|feb(?:ruar)?|mär(?:z)?|maerz|mar(?:ch)?|apr(?:il)?|mai|may|jun(?:i|e)?|jul(?:i|y)?|aug(?:ust)?|sep(?:t(?:ember)?)?|okt(?:ober)?|oct(?:ober)?|nov(?:ember)?|dez(?:ember)?|dec(?:ember)?)\.?(?:\s+(\d{4}))?/gi;
+const TIME = /\b(\d{1,2})[:.](\d{2})(?:\s*(?:uhr|h))?(?:\s*(?:-|–|—|bis)\s*(\d{1,2})(?:[:.](\d{2}))?)?|\b(\d{1,2})\s*(?:-|–|bis)\s*(\d{1,2})\s*uhr|\b(\d{1,2})\s*uhr\b/gi;
 
 function year(y: string | undefined, month: number, day: number, now: number) {
   if (y) return y.length === 2 ? 2000 + Number(y) : Number(y);
-  // Ohne Jahr: das nächste Vorkommen ab heute (mit einer Woche Kulanz)
+  // Ohne Jahr: das nächste Vorkommen ab heute (minus ein paar Tage Kulanz)
   const n = new Date(now);
   const thisYear = new Date(n.getFullYear(), month - 1, day).getTime();
   return thisYear < now - 7 * 86_400_000 ? n.getFullYear() + 1 : n.getFullYear();
@@ -47,12 +45,21 @@ function cleanTitle(line: string) {
     .replace(WORDY, " ")
     .replace(TIME, " ")
     .replace(/\b(mo|di|mi|do|fr|sa|so|montag|dienstag|mittwoch|donnerstag|freitag|samstag|sonntag)\b\.?,?/gi, " ")
-    .replace(/\b(uhr|am|um|von|bis|ab)\b/gi, " ")
-    .replace(/[.]{3,}/g, " ")
+    .replace(/\buhr\b/gi, " ")
+    .replace(/\.{3,}|…+/g, " ") // Punktreihen wie in "Mathematik I ........ Do, 14.1.2027"
     .replace(/\(\s*\)/g, " ")
+    // Füllwörter nur dort entfernen, wo Datum oder Uhrzeit standen ("am", "von … bis"), nicht mitten im Titel
+    .replace(/\b(am|um|von|bis|ab)(\s+(am|um|von|bis|ab)\b)+/gi, " ")
+    .replace(/(\s+\b(am|um|von|bis|ab)\b)+[\s|•·,;:–—-]*$/gi, "")
+    .replace(/^[\s|•·,;:–—-]*(\b(am|um|von|bis|ab)\b\s+)+/gi, "")
+    .replace(/[\s|•·,;:–—-]+$/g, "")
+    .replace(/^[\s|•·,;:–—-]+/g, "")
     .replace(/\s{2,}/g, " ")
-    .replace(/^[\s|•·,;:–—-]+|[\s|•·,;:–—-]+$/g, "")
-    .trim();
+    .trim()
+    // Tabellenzeilen ("Mathe I | Klausur | | Kollegienhaus"): leere Spalten weglassen
+    .split(/\s*\|\s*/)
+    .filter((part) => /\w/.test(part))
+    .join(" · ");
 }
 
 /** Sucht alle Daten im Text; pro Fundstelle die Zeile (bzw. Nachbarzeile) als Titel und Kontext. */
@@ -60,29 +67,34 @@ export function findDates(text: string, now = Date.now()): FoundDate[] {
   const lines = text.split(/\r?\n/).map((l) => l.trim());
   const out: FoundDate[] = [];
   const seen = new Set<string>();
+  const examList = guessKind(lines.filter(Boolean).slice(0, 4).join(" ")) === "exam";
 
   lines.forEach((line, i) => {
     if (!line) return;
-    const hits: { day: number; month: number; y?: string }[] = [];
+    const hits: { day: number; month: number; y?: string; index: number }[] = [];
     for (const m of line.matchAll(NUMERIC)) {
       const day = Number(m[1]);
       const month = Number(m[2]);
-      if (day >= 1 && day <= 31 && month >= 1 && month <= 12) hits.push({ day, month, y: m[3] });
+      if (day >= 1 && day <= 31 && month >= 1 && month <= 12) hits.push({ day, month, y: m[3], index: m.index ?? 0 });
     }
     for (const m of line.matchAll(WORDY)) {
-      const month = MONTHS[m[2].toLowerCase()];
+      const month = MONTHS[m[2].toLowerCase().replace(/\.$/, "")] ?? MONTHS[m[2].toLowerCase().slice(0, 3)];
       const day = Number(m[1]);
-      if (month && day >= 1 && day <= 31) hits.push({ day, month, y: m[3] });
+      if (month && day >= 1 && day <= 31) hits.push({ day, month, y: m[3], index: m.index ?? 0 });
     }
     if (!hits.length) return;
 
-    // Daten entfernen, bevor Uhrzeiten gesucht werden (sonst wird "15.01.2027" als 15:01 gelesen)
+    // Daten vorher entfernen, sonst wird "15.01.2027" als Uhrzeit 15:01 gelesen
     const times = [...line.replace(NUMERIC, " ").replace(WORDY, " ").matchAll(TIME)];
     const prev = lines[i - 1] ?? "";
     const next = lines[i + 1] ?? "";
     let title = cleanTitle(line);
-    // Steht in der Zeile nur das Datum, ist der Titel meist in der Zeile davor
+    const prevHasDate = new RegExp(NUMERIC.source).test(prev) || new RegExp(WORDY.source, "i").test(prev);
+    const prevIsHeading = prev.length > 3 && prev.length <= 70 && !prevHasDate && !/[.:]$/.test(prev);
+    // Steht in der Zeile nur das Datum, ist der Titel meist in der Zeile davor.
+    // Ist die Zeile ein ganzer Satz ("Die Prüfung findet … statt."), ist eine Überschrift darüber der bessere Titel.
     if (title.length < 4) title = cleanTitle(prev) || cleanTitle(next) || "Termin";
+    else if (prevIsHeading && /\.$/.test(title) && title.split(" ").length >= 6) title = cleanTitle(prev);
     const context = [prev, line, next].filter(Boolean).join(" · ");
 
     for (const h of hits) {
@@ -95,9 +107,11 @@ export function findDates(text: string, now = Date.now()): FoundDate[] {
         if (t[1] !== undefined) {
           start = new Date(y, h.month - 1, h.day, Number(t[1]), Number(t[2])).getTime();
           if (t[3] !== undefined) end = new Date(y, h.month - 1, h.day, Number(t[3]), Number(t[4] ?? 0)).getTime();
-        } else {
+        } else if (t[5] !== undefined) {
           start = new Date(y, h.month - 1, h.day, Number(t[5])).getTime();
           end = new Date(y, h.month - 1, h.day, Number(t[6])).getTime();
+        } else {
+          start = new Date(y, h.month - 1, h.day, Number(t[7])).getTime();
         }
         allDay = false;
         if (end !== null && end <= start) end = null;
@@ -105,7 +119,12 @@ export function findDates(text: string, now = Date.now()): FoundDate[] {
       const key = `${start}|${title}`;
       if (seen.has(key)) continue;
       seen.add(key);
-      out.push({ title: title.slice(0, 140), start, end, allDay, kind: guessKind(context), context: context.slice(0, 300) });
+      // Art zuerst aus der eigenen Zeile, sonst aus dem Umfeld
+      const own = guessKind(`${line} ${title}`);
+      const near = guessKind(context);
+      // In einer Examensliste ("provisorische Examensdaten HS 2026") ist jede Zeile mit Veranstaltungsnummer eine Prüfung
+      const kind = own !== "other" ? own : near !== "other" ? near : examList && /\b\d{5}\b/.test(line) ? "exam" : "other";
+      out.push({ title: title.slice(0, 140), start, end, allDay, kind, context: context.slice(0, 300) });
     }
   });
   return out.sort((a, b) => a.start - b.start);

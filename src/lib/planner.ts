@@ -198,7 +198,7 @@ export function defaultSemester(now = Date.now()) {
 
 // ---------- Erkennen von Prüfungen und Fristen ----------
 
-const EXAM_RE = /(prüfung|pruefung|klausur|\bexam|examen|midterm|testat|leistungsüberprüfung|zwischentest)/i;
+const EXAM_RE = /(prüfung|pruefung|klausur|\bexam|examen|midterm|testat|leistungsüberprüfung|zwischentest|nachholtermin)/i;
 const DEADLINE_RE = /(abgabe|deadline|frist|einsendeschluss|anmeldeschluss|anmeldung|abmeldung|einreichen)/i;
 
 export function looksLikeExam(text: string) {
@@ -339,7 +339,18 @@ export function previewId(course: string, start: number) {
   return `${norm}|${isoDate(start)}`;
 }
 
-// ---------- Standard-Links ----------
+// ---------- Links ----------
+
+/** Links nach Gruppe, in der Reihenfolge ihres ersten Auftretens. */
+export function groupLinks<T extends { group: string }>(links: T[]) {
+  const groups: { name: string; items: T[] }[] = [];
+  for (const l of links) {
+    const g = groups.find((g) => g.name === l.group);
+    if (g) g.items.push(l);
+    else groups.push({ name: l.group, items: [l] });
+  }
+  return groups;
+}
 
 export const DEFAULT_LINKS: Omit<QuickLink, "id">[] = [
   // Jeden Tag

@@ -4,9 +4,9 @@ export const dynamic = "force-static";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Nachbereitung",
-    short_name: "Nachbereitung",
-    description: "Vorlesungen nachbereiten und mit Karteikarten und Quiz für die Prüfung lernen.",
+    name: "Jarvis – Uni-Cockpit",
+    short_name: "Jarvis",
+    description: "Stundenplan mit Live-Räumen, Kalender, Prüfungen, Links und Nachbereitung.",
     start_url: "/",
     display: "standalone",
     background_color: "#eef1f6",
@@ -17,6 +17,10 @@ export default function manifest(): MetadataRoute.Manifest {
       { src: "/icon-512.png", sizes: "512x512", type: "image/png" },
       { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
     ],
-    shortcuts: [{ name: "Lernen", url: "/lernen" }],
+    shortcuts: [
+      { name: "Heute", url: "/" },
+      { name: "Kalender", url: "/kalender" },
+      { name: "Lernen", url: "/lernen" },
+    ],
   };
 }

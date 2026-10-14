@@ -4,6 +4,8 @@ import type { NextConfig } from "next";
 // Vorlesungsverzeichnis; alles andere läuft im Browser und funktioniert auch offline.
 const nextConfig: NextConfig = {
   images: { unoptimized: true },
+  // Im Benutzerordner liegt eine weitere package-lock.json; ohne diese Angabe hält Next.js jenen Ordner für das Projekt.
+  outputFileTracingRoot: __dirname,
 };
 
 export default nextConfig;

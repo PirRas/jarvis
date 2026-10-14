@@ -29,6 +29,7 @@ export type RoomMissing = { state: "missing"; checkedAt: number; url: string }; 
 
 const CACHE_KEY = (nr: string) => `vv:${nr}`;
 const memory = new Map<string, { at: number; promise: Promise<VvResult> }>();
+let queue: Promise<unknown> = Promise.resolve();
 
 /** Wie alt darf der Stand sein? Je näher die Lektion, desto frischer. */
 function maxAge(start: number, now = Date.now()) {
@@ -59,12 +60,15 @@ async function load(nr: string, age: number): Promise<VvResult> {
   if (cached && Date.now() - cached.checkedAt < age) return cached;
   const mem = memory.get(nr);
   if (mem && Date.now() - mem.at < 60_000) return mem.promise;
-  const promise = fetch(`/api/vv?nr=${encodeURIComponent(nr)}`).then(async (res) => {
-    const body = await res.json();
-    if (!res.ok) throw new Error(body.error ?? `Fehler ${res.status}`);
-    writeCache(body);
-    return body as VvResult;
-  });
+  // Eine Abfrage nach der anderen: Das Vorlesungsverzeichnis sperrt bei zu vielen gleichzeitigen Anfragen.
+  const promise = (queue = queue.catch(() => undefined).then(() =>
+    fetch(`/api/vv?nr=${encodeURIComponent(nr)}`).then(async (res) => {
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error ?? `Fehler ${res.status}`);
+      writeCache(body);
+      return body as VvResult;
+    }),
+  )) as Promise<VvResult>;
   memory.set(nr, { at: Date.now(), promise });
   promise.catch(() => memory.delete(nr));
   return promise;

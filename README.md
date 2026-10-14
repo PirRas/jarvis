@@ -1,27 +1,43 @@
-# Nachbereitung
+# Jarvis – Uni-Cockpit
 
-Vorlesungsfolien mit Claude nachbereiten und für die Prüfung lernen, komplett kostenlos.
-Die Aufbereitung läuft über dein Claude-Konto auf claude.ai (auch im Gratis-Plan). Die App selbst braucht weder einen Server noch einen API-Schlüssel.
+Persönliches Cockpit für das Studium der Pharmazeutischen Wissenschaften an der Universität Basel.
 
-Aus jeder Vorlesung entstehen:
+## Was Jarvis kann
 
-- eine vollständige Nachbereitung Folie für Folie, mit Lernzielen, Kernaussagen und Prüfungstipps
-- eine Folienübersicht als Vollständigkeitskontrolle
-- ein Glossar und eine Formelsammlung
-- Karteikarten mit verteilter Wiederholung wie bei Anki
-- ein Quiz und Klausuraufgaben mit Musterlösung
+- **Heute**: Beim Öffnen siehst du sofort, was als Nächstes kommt, wie lange es noch dauert und in welchem Raum.
+  Dazu die Tagesliste, Prüfungen und Fristen mit Countdown und Lernstand sowie Empfehlungen für den Tag.
+- **Räume live aus dem Vorlesungsverzeichnis**: Für jede Lektion mit Veranstaltungsnummer (z. B. 10380) holt Jarvis
+  die Einzeltermine aus vorlesungsverzeichnis.unibas.ch. Je näher die Lektion, desto häufiger wird geprüft
+  (alle 10 Minuten in den letzten 3 Stunden). Weicht der Raum vom üblichen Raum ab, erscheint eine auffällige,
+  gelb-rote Warnung „Anderer Raum!“ mit dem sonst üblichen Raum durchgestrichen daneben. Fehlt ein Termin im
+  Verzeichnis, weist Jarvis darauf hin, dass die Lektion vielleicht ausfällt.
+- **Stundenplan**: Vorlage „Pharmazeutische Wissenschaften, 1. Semester, HS 2026“ nach dem Wochenplan des
+  Departements, eigene Einträge oder Import aus Foto/PDF über Claude.
+- **Kalender**: Stundenplan, eigene Termine, Prüfungen, Fristen und abonnierte Kalender (ADAM, Outlook) an einem Ort.
+  Termine lassen sich aus kopiertem Text erkennen (Ankündigungen, Mails, Prüfungsübersicht) und als .ics exportieren.
+- **Lektions-Vorschau**: Folien (PDF) vor der Lektion hinzufügen; Jarvis zeigt sofort die Themen und auf Wunsch eine
+  Kurzzusammenfassung von Claude.
+- **Links**: ADAM, Online-Services, Outlook, Vorlesungsverzeichnis, Departement, Fachgruppe, Compendium,
+  Swissmedicinfo, Bibliothek und mehr. ADAM und services.unibas.ch verbieten das Einbetten in andere Seiten
+  (`frame-ancestors 'self'`), daher öffnen sie sich in einem neuen Tab.
+- **Nachbereitung**: Vorlesungsfolien mit Claude nachbereiten, Karteikarten mit verteilter Wiederholung, Quiz und
+  Klausuraufgaben (siehe unten).
 
-## So fügst du eine Vorlesung hinzu
+## Nachbereitung hinzufügen
 
-1. In der App auf „Neue Vorlesung hinzufügen“ tippen.
+1. Unter „Vorlesungen“ auf „Neue Vorlesung hinzufügen“ tippen.
 2. Auf claude.ai einen neuen Chat öffnen und die Folien als PDF anhängen.
 3. „Prompt 1 kopieren“, im Chat einfügen, senden und Claudes Antwort zurück in die App kopieren.
 4. „Prompt 2 kopieren“, im selben Chat senden und die Antwort ebenfalls einfügen.
 5. „Vorlesung speichern“.
 
-Wurde eine Antwort abgeschnitten, schreib im Chat „weiter“ und füge beide Teile hintereinander ein. Sehr lange Foliensätze teilst du am besten in zwei PDFs auf.
+## Technik
 
-## Lokal starten
+- Next.js auf Vercel (Gratis-Stufe). Zwei kleine Server-Routen:
+  - `GET /api/vv?nr=10380` liest Termine und Räume aus dem Vorlesungsverzeichnis (10 Minuten zwischengespeichert).
+  - `POST /api/ics` holt Kalender-Abos ab (Browser dürfen fremde Kalender nicht direkt laden).
+- Alle Daten liegen im Browser (IndexedDB) und werden über Supabase zwischen Handy und PC abgeglichen,
+  sobald du unter „Konto“ angemeldet bist. Tabelle: `supabase/schema.sql`.
 
 ```
 npm install
@@ -30,12 +46,10 @@ npm run dev
 
 Dann http://localhost:3000 öffnen.
 
-## Kostenlos online stellen (für Android)
+## Installieren
 
-`npm run build` erzeugt im Ordner `out/` eine rein statische Website. Diese lässt sich kostenlos bei Vercel, Netlify oder GitHub Pages hosten.
-
-- **Android:** Die Seite in Chrome öffnen und im Menü „Zum Startbildschirm hinzufügen“ wählen.
-- **Windows:** Die Seite in Edge oder Chrome öffnen und in der Adressleiste auf „App installieren“ klicken.
+- **Android:** Seite in Chrome öffnen, Menü → „Zum Startbildschirm hinzufügen“.
+- **Windows:** Seite in Edge oder Chrome öffnen, in der Adressleiste „App installieren“.
 
 ## Tastenkürzel beim Lernen
 
@@ -45,7 +59,3 @@ Dann http://localhost:3000 öffnen.
 | 1 / 2 / 3 / 4 | Nochmal / Schwer / Gut / Einfach |
 | Strg+Z | Letzte Bewertung rückgängig |
 | @ | Karte zurückstellen |
-
-## Wo die Daten liegen
-
-Vorlesungen, Karten und Lernfortschritt werden auf dem jeweiligen Gerät im Browser gespeichert (IndexedDB). Handy und PC haben getrennte Daten, solange kein Abgleich (z. B. über Supabase, Gratis-Stufe) eingerichtet ist.

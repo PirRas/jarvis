@@ -5,14 +5,15 @@ import { RegisterSW } from "@/components/RegisterSW";
 import { SyncBadge } from "@/components/SyncBadge";
 import "katex/dist/katex.min.css";
 import "./globals.css";
+import "./cockpit.css";
 
 const literata = Literata({ subsets: ["latin"], variable: "--font-read", display: "swap" });
 const hanken = Hanken_Grotesk({ subsets: ["latin"], variable: "--font-ui", display: "swap" });
 
 export const metadata: Metadata = {
-  title: "Nachbereitung",
-  description: "Vorlesungsfolien hochladen, nachbereiten lassen und mit Karteikarten und Quiz für die Prüfung lernen.",
-  appleWebApp: { capable: true, title: "Nachbereitung", statusBarStyle: "default" },
+  title: "Jarvis",
+  description: "Dein Uni-Cockpit: Stundenplan mit Live-Räumen, Kalender, Prüfungen, Links und Nachbereitung mit Karteikarten und Quiz.",
+  appleWebApp: { capable: true, title: "Jarvis", statusBarStyle: "default" },
 };
 
 export const viewport: Viewport = {
@@ -32,12 +33,16 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <header className="topbar">
           <Link href="/" className="brand">
             <span className="brand-mark" aria-hidden />
-            Nachbereitung
+            Jarvis
           </Link>
           <SyncBadge />
           <nav className="topnav">
-            <Link href="/">Vorlesungen</Link>
+            <Link href="/">Heute</Link>
+            <Link href="/stundenplan">Stundenplan</Link>
+            <Link href="/kalender">Kalender</Link>
+            <Link href="/vorlesungen">Vorlesungen</Link>
             <Link href="/lernen">Lernen</Link>
+            <Link href="/links">Links</Link>
             <Link href="/karten">Karten</Link>
             <Link href="/statistik">Statistik</Link>
             <Link href="/konto">Konto</Link>
