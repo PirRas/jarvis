@@ -3,7 +3,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { allCards, allFeedCaches, getSettings, listItems, listLectures, newCardsLeftToday, onLocalChange, putItems, type Lecture } from "./db";
 import { FEEDS_EVENT, refreshFeeds } from "./feeds";
+import type { Mark, Todo } from "./assistant";
 import { DEFAULT_LINKS, EMPTY_PLANNER, type LessonPreview, type PlannerData, type QuickLink } from "./planner";
+import { scheduleReminderSync } from "./push";
+import { presetTodos, PRESETS_MARK } from "./todos";
 import type { CardState } from "./srs";
 import { REMOTE_CHANGE_EVENT } from "./sync";
 
@@ -15,6 +18,8 @@ export type PlannerState = {
   lectures: Lecture[];
   cards: CardState[];
   newLeft: number;
+  todos: Todo[];
+  marks: Mark[];
 };
 
 const INITIAL: PlannerState = {
@@ -25,6 +30,8 @@ const INITIAL: PlannerState = {
   lectures: [],
   cards: [],
   newLeft: 20,
+  todos: [],
+  marks: [],
 };
 
 const SEEDED_KEY = "links-seeded-v1";
@@ -45,13 +52,21 @@ async function seedLinks(existing: QuickLink[]) {
   return true;
 }
 
+/** Vorbereitete Aufgaben einmal pro Konto anlegen (Markierung wird abgeglichen, gelöschte kommen nicht zurück). */
+async function seedTodos(marks: Mark[]) {
+  if (marks.some((m) => m.id === PRESETS_MARK)) return false;
+  await putItems("todos", presetTodos());
+  await putItems("marks", [{ id: PRESETS_MARK, createdAt: Date.now() }]);
+  return true;
+}
+
 /** Lädt alles, was das Cockpit braucht, und hält es aktuell (lokale Änderungen, Abgleich, Abos, Uhrzeit). */
 export function usePlanner() {
   const [state, setState] = useState<PlannerState>(INITIAL);
   const [now, setNow] = useState(() => Date.now());
 
   const load = useCallback(async () => {
-    const [slots, events, feeds, caches, links, previews, lectures, cards, newLeft] = await Promise.all([
+    const [slots, events, feeds, caches, links, previews, lectures, cards, newLeft, todos, marks] = await Promise.all([
       listItems("slots"),
       listItems("events"),
       listItems("feeds"),
@@ -61,17 +76,23 @@ export function usePlanner() {
       listLectures(),
       allCards(),
       newCardsLeftToday(getSettings().newPerDay),
+      listItems("todos"),
+      listItems("marks"),
     ]);
     if (await seedLinks(links)) return; // putItems löst selbst ein Neuladen aus
+    if (await seedTodos(marks)) return;
     setState({
       loaded: true,
-      data: { slots, events, feeds, caches },
+      data: { slots, events, feeds, caches, todos },
       links: links.sort((a, b) => a.order - b.order),
       previews,
       lectures,
       cards,
       newLeft,
+      todos,
+      marks,
     });
+    scheduleReminderSync({ slots, events, feeds, caches }, todos, marks);
   }, []);
 
   useEffect(() => {

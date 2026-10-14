@@ -38,10 +38,15 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <SyncBadge />
           <nav className="topnav">
             <Link href="/">Heute</Link>
+            <Link href="/aufgaben">Aufgaben</Link>
             <Link href="/stundenplan">Stundenplan</Link>
             <Link href="/kalender">Kalender</Link>
+            <Link href="/lernplan">Lernplan</Link>
             <Link href="/vorlesungen">Vorlesungen</Link>
             <Link href="/lernen">Lernen</Link>
+            <Link href="/fokus">Fokus</Link>
+            <Link href="/studium">Studium</Link>
+            <Link href="/pharmazie">Pharmazie</Link>
             <Link href="/links">Links</Link>
             <Link href="/karten">Karten</Link>
             <Link href="/statistik">Statistik</Link>

@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import { FocusStats } from "@/components/FocusStats";
 import { useRemoteRefresh } from "@/components/SyncBadge";
 import { allCards, getSettings, reviewsSince, setSettings, type ReviewLog } from "@/lib/db";
 import { DAY, isMastered, startOfDay, type CardState } from "@/lib/srs";
@@ -120,6 +122,16 @@ export default function StatsPage() {
           ))}
         </div>
       </section>
+
+      <div className="row spread" style={{ marginTop: 32, marginBottom: 14 }}>
+        <h2 className="course-title" style={{ margin: 0 }}>
+          Lernzeit
+        </h2>
+        <Link href="/fokus" className="small">
+          Fokus-Timer
+        </Link>
+      </div>
+      <FocusStats />
 
       <section className="sheet stat-panel" style={{ marginTop: 20, maxWidth: 520 }}>
         <h2>Einstellungen</h2>

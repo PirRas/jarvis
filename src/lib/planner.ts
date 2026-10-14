@@ -1,7 +1,9 @@
 // Uni-Cockpit: Stundenplan, Termine, Kalender-Abos und Links.
 // Alles wird zu einer gemeinsamen Zeitleiste ("Vorkommen") zusammengeführt.
 
+import type { Todo } from "./assistant";
 import { sameCourse } from "./courses";
+import { lectureFree } from "./uniDates";
 
 type Synced = { updatedAt?: number };
 
@@ -108,7 +110,11 @@ export type Occurrence = {
   allDay: boolean;
   location: string;
   note: string;
-  origin: { kind: "slot"; id: string } | { kind: "event"; id: string } | { kind: "feed"; id: string; name: string };
+  origin:
+    | { kind: "slot"; id: string }
+    | { kind: "event"; id: string }
+    | { kind: "feed"; id: string; name: string }
+    | { kind: "todo"; id: string };
 };
 
 // ---------- Datum und Zeit ----------
@@ -140,6 +146,14 @@ export function isoDate(t: number) {
 export function parseIsoDate(s: string) {
   const [y, m, d] = s.split("-").map(Number);
   return new Date(y, (m || 1) - 1, d || 1).getTime();
+}
+
+/** Zeitpunkt "HH:MM" an einem Tag in Ortszeit (auch an Tagen mit Zeitumstellung korrekt). */
+export function atTime(day: number, hhmm: string) {
+  const d = new Date(day);
+  const m = parseTime(hhmm);
+  d.setHours(Math.floor(m / 60), m % 60, 0, 0);
+  return d.getTime();
 }
 
 /** "10:15" -> Minuten seit Mitternacht. */
@@ -220,8 +234,6 @@ export function slotOccurrences(slot: Slot, from: number, to: number): Occurrenc
   const out: Occurrence[] = [];
   const first = parseIsoDate(slot.from);
   const last = parseIsoDate(slot.until) + DAYMS;
-  const startMin = parseTime(slot.start);
-  const endMin = Math.max(parseTime(slot.end), startMin + 15);
   // ersten passenden Wochentag ab `first` suchen
   let day = dayStart(first);
   while (isoWeekday(day) !== slot.weekday) day = addDays(day, 1);
@@ -229,8 +241,9 @@ export function slotOccurrences(slot: Slot, from: number, to: number): Occurrenc
   for (; day < last && day < to; day = addDays(day, 7)) {
     if (slot.biweekly && Math.round((day - anchor) / DAYMS / 7) % 2 === 1) continue;
     if (slot.skip?.includes(isoDate(day))) continue;
-    const start = day + startMin * MIN;
-    const end = day + endMin * MIN;
+    if (lectureFree(isoDate(day))) continue; // offiziell vorlesungsfrei (z. B. Dies Academicus)
+    const start = atTime(day, slot.start);
+    const end = Math.max(atTime(day, slot.end), start + 15 * MIN);
     if (end < from) continue;
     out.push({
       key: `slot:${slot.id}:${isoDate(day)}`,
@@ -289,9 +302,30 @@ export type PlannerData = {
   events: CalEvent[];
   feeds: Feed[];
   caches: FeedCache[];
+  todos?: Todo[]; // offene Aufgaben mit Termin erscheinen als Frist
 };
 
-export const EMPTY_PLANNER: PlannerData = { slots: [], events: [], feeds: [], caches: [] };
+export const EMPTY_PLANNER: PlannerData = { slots: [], events: [], feeds: [], caches: [], todos: [] };
+
+/** Offene Aufgabe mit Termin als Frist in der Zeitleiste. */
+function todoOccurrence(t: Todo): Occurrence | null {
+  if (!t.due || t.done) return null;
+  const day = parseIsoDate(t.due);
+  const start = t.time ? atTime(day, t.time) : day;
+  return {
+    key: `todo:${t.id}`,
+    title: t.title,
+    course: "",
+    kind: "deadline",
+    type: `Aufgabe · ${t.category}`,
+    start,
+    end: t.time ? start + 30 * MIN : day + DAYMS,
+    allDay: !t.time,
+    location: "",
+    note: t.note,
+    origin: { kind: "todo", id: t.id },
+  };
+}
 
 /** Alle Fächer, die im Stundenplan oder in Terminen vorkommen. */
 export function knownCourses(data: PlannerData, extra: string[] = []) {
@@ -309,6 +343,10 @@ export function occurrences(data: PlannerData, from: number, to: number, courses
   for (const e of data.events) {
     const o = eventOccurrence(e);
     if (o.end > from && o.start < to) out.push(o);
+  }
+  for (const t of data.todos ?? []) {
+    const o = todoOccurrence(t);
+    if (o && o.end > from && o.start < to) out.push(o);
   }
   for (const feed of data.feeds) {
     if (feed.role === "timetable") continue; // steckt schon in Stundenplan und Prüfungen

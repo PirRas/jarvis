@@ -1,6 +1,7 @@
 "use client";
 
 import { openDB, type DBSchema, type IDBPDatabase } from "idb";
+import type { CourseRecord, Mark, NewsFeed, StudySession, Todo } from "./assistant";
 import type { CalEvent, Feed, FeedCache, LessonPreview, QuickLink, Slot } from "./planner";
 import type { Notes, Study, Video } from "./schema";
 import { newCard, startOfDay, type CardQueue, type CardState, type Rating } from "./srs";
@@ -40,7 +41,22 @@ export type ReviewLog = Synced & {
 /** Merkt sich Löschungen, damit sie auch auf anderen Geräten ankommen. */
 export type Tombstone = { key: string; store: SyncStore; id: string; updatedAt: number };
 
-export const SYNC_STORES = ["lectures", "cards", "quiz", "reviews", "slots", "events", "feeds", "links", "previews"] as const;
+export const SYNC_STORES = [
+  "lectures",
+  "cards",
+  "quiz",
+  "reviews",
+  "slots",
+  "events",
+  "feeds",
+  "links",
+  "previews",
+  "todos",
+  "sessions",
+  "grades",
+  "marks",
+  "news",
+] as const;
 export type SyncStore = (typeof SYNC_STORES)[number];
 
 interface StudyDB extends DBSchema {
@@ -55,12 +71,17 @@ interface StudyDB extends DBSchema {
   links: { key: string; value: QuickLink };
   previews: { key: string; value: LessonPreview };
   feedcache: { key: string; value: FeedCache }; // nur lokal, wird aus den Abos neu geladen
+  todos: { key: string; value: Todo };
+  sessions: { key: string; value: StudySession };
+  grades: { key: string; value: CourseRecord };
+  marks: { key: string; value: Mark };
+  news: { key: string; value: NewsFeed };
 }
 
 let dbPromise: Promise<IDBPDatabase<StudyDB>> | null = null;
 
 function db() {
-  dbPromise ??= openDB<StudyDB>("vorlesungen", 3, {
+  dbPromise ??= openDB<StudyDB>("vorlesungen", 4, {
     upgrade(d, oldVersion) {
       if (oldVersion < 1) {
         d.createObjectStore("lectures", { keyPath: "id" });
@@ -78,6 +99,12 @@ function db() {
       if (oldVersion < 3) {
         // Uni-Cockpit: Stundenplan, Termine, Kalender-Abos, Links, Lektions-Vorschauen
         for (const name of ["slots", "events", "feeds", "links", "previews", "feedcache"] as const) {
+          d.createObjectStore(name, { keyPath: "id" });
+        }
+      }
+      if (oldVersion < 4) {
+        // Assistent: Aufgaben, Lernzeit, Noten, Markierungen, News-Abos
+        for (const name of ["todos", "sessions", "grades", "marks", "news"] as const) {
           d.createObjectStore(name, { keyPath: "id" });
         }
       }
@@ -210,7 +237,7 @@ export async function quizResultsForLecture(lectureId: string) {
 
 // ---------- Cockpit: Stundenplan, Termine, Abos, Links, Vorschauen ----------
 
-type PlannerStore = "slots" | "events" | "feeds" | "links" | "previews";
+type PlannerStore = "slots" | "events" | "feeds" | "links" | "previews" | "todos" | "sessions" | "grades" | "marks" | "news";
 type PlannerValue<S extends PlannerStore> = StudyDB[S]["value"];
 
 export async function listItems<S extends PlannerStore>(store: S): Promise<PlannerValue<S>[]> {

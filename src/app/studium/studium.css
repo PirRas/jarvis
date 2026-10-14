@@ -1,0 +1,269 @@
+/* Studium: Kreditpunkte, Noten, Fristen, Neuigkeiten. Farben aus globals.css. */
+
+.st-overview {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  gap: 20px;
+  align-items: start;
+}
+.st-overview .panel,
+.st-dates .panel,
+.st-news .panel,
+.st-plan .panel {
+  display: grid;
+  gap: 10px;
+  align-content: start;
+}
+.st-overview .btn-quiet {
+  justify-self: start;
+  padding-left: 0;
+}
+
+.st-big {
+  margin: 0;
+  font-size: var(--step-3);
+  font-weight: 700;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+.st-big .muted {
+  font-size: var(--step-1);
+  font-weight: 500;
+}
+
+.st-stages {
+  list-style: none;
+  margin: 4px 0 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+.st-stages li {
+  display: grid;
+  grid-template-columns: minmax(0, 11rem) minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  font-size: var(--step--1);
+}
+.st-stage-bar {
+  min-width: 60px;
+}
+@media (max-width: 520px) {
+  .st-stages li {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+  .st-stage-bar {
+    grid-column: 1 / -1;
+    order: 3;
+  }
+}
+
+.st-ok {
+  color: var(--green);
+}
+
+.st-mini {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+
+.st-pill-est {
+  margin-left: 8px;
+  background: color-mix(in srgb, var(--amber) 18%, var(--sheet));
+  color: var(--amber);
+}
+.st-pill-open {
+  margin-left: 8px;
+  background: var(--green-wash);
+  color: var(--green);
+}
+.st-pill-comp {
+  margin-left: 6px;
+  background: color-mix(in srgb, var(--amber) 18%, var(--sheet));
+  color: var(--amber);
+}
+
+/* Studienplan */
+.st-plan {
+  display: grid;
+  gap: 16px;
+}
+.st-plan > .tabs {
+  margin: 0;
+}
+.st-stage-grade {
+  margin: 0;
+}
+.st-module .panel-title {
+  font-size: var(--step-0);
+}
+.st-courses {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.st-course {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 6px 16px;
+  align-items: center;
+  padding: 10px 0 10px 10px;
+  border-left: 3px solid var(--rule);
+}
+.st-course + .st-course {
+  border-top: 1px solid var(--rule);
+}
+.st-course.is-passed {
+  border-left-color: var(--green);
+}
+.st-course.is-failed {
+  border-left-color: var(--red);
+}
+.st-course-main {
+  min-width: 0;
+}
+.st-course-title {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.st-course-input {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.st-course-input select,
+.st-grade {
+  font: inherit;
+  padding: 6px 8px;
+  border: 1.5px solid var(--rule);
+  border-radius: var(--radius-s);
+  background: var(--sheet);
+  color: var(--ink);
+}
+.st-grade {
+  width: 4.5rem;
+  text-align: center;
+}
+.st-grade.is-invalid {
+  border-color: var(--red);
+}
+.st-course-error {
+  grid-column: 1 / -1;
+  margin: 0;
+}
+@media (max-width: 560px) {
+  .st-course {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.st-add {
+  margin-top: 8px;
+}
+
+/* Fristen */
+.st-dates {
+  display: grid;
+  gap: 20px;
+}
+.st-deadlines {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.st-deadlines li {
+  display: grid;
+  grid-template-columns: 8rem minmax(0, 1fr);
+  gap: 14px;
+  padding: 12px 0;
+}
+.st-deadlines li + li {
+  border-top: 1px solid var(--rule);
+}
+.st-deadlines li.is-past {
+  opacity: 0.55;
+}
+.st-deadline-when {
+  display: grid;
+  align-content: start;
+}
+.st-deadline-title {
+  font-weight: 600;
+}
+@media (max-width: 520px) {
+  .st-deadlines li {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
+}
+.st-free {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.st-free li {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+/* Neuigkeiten */
+.st-news {
+  display: grid;
+  gap: 20px;
+}
+.st-news-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.st-news-list li {
+  padding: 12px 0 12px 12px;
+  border-left: 3px solid var(--royal);
+}
+.st-news-list li + li {
+  border-top: 1px solid var(--rule);
+}
+.st-news-list li.is-read {
+  border-left-color: var(--rule);
+}
+.st-news-list li.is-read .st-news-title {
+  font-weight: 500;
+  color: var(--ink-soft);
+}
+.st-news-title {
+  font-weight: 700;
+  text-decoration: none;
+  overflow-wrap: anywhere;
+}
+.st-news-title:hover {
+  text-decoration: underline;
+}
+.st-news-summary {
+  margin: 4px 0 0;
+  color: var(--ink-soft);
+}
+.st-url {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.st-help {
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-s);
+  padding: 10px 14px;
+}
+.st-help > summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: var(--royal);
+}
+.st-help ol {
+  margin: 6px 0;
+  padding-left: 1.3em;
+}

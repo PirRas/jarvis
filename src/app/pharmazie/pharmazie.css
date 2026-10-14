@@ -1,0 +1,206 @@
+/* Pharmazie: Wirkstoff-Steckbrief, Rechner, Arzneipflanzen. Farben aus globals.css (Hell/Dunkel). */
+
+.ph-stack {
+  display: grid;
+  gap: 20px;
+}
+.ph-grow {
+  flex: 1 1 240px;
+}
+.ph-chip {
+  padding: 4px 10px;
+}
+.ph-mono,
+.ph-formula {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+.ph-break {
+  overflow-wrap: anywhere;
+}
+.ph-sub {
+  font-size: var(--step--1);
+  font-weight: 700;
+  color: var(--ink-soft);
+  margin: 18px 0 6px;
+}
+
+/* Steckbrief */
+.ph-compound {
+  display: grid;
+  grid-template-columns: minmax(0, 300px) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+@media (max-width: 720px) {
+  .ph-compound {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.ph-structure {
+  background: #fff; /* Strukturbilder von PubChem haben weissen Hintergrund */
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-m);
+  padding: 8px;
+  display: grid;
+  place-items: center;
+}
+.ph-structure img {
+  width: 100%;
+  max-width: 300px;
+  height: auto;
+}
+.ph-dl {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 6px 16px;
+  margin: 12px 0 0;
+}
+.ph-dl dt {
+  color: var(--ink-soft);
+  font-size: var(--step--1);
+  font-weight: 600;
+}
+.ph-dl dd {
+  margin: 0;
+}
+@media (max-width: 480px) {
+  .ph-dl {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 2px;
+  }
+  .ph-dl dd {
+    margin-bottom: 8px;
+  }
+}
+.ph-rules {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 4px;
+}
+.ph-rules .is-ok span {
+  color: var(--green);
+  font-weight: 700;
+}
+.ph-rules .is-bad span {
+  color: var(--red);
+  font-weight: 700;
+}
+
+/* Rechner */
+.ph-calc-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
+  gap: 20px;
+  align-items: start;
+}
+.ph-calc-grid .panel {
+  display: grid;
+  gap: 10px;
+}
+.ph-calc-grid .panel > p {
+  margin: 0;
+}
+.ph-two {
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 170px), 1fr));
+}
+.ph-subtabs {
+  margin: 0;
+}
+.ph-unit {
+  display: flex;
+  gap: 6px;
+}
+.ph-unit input {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.ph-unit select {
+  flex: none;
+}
+.ph-result {
+  font-size: var(--step-1);
+  margin: 4px 0 0;
+}
+.ph-result strong {
+  color: var(--royal);
+}
+.ph-result-list strong {
+  color: var(--royal);
+}
+.ph-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-variant-numeric: tabular-nums;
+  font-size: var(--step--1);
+}
+.ph-table th,
+.ph-table td {
+  text-align: left;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--rule);
+}
+.ph-table th {
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+
+/* Arzneipflanzen */
+.ph-filters {
+  margin-top: 12px;
+}
+.ph-plants {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+  gap: 16px;
+}
+.ph-plant {
+  overflow: hidden;
+  display: grid;
+  grid-template-rows: auto 1fr;
+}
+.ph-plant img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  display: block;
+  background: var(--grid);
+}
+.ph-plant-body {
+  padding: 12px 14px 14px;
+  display: grid;
+  gap: 4px;
+  align-content: start;
+}
+.ph-plant-body h3 {
+  margin: 0;
+  font-size: var(--step-1);
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+.ph-plant-body p {
+  margin: 0;
+}
+.ph-plant-de {
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+.ph-toxic {
+  font-size: 0.75rem;
+  font-style: normal;
+  font-weight: 700;
+  padding: 1px 8px;
+  border-radius: 99px;
+  background: var(--red-wash);
+  color: var(--red);
+}
+.ph-source {
+  color: var(--ink-faint);
+  margin-top: 4px;
+}

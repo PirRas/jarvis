@@ -6,6 +6,7 @@ import { Suspense, useCallback, useEffect, useState } from "react";
 import { Counts } from "@/components/Counts";
 import { Md } from "@/components/Md";
 import { Quiz } from "@/components/Quiz";
+import { ShareDeck } from "@/components/ShareDeck";
 import { useRemoteRefresh } from "@/components/SyncBadge";
 import { Videos } from "@/components/Videos";
 import {
@@ -129,6 +130,7 @@ function LectureInner() {
             <Link className="btn btn-primary" href={`/lernen?deck=${id}`}>
               Karten lernen
             </Link>
+            <ShareDeck lecture={lecture} />
           </div>
         </div>
       )}

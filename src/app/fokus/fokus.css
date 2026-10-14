@@ -1,0 +1,190 @@
+/* Fokus-Timer und Lernzeit-Statistik */
+
+.fx-timer {
+  display: grid;
+  gap: 14px;
+  margin-bottom: 28px;
+}
+.fx-timer.is-focus {
+  border-top: 4px solid var(--royal);
+}
+.fx-timer.is-break {
+  border-top: 4px solid var(--green);
+}
+.fx-phase {
+  margin: 0;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: var(--step--1);
+}
+.fx-clock {
+  font-family: var(--font-read), serif;
+  font-size: clamp(3.5rem, 16vw, 6.5rem);
+  font-weight: 600;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.is-break .fx-clock,
+.is-break .fx-phase {
+  color: var(--green);
+}
+.fx-progress {
+  height: 10px;
+}
+.is-break .fx-progress > span {
+  background: var(--green);
+}
+.fx-actions .btn {
+  min-width: 7rem;
+}
+
+.fx-choices {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.fx-choices > .small {
+  min-width: 3.5rem;
+}
+.fx-chip {
+  font: inherit;
+  font-weight: 600;
+  padding: 6px 14px;
+  border-radius: 99px;
+  border: 1.5px solid var(--rule);
+  background: var(--sheet);
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+.fx-chip:hover {
+  border-color: var(--royal);
+}
+.fx-chip.is-on {
+  border-color: var(--royal);
+  background: var(--royal-wash);
+  color: var(--ink);
+}
+.fx-custom {
+  font: inherit;
+  width: 6.5rem;
+  padding: 6px 12px;
+  border-radius: 99px;
+  border: 1.5px solid var(--rule);
+  background: var(--sheet);
+  color: var(--ink);
+}
+
+.fx-heading {
+  margin: 8px 0 14px;
+}
+.fx-stats {
+  display: grid;
+  gap: 20px;
+}
+.fx-two {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  gap: 20px;
+  margin-top: 20px;
+  align-items: start;
+}
+.fx-stats .fx-two {
+  margin-top: 0;
+}
+
+.fx-goal-bar {
+  margin-top: 14px;
+}
+.fx-goal {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 10px;
+}
+.fx-goal input {
+  font: inherit;
+  width: 4.5rem;
+  padding: 2px 6px;
+  border: 1.5px solid var(--rule);
+  border-radius: var(--radius-s);
+  background: var(--sheet);
+  color: var(--ink);
+}
+
+.fx-week {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+  align-items: end;
+  margin-top: 14px;
+}
+.fx-week-col {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  font-size: 0.75rem;
+  color: var(--ink-faint);
+}
+.fx-week-col.is-today {
+  color: var(--royal);
+  font-weight: 700;
+}
+.fx-week-bar {
+  width: 100%;
+  max-width: 22px;
+  min-height: 2px;
+  border-radius: 4px 4px 0 0;
+  background: var(--royal);
+}
+
+.fx-bars {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+.fx-bar-label {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 4px;
+  font-size: var(--step--1);
+}
+.fx-bar-label span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.fx-bar-label strong {
+  flex: none;
+  font-variant-numeric: tabular-nums;
+}
+
+.fx-manual {
+  display: grid;
+  gap: 12px;
+}
+.fx-list {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+}
+.fx-list li {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--rule);
+}
+.fx-list li > div:first-child {
+  min-width: 0;
+}
+.fx-min {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
