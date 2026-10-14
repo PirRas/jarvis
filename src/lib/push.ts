@@ -51,6 +51,32 @@ function deviceName() {
   return `${browser} auf ${os}`;
 }
 
+async function saveSubscription(sb: NonNullable<ReturnType<typeof supabase>>, sub: PushSubscription, userId: string) {
+  const json = sub.toJSON() as { endpoint: string; keys: { p256dh: string; auth: string } };
+  const { error } = await sb.from("push_subscriptions").upsert({
+    endpoint: json.endpoint,
+    user_id: userId,
+    p256dh: json.keys.p256dh,
+    auth: json.keys.auth,
+    device: deviceName(),
+  });
+  return error;
+}
+
+let refreshed = false;
+
+/**
+ * Einmal pro App-Start das Abo dieses Geräts erneut hinterlegen. Der Browser kann es erneuern, und der Server
+ * löscht Abos, die nicht mehr angenommen werden; sonst bliebe das Gerät stumm, obwohl Push als "an" gilt.
+ */
+async function refreshSubscription(sb: NonNullable<ReturnType<typeof supabase>>, userId: string) {
+  if (refreshed || !supported() || Notification.permission !== "granted") return;
+  const reg = await navigator.serviceWorker.getRegistration("/");
+  const sub = await reg?.pushManager.getSubscription();
+  if (!sub) return;
+  if (!(await saveSubscription(sb, sub, userId))) refreshed = true;
+}
+
 /** Fragt die Erlaubnis an, meldet dieses Gerät an und speichert das Abo in Supabase. */
 export async function enablePush() {
   const sb = supabase();
@@ -64,14 +90,7 @@ export async function enablePush() {
   const sub =
     (await reg.pushManager.getSubscription()) ??
     (await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: keyBytes(VAPID_PUBLIC_KEY) }));
-  const json = sub.toJSON() as { endpoint: string; keys: { p256dh: string; auth: string } };
-  const { error } = await sb.from("push_subscriptions").upsert({
-    endpoint: json.endpoint,
-    user_id: data.session.user.id,
-    p256dh: json.keys.p256dh,
-    auth: json.keys.auth,
-    device: deviceName(),
-  });
+  const error = await saveSubscription(sb, sub, data.session.user.id);
   if (error) throw new Error(`Abo konnte nicht gespeichert werden: ${error.message}`);
   // Merkt sich (auf allen Geräten), dass Push genutzt wird; erst dann wird ein Erinnerungsplan geschrieben.
   await putItems("marks", [{ id: PUSH_ENABLED_MARK, createdAt: Date.now() }]);
@@ -118,6 +137,7 @@ async function syncReminders(data: PlannerData, todos: Todo[], marks: Mark[]) {
   const sb = supabase();
   const session = (await sb?.auth.getSession())?.data.session;
   if (!sb || !session) return;
+  await refreshSubscription(sb, session.user.id);
   const now = Date.now();
   const reminders = buildReminders(data, todos, enabledKinds(marks), now);
   // Stundengenau vergleichen, damit nicht jedes Neuladen schreibt

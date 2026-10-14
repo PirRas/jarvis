@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { allCards, allFeedCaches, getSettings, listItems, listLectures, newCardsLeftToday, onLocalChange, putItems, type Lecture } from "./db";
+import { allCards, allFeedCaches, getSettings, listItems, listLectures, newCardsLeftToday, onLocalChange, seedItems, type Lecture } from "./db";
 import { FEEDS_EVENT, refreshFeeds } from "./feeds";
 import type { Mark, Todo } from "./assistant";
 import { DEFAULT_LINKS, EMPTY_PLANNER, type LessonPreview, type PlannerData, type QuickLink } from "./planner";
@@ -45,7 +45,7 @@ async function seedLinks(existing: QuickLink[]) {
     return false;
   }
   if (existing.length) return false;
-  await putItems(
+  await seedItems(
     "links",
     DEFAULT_LINKS.map((l) => ({ ...l, id: `default-${l.order}` })),
   );
@@ -55,8 +55,8 @@ async function seedLinks(existing: QuickLink[]) {
 /** Vorbereitete Aufgaben einmal pro Konto anlegen (Markierung wird abgeglichen, gelöschte kommen nicht zurück). */
 async function seedTodos(marks: Mark[]) {
   if (marks.some((m) => m.id === PRESETS_MARK)) return false;
-  await putItems("todos", presetTodos());
-  await putItems("marks", [{ id: PRESETS_MARK, createdAt: Date.now() }]);
+  await seedItems("todos", presetTodos());
+  await seedItems("marks", [{ id: PRESETS_MARK, createdAt: Date.now() }]);
   return true;
 }
 
@@ -79,7 +79,7 @@ export function usePlanner() {
       listItems("todos"),
       listItems("marks"),
     ]);
-    if (await seedLinks(links)) return; // putItems löst selbst ein Neuladen aus
+    if (await seedLinks(links)) return; // seedItems löst selbst ein Neuladen aus
     if (await seedTodos(marks)) return;
     setState({
       loaded: true,

@@ -259,6 +259,23 @@ export async function putItems<S extends PlannerStore>(store: S, values: Planner
 
 export const putItem = <S extends PlannerStore>(store: S, value: PlannerValue<S>) => putItems(store, [value]);
 
+/**
+ * Vorlagen anlegen (nur fehlende). Sie bekommen den ältestmöglichen Zeitstempel, damit beim Abgleich
+ * jede echte Änderung von einem anderen Gerät gewinnt: Ein frisch eingerichtetes Gerät darf erledigte
+ * oder gelöschte Vorlagen nicht mit seinem Neuanlegen überschreiben.
+ */
+export async function seedItems<S extends PlannerStore>(store: S, values: PlannerValue<S>[]) {
+  const d = await db();
+  const tx = d.transaction([store, "tombstones"], "readwrite");
+  const os = tx.objectStore(store) as unknown as { get(k: string): Promise<unknown>; put(v: unknown): Promise<unknown> };
+  for (const v of values as { id: string }[]) {
+    if ((await os.get(v.id)) || (await tx.objectStore("tombstones").get(`${store}:${v.id}`))) continue;
+    await os.put({ ...v, updatedAt: 1 });
+  }
+  await tx.done;
+  changed();
+}
+
 export async function deleteItems(store: PlannerStore, ids: string[]) {
   const d = await db();
   const tx = d.transaction([store, "tombstones"], "readwrite");
