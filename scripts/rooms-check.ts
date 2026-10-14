@@ -16,7 +16,10 @@ for (const o of list) {
     continue;
   }
   if (data.error) {
-    if (!seen.has(o.code!)) console.log(o.code, "FEHLER", data.error), seen.add(o.code!);
+    if (!seen.has(o.code!)) {
+      console.log(o.code, "FEHLER", data.error);
+      seen.add(o.code!);
+    }
     continue;
   }
   const r = matchRoom(o, data);
