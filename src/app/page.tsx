@@ -25,6 +25,10 @@ import {
   relTime,
   type Occurrence,
 } from "@/lib/planner";
+import { PushSetup } from "@/components/PushSetup";
+import { TodoItem } from "@/components/TodoItem";
+import { examPlans, pendingPrep } from "@/lib/lernplan";
+import { groupTodos } from "@/lib/todos";
 import { usePlanner } from "@/lib/usePlanner";
 
 export default function Today() {
@@ -59,6 +63,18 @@ export default function Today() {
     .join(" ");
 
   const focus = [...current, ...(next ? [next] : [])];
+
+  // Aufgaben: überfällige und die nächsten zuerst
+  const openTodos = groupTodos(p.todos, now)
+    .filter((g) => g.key !== "done")
+    .flatMap((g) => g.items)
+    .slice(0, 5);
+  // Lernplan
+  const lite = p.lectures.map((l) => ({ id: l.id, course: l.course, title: l.title, createdAt: l.createdAt, examTasks: l.study.exam_tasks.length }));
+  const pending = pendingPrep(p.data, lite, p.marks, now);
+  const plans = examPlans(p.data, lite, p.cards, p.marks, now).filter((x) => x.daysLeft <= 60);
+  const newToday = plans.reduce((sum, x) => sum + x.daily.newCards, 0);
+  const reviewsToday = plans.reduce((sum, x) => sum + x.daily.reviews, 0);
   const linkGroups = groupLinks(p.links);
   const daily = linkGroups[0];
 
@@ -124,7 +140,55 @@ export default function Today() {
         )}
       </section>
 
+      <PushSetup marks={p.marks} compact />
+
       <div className="cockpit-grid">
+        <section className="sheet panel">
+          <h2 className="panel-title">Aufgaben</h2>
+          {openTodos.length ? (
+            <ul className="todo-list todo-compact">
+              {openTodos.map((t) => (
+                <TodoItem key={t.id} todo={t} now={now} compact />
+              ))}
+            </ul>
+          ) : (
+            <p className="muted">Keine offenen Aufgaben.</p>
+          )}
+          <Link className="panel-more" href="/aufgaben">
+            Alle Aufgaben
+          </Link>
+        </section>
+
+        <section className="sheet panel">
+          <h2 className="panel-title">Lernplan heute</h2>
+          <ul className="lp-today-list">
+            {pending.length > 0 && (
+              <li>
+                <Link href="/lernplan#waechter">
+                  {pending.length} {pending.length === 1 ? "Lektion" : "Lektionen"} nachbereiten
+                </Link>
+                <span className="small muted"> · {[...new Set(pending.map((o) => o.course))].slice(0, 3).join(", ")}</span>
+              </li>
+            )}
+            {newToday + reviewsToday > 0 && (
+              <li>
+                <Link href="/lernen">
+                  {newToday} neue Karten, {reviewsToday} Wiederholungen
+                </Link>
+              </li>
+            )}
+            {plans[0] && (
+              <li>
+                Nächste Prüfung: <strong>{plans[0].course}</strong> in {plans[0].daysLeft} Tagen, {plans[0].readiness} % bereit
+              </li>
+            )}
+            {!pending.length && newToday + reviewsToday === 0 && !plans[0] && <li className="muted">Nichts offen.</li>}
+          </ul>
+          <Link className="panel-more" href="/lernplan">
+            Ganzer Lernplan
+          </Link>
+        </section>
+
         <section className="sheet panel">
           <h2 className="panel-title">
             {agendaDay === dayStart(now) ? "Heute" : agendaDay ? fmtDay(agendaDay) : "Heute"}

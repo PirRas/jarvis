@@ -913,3 +913,9 @@ details.panel > summary {
   font-weight: 600;
 }
 
+.todo-compact {
+  padding: 0;
+}
+.todo-compact .todo {
+  padding: 8px 0;
+}
