@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
+import { Decode, shouldBoot } from "@/components/Decode";
 import { CopyButton } from "@/components/CopyButton";
 import { HudRing } from "@/components/HudRing";
 import { LessonPreview } from "@/components/LessonPreview";
@@ -35,6 +37,7 @@ import { usePlanner } from "@/lib/usePlanner";
 
 export default function Today() {
   const p = usePlanner();
+  const [boot] = useState(shouldBoot);
   const { now } = p;
 
   if (!p.loaded) return <p className="muted">Jarvis startet …</p>;
@@ -83,15 +86,14 @@ export default function Today() {
 
   return (
     <>
-      <header className="jarvis-head">
-        <HudRing>
+      <header className={`jarvis-head${boot ? " is-boot" : ""}`}>
+        <HudRing boot={boot}>
           <span className="hud-time">{fmtTime(now)}</span>
           <span className="hud-day">{new Date(now).toLocaleDateString("de-CH", { weekday: "short", day: "numeric", month: "short" })}</span>
         </HudRing>
         <div className="jarvis-head-text">
           <h1 className="page-title">
-            {greeting(now)}
-            {profile?.name ? `, ${profile.name}` : ""}.
+            <Decode text={`${greeting(now)}${profile?.name ? `, ${profile.name}` : ""}.`} active={boot} />
           </h1>
           <p className="hud-tags">
             {profile && <span className="hud-tag is-level">{levelLabel(studyLevel(profile, now))}</span>}

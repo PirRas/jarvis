@@ -88,6 +88,7 @@ select {
   *::after {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important; /* Dauer-Drehungen stehen still statt zu rasen */
   }
 }
 
@@ -128,6 +129,23 @@ select {
   width: 26px;
   height: 26px;
   filter: drop-shadow(0 0 4px rgba(70, 213, 245, 0.6));
+}
+
+.brand-mark-spin {
+  transform-origin: 16px 16px;
+  animation: hud-spin 24s linear infinite;
+}
+
+.brand:hover .brand-mark-spin {
+  animation-duration: 3s;
+}
+
+.topnav a {
+  transition: color 0.2s, background 0.2s, box-shadow 0.2s;
+}
+
+.topnav a[aria-current="page"] {
+  text-shadow: 0 0 10px rgba(70, 213, 245, 0.6);
 }
 
 .topnav {
@@ -224,6 +242,27 @@ select {
     linear-gradient(var(--c), var(--c)) bottom right / 14px 1.5px,
     linear-gradient(var(--c), var(--c)) bottom right / 1.5px 14px;
   background-repeat: no-repeat;
+  animation: hud-lock 0.55s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+  transition: filter 0.2s;
+}
+
+.sheet:hover::before {
+  --c: rgba(70, 213, 245, 1);
+  filter: drop-shadow(0 0 4px rgba(70, 213, 245, 0.8));
+}
+
+/* Zielerfassung: Klammern kommen von aussen und rasten an den Ecken ein */
+@keyframes hud-lock {
+  from {
+    inset: -10px;
+    opacity: 0;
+  }
+  60% {
+    opacity: 1;
+  }
+  to {
+    inset: -1px;
+  }
 }
 
 .muted {
@@ -276,6 +315,25 @@ select {
 
 .btn-primary:hover {
   background: color-mix(in srgb, var(--royal) 82%, white);
+}
+
+.btn-primary {
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-primary::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, 0.55) 50%, transparent 70%);
+  transform: translateX(-120%);
+  pointer-events: none;
+}
+
+.btn-primary:hover::after {
+  transform: translateX(120%);
+  transition: transform 0.6s ease;
 }
 
 .btn-quiet {
@@ -1280,6 +1338,13 @@ details.solution[open] summary {
   outline: none;
 }
 
+@keyframes nav-sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+}
+
 /* ---------- Profil ---------- */
 
 .profile-form {
@@ -1443,6 +1508,7 @@ details.solution[open] summary {
     display: none;
   }
   .topnav.open .nav-more {
+    animation: nav-sheet-in 0.2s ease-out;
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 2px;

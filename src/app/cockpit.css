@@ -65,14 +65,127 @@
   overflow: visible;
 }
 
+/* Dauerhaft und langsam: Skala, Gegenring, Radar, atmender Kern */
 .hud-spin {
   transform-origin: 160px 160px;
   animation: hud-spin 90s linear infinite;
 }
 
+.hud-counter {
+  transform-origin: 160px 160px;
+  animation: hud-spin 40s linear infinite reverse;
+}
+
+.hud-radar {
+  transform-origin: 160px 160px;
+  animation: hud-spin 7s linear infinite;
+}
+
+.hud-core {
+  animation: hud-breathe 4.5s ease-in-out infinite;
+}
+
 @keyframes hud-spin {
   to {
     transform: rotate(360deg);
+  }
+}
+
+@keyframes hud-breathe {
+  50% {
+    stroke-opacity: 0.35;
+  }
+}
+
+/* Hochfahren (einmal pro Sitzung): Rahmen dreht sich ein, Segmente füllen sich, Bernstein zieht nach */
+.hud-ring.is-boot .hud-frame {
+  transform-origin: 160px 160px;
+  animation: hud-frame-in 1.1s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
+.hud-ring.is-boot .hud-fill {
+  animation: hud-draw 1.3s cubic-bezier(0.4, 0, 0.2, 1) 0.25s both;
+}
+
+.hud-ring.is-boot .hud-amber {
+  animation: hud-draw 0.8s ease-out 1.1s both;
+}
+
+.hud-ring.is-boot .hud-ring-center {
+  animation: hud-flicker 0.7s steps(1, end) 0.9s both;
+}
+
+@keyframes hud-frame-in {
+  from {
+    opacity: 0;
+    transform: rotate(-70deg) scale(0.86);
+  }
+}
+
+@keyframes hud-draw {
+  from {
+    stroke-dashoffset: var(--len);
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes hud-flicker {
+  0% {
+    opacity: 0;
+  }
+  20% {
+    opacity: 0.8;
+  }
+  30% {
+    opacity: 0.1;
+  }
+  45% {
+    opacity: 1;
+  }
+  55% {
+    opacity: 0.4;
+  }
+  65%,
+  100% {
+    opacity: 1;
+  }
+}
+
+.jarvis-head.is-boot .hud-tag {
+  animation: hud-scan-in 0.45s ease-out both;
+}
+
+.jarvis-head.is-boot .hud-tag:nth-child(1) {
+  animation-delay: 0.9s;
+}
+.jarvis-head.is-boot .hud-tag:nth-child(2) {
+  animation-delay: 1.05s;
+}
+.jarvis-head.is-boot .hud-tag:nth-child(3),
+.jarvis-head.is-boot .hud-tag:nth-child(4) {
+  animation-delay: 1.2s;
+}
+
+.jarvis-head.is-boot .lede,
+.jarvis-head.is-boot .row {
+  animation: hud-fade 0.6s ease-out 1.2s both;
+}
+
+@keyframes hud-scan-in {
+  from {
+    clip-path: inset(0 100% 0 0);
+    border-color: var(--royal);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+  }
+}
+
+@keyframes hud-fade {
+  from {
+    opacity: 0;
   }
 }
 
