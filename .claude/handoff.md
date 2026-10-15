@@ -8,10 +8,18 @@ keine
 
 ## Offen
 
-- Automatische Aufbereitung mit einer **echten, langen Vorlesungs-PDF** testen (bisher nur 1-seitige Test-PDF). Achten auf: Dauer, Qualität von Flash-Lite vs. 3.5 Flash, abgeschnittene JSON-Antworten bei vielen Folien.
-- Idee, vom Nutzer zurückgestellt: `/nachbereitung <pdf>`-Skill, der die Aufbereitung mit Claude Code (Abo) macht und direkt in Supabase speichert – bessere Qualität als Gemini. Nur bauen, wenn der Nutzer es wieder anspricht.
+- `/nachbereitung` einmal echt ausprobieren: dafür `JARVIS_EMAIL`/`JARVIS_PASSWORD` in `.env.local` eintragen (Login und Schreiben nach Supabase sind ungetestet, nur `--dry-run` geprüft).
+- Design (DESIGN.md §10) bewusst weggelassen: Sidebar-Icons, Mission-Timeline, Werkzeug-Kacheln, Desktop-Sprachleiste unten, Glocke/Suche in der Kopfzeile, Feed-Stil für Prüfungen/Raumwarnungen/Uni-Mail. Tablet-Breite 641–760 px mit Sidebar ist eng; alte `.topnav`-Regel für diese Breite ist wirkungslos.
+- OpenRouter-Weg (Folientext via pdf.js) unter Node nicht testbar (`readPdf` lädt den Worker fest von `/pdf.worker.min.mjs`).
+- Mobile Push für Claude-Benachrichtigungen ist in `/config` aus.
 
 ## Letzte Sitzungen
+
+### 2026-10-15 – PiravinLap2 (/firma: Echttest, /nachbereitung, Design)
+- Echttest mit langer PDF (Anatomie ZNS I, 12 MB) über `scripts/lecture-check.ts` (Modell erzwingen, Dauer, Schema, finishReason): 3.5 Flash Notizen 67 s / 6 Abschnitte, danach 429 beim Lernmaterial (Kontingent; App fällt auf Flash-Lite zurück); Flash-Lite Notizen+Lernmaterial je ~28 s, 15 Karten/15 Fragen. Kein abgeschnittenes JSON (finishReason STOP). YouTube-Videosuche echt getestet: 3 passende Videos.
+- Skill `/nachbereitung <pdf>` + `scripts/nachbereitung-save.ts` (Zod-Prüfung, `--dry-run`, `--courses`, Login E-Mail/Passwort aus `.env.local`, schreibt `sync_items` wie `sync.ts`). Importer/db nutzen dafür gemeinsames `src/lib/lectureRecords.ts`.
+- DESIGN.md §10 Schritte 1–6: Panel-Titel/Feed-Badges, `RingGauge`/Lernmonitor (Start + Statistik), Kopfzeile mit Uhr + Profil-Pille (`TopbarInfo`), Startseite 3 Spalten ab 1100 px, Desktop-Sidebar ab 641 px mit Aufgaben-Zähler, Systemübersicht + KI-Status (`SystemStatus`).
+- Browser-Test (Playwright, 16 Seiten × Handy/Tablet/Laptop): keine Konsolenfehler, kein horizontales Scrollen; Fix: Hero-Spalte war 320 px zu hoch, Ringe in einer Reihe.
 
 ### 2026-10-15 – Cloud-Sitzung (vm, Serientermine + Begrüssung)
 - Kalender: wöchentliche Serien (`CalEvent.repeat`, entfaltet in `occurrences()` in `planner.ts`, Schlüssel `event:<id>:<datum>`), im Editor „Jede Woche wiederholen“ + „bis“; per Sprache `termin_anlegen` mit `woechentlich`/`wiederholen_bis`. Löschen/Ändern trifft immer die ganze Serie (`skip` existiert im Typ, wird aber noch nirgends gesetzt).

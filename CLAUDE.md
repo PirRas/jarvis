@@ -14,7 +14,7 @@ Persönliches Uni-Cockpit (Pharmazeutische Wissenschaften, Uni Basel). Details z
 - Daten im Browser (IndexedDB über `idb`, `src/lib/db.ts`), Abgleich über Supabase (`src/lib/sync.ts`, `supabase/schema.sql`).
 - Push über `web-push` (`src/lib/pushServer.ts`, `public/sw.js`), Zod-Schemas in `src/lib/schema.ts`.
 - `.env` enthält nur öffentliche Supabase-Werte und ist absichtlich eingecheckt. Geheimnisse nur in `.env*.local` oder Vercel.
-- `scripts/check.ts` und `scripts/rooms-check.ts` sind manuelle Testwerkzeuge, kein toter Code.
+- `scripts/check.ts`, `scripts/rooms-check.ts` und `scripts/lecture-check.ts` (Echttest Aufbereitung mit echter PDF, `GEMINI_API_KEY` als Umgebungsvariable) sind manuelle Testwerkzeuge, kein toter Code.
 
 ## Checks
 - `npx tsc --noEmit`, `npx eslint . --max-warnings 0`, `npm run build`. Es gibt keine automatischen Tests.
@@ -38,3 +38,4 @@ Persönliches Uni-Cockpit (Pharmazeutische Wissenschaften, Uni Basel). Details z
 ## Skills
 - `/firma <aufgabe>`: Opus als Chef, Mitarbeiter-Agenten in `.claude/agents/` (Haiku/Sonnet).
 - `/close [nächste aufgabe]`: Sitzung abschliessen – Checks, Commit + Push, Gedächtnis pflegen, Fenster schliessen.
+- `/nachbereitung <pdf>`: Claude liest die PDF selbst, erzeugt Notizen + Lernmaterial und speichert per `scripts/nachbereitung-save.ts` in Supabase (braucht `JARVIS_EMAIL`/`JARVIS_PASSWORD` in `.env.local`).
