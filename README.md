@@ -90,3 +90,14 @@ Dann http://localhost:3000 öffnen.
 | 1 / 2 / 3 / 4 | Nochmal / Schwer / Gut / Einfach |
 | Strg+Z | Letzte Bewertung rückgängig |
 | @ | Karte zurückstellen |
+
+## Vor dem Öffnen für andere (Launch-Checkliste)
+
+- **Vercel → Environment Variables:** `NEXT_PUBLIC_OPERATOR_NAME`, `NEXT_PUBLIC_CONTACT_EMAIL` und `NEXT_PUBLIC_DATA_REGION` setzen (sie erscheinen in der Datenschutzerklärung).
+- Geheimnisse (`SUPABASE_SECRET_KEY`, `VAPID_PRIVATE_KEY`, `PUSH_CRON_SECRET`) nur in Vercel oder `.env*.local`, nie in `.env`. Diese Datei ist eingecheckt und enthält nur öffentliche Werte.
+- **Supabase → Authentication:** E-Mail-Bestätigung an; minimale Passwortlänge 10; MFA (TOTP) aktivieren; „Leaked password protection“ an (falls im Plan verfügbar).
+- **CAPTCHA:** Cloudflare Turnstile (gratis) gegen Bot-Registrierungen. Danach muss die CSP in `next.config.ts` den CAPTCHA-Host erlauben.
+- **Supabase → Rate-Limits** prüfen. **Site URL** und **Redirect URLs** auf die Vercel-Domain setzen (für Bestätigungs- und Passwort-Links).
+- **SQL-Editor:** `supabase/schema.sql` und `supabase/push.sql` erneut ausführen (neue 2FA-Regel).
+- **Vercel → Firewall:** Rate-Limit-Regel für `/api/*` anlegen. Das eingebaute Limit in `src/middleware.ts` gilt nur pro Server-Instanz.
+- Supabase-Region in `NEXT_PUBLIC_DATA_REGION` eintragen, damit die Datenschutzerklärung stimmt.
