@@ -23,6 +23,12 @@ Persönliches Uni-Cockpit (Pharmazeutische Wissenschaften, Uni Basel). Details z
 - Commit-Nachrichten auf Deutsch: `Bereich: was gemacht wurde`. Branch `main`, direkt pushen ist üblich.
 - Auf manchen Laptops ist keine Git-Identität gesetzt: dann Autor des letzten Commits mit `git -c user.name=… -c user.email=…` verwenden, Config nicht ändern.
 
+## Arbeitsweise
+- Plugins `ponytail` und `superpowers` sind im Projekt aktiv (`.claude/settings.json`).
+- Ponytail (full) ist Standard: kleinste Änderung, die die Aufgabe ganz löst, keine Vorrats-Abstraktionen. Bewusste Abkürzungen mit `// shortcut:` markieren (`/ponytail-debt` listet sie).
+- Grössere Features: erst `superpowers:brainstorming`, dann `superpowers:writing-plans`. Vor „fertig“ immer die Checks unten laufen lassen (`superpowers:verification-before-completion`).
+- Review: `/ponytail-review` für eine Änderung, `/ponytail-audit` fürs ganze Repo.
+
 ## Skills
 - `/firma <aufgabe>`: Opus als Chef, Mitarbeiter-Agenten in `.claude/agents/` (Haiku/Sonnet).
 - `/close [nächste aufgabe]`: Sitzung abschliessen – Checks, Commit + Push, Gedächtnis pflegen, Fenster schliessen.
