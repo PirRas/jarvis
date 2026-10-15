@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { CopyButton } from "@/components/CopyButton";
 import { describeFilter, filterSuggestedVideos } from "@/components/Videos";
 import { groupByCourse, matchExistingCourse } from "@/lib/courses";
+import { buildLecture } from "@/lib/lectureRecords";
 import { listLectures, saveLecture } from "@/lib/db";
 import { generateLecture, getGeminiKey, getOpenRouterKey, getYouTubeKey, setGeminiKey, setOpenRouterKey, setYouTubeKey } from "@/lib/gemini";
 import { notesPrompt, STUDY_PROMPT, videosPrompt } from "@/lib/prompts";
@@ -88,17 +89,9 @@ export function Importer() {
   async function save() {
     if (!notes?.ok || !study?.ok) return;
     setSaving(true);
-    const id = crypto.randomUUID();
-    await saveLecture({
-      id,
-      fileName: notes.data.title,
-      createdAt: Date.now(),
-      title: notes.data.title,
-      course: course ?? notes.data.course,
-      notes: { ...notes.data, course: course ?? notes.data.course },
-      study: study.data,
-      videos: videoFilter?.kept ?? [],
-    });
+    const lecture = buildLecture(notes.data, study.data, course ?? notes.data.course, videoFilter?.kept ?? []);
+    const id = lecture.id;
+    await saveLecture(lecture);
     setNotesRaw("");
     setStudyRaw("");
     setVideosRaw("");

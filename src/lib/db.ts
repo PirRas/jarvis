@@ -4,7 +4,8 @@ import { openDB, type DBSchema, type IDBPDatabase } from "idb";
 import type { CourseRecord, Mark, NewsFeed, StudySession, Todo } from "./assistant";
 import type { CalEvent, Feed, FeedCache, LessonPreview, QuickLink, Slot } from "./planner";
 import type { Notes, Study, Video } from "./schema";
-import { newCard, startOfDay, type CardQueue, type CardState, type Rating } from "./srs";
+import { lectureCards } from "./lectureRecords";
+import { startOfDay, type CardQueue, type CardState, type Rating } from "./srs";
 
 // Jeder gespeicherte Eintrag trägt seine letzte Änderungszeit; daran entscheidet der Abgleich,
 // welcher Stand neuer ist.
@@ -134,9 +135,7 @@ export async function saveLecture(lecture: Lecture) {
   const d = await db();
   const tx = d.transaction(["lectures", "cards"], "readwrite");
   await tx.objectStore("lectures").put(stamp(lecture));
-  for (const [i, card] of lecture.study.flashcards.entries()) {
-    await tx.objectStore("cards").put(stamp(newCard(lecture.id, card, `${lecture.id}:${String(i).padStart(4, "0")}`)));
-  }
+  for (const card of lectureCards(lecture)) await tx.objectStore("cards").put(stamp(card));
   await tx.done;
   changed();
 }

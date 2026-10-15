@@ -58,6 +58,10 @@ normalen App, der Mikrofon-Knopf unten rechts wieder zurück.
 4. „Prompt 2 kopieren“, im selben Chat senden und die Antwort ebenfalls einfügen.
 5. „Vorlesung speichern“.
 
+## Nachbereitung mit Claude Code
+
+`/nachbereitung <pdf>` in Claude Code: Claude liest die PDF selbst (Abo, keine API, kein Gemini), erstellt Notizen, Karteikarten und Quiz und speichert sie über `scripts/nachbereitung-save.ts` direkt in Supabase; beim nächsten Abgleich erscheint die Vorlesung in der App. Einmalig in `.env.local` setzen: `JARVIS_EMAIL` und `JARVIS_PASSWORD` (das Konto aus der App). Mit `--dry-run` wird nur geprüft.
+
 ## Technik
 
 - Next.js auf Vercel (Gratis-Stufe). Zwei kleine Server-Routen:
