@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { CopyButton } from "@/components/CopyButton";
-import { findVideos, getGeminiKey } from "@/lib/gemini";
+import { findVideos, getGeminiKey, getYouTubeKey } from "@/lib/gemini";
 import { videosPrompt } from "@/lib/prompts";
 import { allowedSite } from "@/lib/videoSites";
 import { parseClaudeJson, VideosSchema, type Notes, type Video } from "@/lib/schema";
@@ -158,7 +158,7 @@ export function Videos({
   const [autoBusy, setAutoBusy] = useState(false);
   const [autoError, setAutoError] = useState("");
   const [hasKey, setHasKey] = useState(false);
-  useEffect(() => setHasKey(!!getGeminiKey()), []);
+  useEffect(() => setHasKey(!!(getYouTubeKey() || getGeminiKey())), []);
   const parsed = useMemo(() => (raw.trim() ? parseClaudeJson(raw, VideosSchema) : null), [raw]);
   const filtered = parsed?.ok ? filterSuggestedVideos(parsed.data.videos) : null;
   const prompt = useMemo(() => videosPrompt(notes), [notes]);
@@ -178,7 +178,7 @@ export function Videos({
     setAutoBusy(true);
     setAutoError("");
     try {
-      setRaw(await findVideos(getGeminiKey(), prompt));
+      setRaw((await findVideos(notes)).text);
     } catch (e) {
       setAutoError((e as Error).message);
     } finally {
@@ -227,14 +227,14 @@ export function Videos({
           <ol className="steps">
             <li>
               <h3>Automatisch suchen</h3>
-              <p className="muted">Jarvis sucht mit dem kostenlosen Gemini-Kontingent selbst passende Videos.</p>
+              <p className="muted">Jarvis sucht selbst passende Videos (über YouTube oder Gemini).</p>
               {hasKey ? (
                 <button className="btn btn-primary" onClick={searchAuto} disabled={autoBusy}>
                   {autoBusy ? "Suche läuft …" : "Automatisch suchen"}
                 </button>
               ) : (
                 <p className="muted small" style={{ margin: 0 }}>
-                  Dafür einmal unter „Vorlesungen → Neue Vorlesung hinzufügen“ den Gemini-Schlüssel eintragen.
+                  Dafür einmal unter „Vorlesungen → Neue Vorlesung hinzufügen“ einen YouTube- oder Gemini-Schlüssel eintragen.
                 </p>
               )}
               {autoError && <p className="error small">{autoError}</p>}

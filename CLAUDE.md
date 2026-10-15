@@ -19,6 +19,7 @@ Persönliches Uni-Cockpit (Pharmazeutische Wissenschaften, Uni Basel). Details z
 ## Checks
 - `npx tsc --noEmit`, `npx eslint . --max-warnings 0`, `npm run build`. Es gibt keine automatischen Tests.
 - Bei Änderungen an `src/lib/textDates.ts`: `npx tsx scripts/textdates-check.ts`.
+- Bei Änderungen an `src/lib/gemini.ts` (KI-Ausweichkette): `npx tsx scripts/gemini-check.ts`.
 
 ## Git
 - Commit-Nachrichten auf Deutsch: `Bereich: was gemacht wurde`. Branch `main`, direkt pushen ist üblich.

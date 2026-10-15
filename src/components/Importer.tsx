@@ -6,7 +6,7 @@ import { CopyButton } from "@/components/CopyButton";
 import { describeFilter, filterSuggestedVideos } from "@/components/Videos";
 import { groupByCourse, matchExistingCourse } from "@/lib/courses";
 import { listLectures, saveLecture } from "@/lib/db";
-import { generateLecture, getGeminiKey, setGeminiKey } from "@/lib/gemini";
+import { generateLecture, getGeminiKey, getOpenRouterKey, getYouTubeKey, setGeminiKey, setOpenRouterKey, setYouTubeKey } from "@/lib/gemini";
 import { notesPrompt, STUDY_PROMPT, videosPrompt } from "@/lib/prompts";
 import { NotesSchema, parseClaudeJson, StudySchema, VideosSchema } from "@/lib/schema";
 
@@ -35,12 +35,27 @@ export function Importer() {
   const [geminiKey, setKey] = useState("");
   const [editKey, setEditKey] = useState(false);
   const [keyInput, setKeyInput] = useState("");
+  const [orKey, setOrKey] = useState("");
+  const [editOrKey, setEditOrKey] = useState(false);
+  const [orKeyInput, setOrKeyInput] = useState("");
+  const [ytKey, setYtKey] = useState("");
+  const [editYtKey, setEditYtKey] = useState(false);
+  const [ytKeyInput, setYtKeyInput] = useState("");
   const [status, setStatus] = useState("");
   const [genError, setGenError] = useState("");
   const [running, setRunning] = useState(false);
+  const hasKey = Boolean(geminiKey || orKey);
 
   useEffect(() => {
     setKey(getGeminiKey());
+  }, []);
+
+  useEffect(() => {
+    setOrKey(getOpenRouterKey());
+  }, []);
+
+  useEffect(() => {
+    setYtKey(getYouTubeKey());
   }, []);
 
   useEffect(() => {
@@ -97,6 +112,20 @@ export function Importer() {
     setEditKey(false);
   }
 
+  function saveOrKey() {
+    setOpenRouterKey(orKeyInput.trim());
+    setOrKey(orKeyInput.trim());
+    setOrKeyInput("");
+    setEditOrKey(false);
+  }
+
+  function saveYtKey() {
+    setYouTubeKey(ytKeyInput.trim());
+    setYtKey(ytKeyInput.trim());
+    setYtKeyInput("");
+    setEditYtKey(false);
+  }
+
   async function onPdf(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     e.target.value = "";
@@ -107,31 +136,36 @@ export function Importer() {
     setGenError("");
     setRunning(true);
     setStatus("Nachbereitung wird erstellt …");
+    const models = new Set<string>();
+    let videosDone = false;
     try {
       await generateLecture(
-        geminiKey,
         file,
         {
           notes: notesPrompt(courses),
           study: STUDY_PROMPT,
-          videos: (raw) => {
+          parseNotes: (raw) => {
             const parsed = parseClaudeJson(raw, NotesSchema);
-            return parsed.ok ? videosPrompt(parsed.data) : null;
+            return parsed.ok ? parsed.data : null;
           },
         },
-        (step, raw) => {
+        (step, raw, via) => {
+          models.add(via);
           if (step === "notes") {
             setNotesRaw(raw);
-            setStatus("Karteikarten und Quiz werden erstellt …");
+            setStatus(`Karteikarten und Quiz werden erstellt … (Nachbereitung von ${via})`);
           } else if (step === "study") {
             setStudyRaw(raw);
-            setStatus("Videos werden gesucht …");
+            setStatus(`Videos werden gesucht … (Karteikarten von ${via})`);
           } else {
+            videosDone = true;
             setVideosRaw(raw);
           }
         },
       );
-      setStatus("Fertig – prüfe unten und speichere.");
+      setStatus(
+        `Fertig mit ${[...models].join(", ")} – prüfe unten und speichere.${videosDone ? "" : " Videos fehlen, im Reiter „Videos“ nachholen."}`,
+      );
     } catch (err) {
       setStatus("");
       setGenError(err instanceof Error ? err.message : "Unbekannter Fehler.");
@@ -176,7 +210,7 @@ export function Importer() {
               Gemini-Schlüssel
               <input type="password" value={keyInput} onChange={(e) => setKeyInput(e.target.value)} autoComplete="off" />
             </label>
-            <button className="btn" onClick={saveKey} disabled={!keyInput.trim()}>
+            <button className="btn" onClick={saveKey} disabled={!keyInput.trim()} aria-label="Gemini-Schlüssel speichern">
               Speichern
             </button>
             <a href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer">
@@ -191,12 +225,54 @@ export function Importer() {
             </button>
           </div>
         )}
+        {!orKey || editOrKey ? (
+          <div className="row">
+            <label className="field">
+              OpenRouter-Schlüssel (optional, Ausweiche bei Überlast)
+              <input type="password" value={orKeyInput} onChange={(e) => setOrKeyInput(e.target.value)} autoComplete="off" />
+            </label>
+            <button className="btn" onClick={saveOrKey} disabled={!orKeyInput.trim()} aria-label="OpenRouter-Schlüssel speichern">
+              Speichern
+            </button>
+            <a href="https://openrouter.ai/settings/keys" target="_blank" rel="noreferrer">
+              Schlüssel kostenlos holen
+            </a>
+          </div>
+        ) : (
+          <div className="row">
+            <span className="muted small">OpenRouter-Schlüssel gespeichert</span>
+            <button className="btn btn-quiet" onClick={() => setEditOrKey(true)}>
+              Ändern
+            </button>
+          </div>
+        )}
+        {!ytKey || editYtKey ? (
+          <div className="row">
+            <label className="field">
+              YouTube-Schlüssel (optional, für Videos)
+              <input type="password" value={ytKeyInput} onChange={(e) => setYtKeyInput(e.target.value)} autoComplete="off" />
+            </label>
+            <button className="btn" onClick={saveYtKey} disabled={!ytKeyInput.trim()} aria-label="YouTube-Schlüssel speichern">
+              Speichern
+            </button>
+            <a href="https://developers.google.com/youtube/v3/getting-started" target="_blank" rel="noreferrer">
+              Anleitung
+            </a>
+          </div>
+        ) : (
+          <div className="row">
+            <span className="muted small">YouTube-Schlüssel gespeichert</span>
+            <button className="btn btn-quiet" onClick={() => setEditYtKey(true)}>
+              Ändern
+            </button>
+          </div>
+        )}
         <label
           className="btn btn-primary"
-          style={!geminiKey || running ? { opacity: 0.45, cursor: "not-allowed" } : undefined}
+          style={!hasKey || running ? { opacity: 0.45, cursor: "not-allowed" } : undefined}
         >
           {running ? "Wird erstellt …" : "PDF wählen und erstellen"}
-          <input className="sr-only" type="file" accept="application/pdf" onChange={onPdf} disabled={!geminiKey || running} />
+          <input className="sr-only" type="file" accept="application/pdf" onChange={onPdf} disabled={!hasKey || running} />
         </label>
         {status && (
           <p className="muted small" role="status">

@@ -1,34 +1,70 @@
 "use client";
 
-// Automatische Aufbereitung mit Googles kostenlosem Gemini-Kontingent (Schlüssel aus aistudio.google.com).
-// Läuft direkt im Browser: kein Server-Zeitlimit, keine Upload-Grenze von Vercel, der Schlüssel bleibt auf dem Gerät.
+// Automatische Aufbereitung mit kostenlosen KI-Kontingenten, direkt im Browser (kein Server-Zeitlimit,
+// keine Upload-Grenze von Vercel, Schlüssel bleiben auf dem Gerät).
+// Kette: Gemini Flash → Gemini Flash-Lite (eigenes Kontingent) → OpenRouter-Gratismodelle (nur Folientext, keine Websuche).
 // Ablauf wie im claude.ai-Chat: PDF + Prompt 1, dann Prompt 2 im selben Verlauf, dann Prompt 3 mit Google-Suche.
 
-const KEY = "gemini-key";
-const MODEL = "gemini-flash-latest"; // Alias auf das aktuelle Flash-Modell, überlebt Modellwechsel
+import { readPdf, type SlideText } from "./pdfText";
+import { videosPrompt } from "./prompts";
+import type { Notes, Video } from "./schema";
+
+// Das neueste Modell (hinter "gemini-flash-latest") ist im Gratis-Kontingent oft überlastet und hängt minutenlang,
+// deshalb zuletzt; Flash-Lite antwortet auch unter Last in Sekunden (Test 15.10.2026).
+// Verschwindet ein Modell (404 "no longer available"), springt die Kette von selbst weiter.
+const GEMINI_MODELS = [
+  { id: "gemini-3.5-flash", label: "Gemini 3.5 Flash" },
+  { id: "gemini-flash-lite-latest", label: "Gemini Flash-Lite" },
+  { id: "gemini-flash-latest", label: "Gemini Flash (neuestes)" },
+];
+// shortcut: Gratismodelle bei OpenRouter wechseln; fallen beide weg, auf openrouter.ai/models?q=free neue eintragen
+const OPENROUTER_MODELS = [
+  { id: "nvidia/nemotron-3-ultra-550b-a55b:free", label: "Nemotron Ultra (OpenRouter)" },
+  { id: "nvidia/nemotron-3-super-120b-a12b:free", label: "Nemotron Super (OpenRouter)" },
+];
+// Hängende Anfragen (Überlast ohne Fehlermeldung) abbrechen; eine gesunde Antwort kommt auch bei langen Folien in 1–2 Minuten.
+const TIMEOUT = 180_000;
 const MAX_PDF = 18 * 1024 * 1024; // shortcut: PDF geht inline mit (Grenze ~20 MB), bei grösseren Dateien Files-API einbauen
 
-export const getGeminiKey = () => {
-  try {
-    return localStorage.getItem(KEY) ?? "";
-  } catch {
-    return "";
-  }
-};
-export const setGeminiKey = (k: string) => {
-  try {
-    localStorage.setItem(KEY, k.trim());
-  } catch {
-    // Speicher nicht verfügbar: Schlüssel gilt nur bis zum Neuladen.
-  }
-};
+function stored(name: string) {
+  return {
+    get: () => {
+      try {
+        return localStorage.getItem(name) ?? "";
+      } catch {
+        return "";
+      }
+    },
+    set: (k: string) => {
+      try {
+        localStorage.setItem(name, k.trim());
+      } catch {
+        // Speicher nicht verfügbar: Schlüssel gilt nur bis zum Neuladen.
+      }
+    },
+  };
+}
+const geminiKey = stored("gemini-key");
+const openRouterKey = stored("openrouter-key");
+export const { get: getGeminiKey, set: setGeminiKey } = geminiKey;
+export const { get: getOpenRouterKey, set: setOpenRouterKey } = openRouterKey;
+export const { get: getYouTubeKey, set: setYouTubeKey } = stored("youtube-key");
 
-type Part = { text: string } | { inline_data: { mime_type: string; data: string } };
-type Turn = { role: "user" | "model"; parts: Part[] };
+/** Ein Chat-Schritt. pdf ist die Datei für Gemini; OpenRouter bekommt stattdessen den ausgelesenen Folientext. */
+type Msg = { role: "user" | "model"; text: string; pdf?: { base64: string; slides: () => Promise<SlideText[]> } };
+type Reply = { text: string; via: string };
 
-async function ask(key: string, contents: Turn[], opts: { json?: boolean; search?: boolean } = {}) {
-  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`, {
+class KeyError extends Error {}
+const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+async function geminiCall(key: string, model: string, msgs: Msg[], opts: { json?: boolean; search?: boolean }) {
+  const contents = msgs.map((m) => ({
+    role: m.role,
+    parts: [...(m.pdf ? [{ inline_data: { mime_type: "application/pdf", data: m.pdf.base64 } }] : []), { text: m.text }],
+  }));
+  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
     method: "POST",
+    signal: AbortSignal.timeout(TIMEOUT),
     headers: { "Content-Type": "application/json", "x-goog-api-key": key },
     body: JSON.stringify({
       contents,
@@ -39,14 +75,75 @@ async function ask(key: string, contents: Turn[], opts: { json?: boolean; search
   const body = await res.json().catch(() => null);
   if (!res.ok) {
     const msg: string = body?.error?.message ?? res.statusText;
-    if (res.status === 429) throw new Error("Tageskontingent von Gemini erreicht. Morgen wieder oder den Weg über claude.ai nehmen.");
-    if (/api key/i.test(msg)) throw new Error("Der Gemini-Schlüssel ist ungültig. Bitte neu eintragen.");
-    throw new Error(`Gemini: ${msg}`);
+    if (/api key/i.test(msg)) throw new KeyError("Der Gemini-Schlüssel ist ungültig. Bitte neu eintragen.");
+    throw Object.assign(new Error(msg), { status: res.status });
   }
   const cand = body?.candidates?.[0];
   const text: string = (cand?.content?.parts ?? []).map((p: { text?: string }) => p.text ?? "").join("");
-  if (!text) throw new Error(`Gemini hat nichts geliefert (${cand?.finishReason ?? "keine Antwort"}).`);
+  if (!text) throw new Error(`keine Antwort (${cand?.finishReason ?? "leer"})`);
   return text;
+}
+
+async function openRouterCall(key: string, model: string, msgs: Msg[]) {
+  const messages = await Promise.all(
+    msgs.map(async (m) => ({
+      role: m.role === "model" ? "assistant" : "user",
+      content: m.pdf
+        ? `Folientext (aus der PDF ausgelesen, Bilder fehlen):\n\n${(await m.pdf.slides()).map((s) => `--- Folie ${s.page} ---\n${s.text}`).join("\n")}\n\n${m.text}`
+        : m.text,
+    })),
+  );
+  const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+    method: "POST",
+    signal: AbortSignal.timeout(TIMEOUT),
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${key}` },
+    body: JSON.stringify({ model, messages }),
+  });
+  const body = await res.json().catch(() => null);
+  if (res.status === 401) throw new KeyError("Der OpenRouter-Schlüssel ist ungültig. Bitte neu eintragen.");
+  if (!res.ok || body?.error) throw new Error(body?.error?.message ?? res.statusText);
+  const text: string = body?.choices?.[0]?.message?.content ?? "";
+  if (!text) throw new Error("keine Antwort");
+  return text;
+}
+
+/** Probiert die Kette durch. Ungültige Schlüssel brechen sofort ab, Überlast und leere Kontingente führen zum nächsten Modell. */
+async function ask(msgs: Msg[], opts: { json?: boolean; search?: boolean } = {}): Promise<Reply> {
+  const errors: string[] = [];
+  const gKey = getGeminiKey();
+  if (gKey) {
+    for (const m of GEMINI_MODELS) {
+      // Überlast (503) ist oft nach Sekunden vorbei: einmal kurz warten, dann nächstes Modell
+      for (let attempt = 0; attempt < 2; attempt++) {
+        try {
+          return { text: await geminiCall(gKey, m.id, msgs, opts), via: m.label };
+        } catch (e) {
+          if (e instanceof KeyError) throw e;
+          const status = (e as { status?: number }).status;
+          if (attempt === 0 && (status === 503 || status === 500)) {
+            await wait(3000);
+            continue;
+          }
+          const why = status === 429 ? "Kontingent aufgebraucht" : status === 503 ? "überlastet" : status === 404 ? "nicht mehr verfügbar" : (e as Error).name === "TimeoutError" ? "keine Antwort (Zeitlimit)" : (e as Error).message;
+          errors.push(`${m.label}: ${why}`);
+          break;
+        }
+      }
+    }
+  }
+  const oKey = getOpenRouterKey();
+  if (oKey && !opts.search) {
+    for (const m of OPENROUTER_MODELS) {
+      try {
+        return { text: await openRouterCall(oKey, m.id, msgs), via: m.label };
+      } catch (e) {
+        if (e instanceof KeyError) throw e;
+        errors.push(`${m.label}: ${(e as Error).message}`);
+      }
+    }
+  }
+  if (!gKey && !oKey) throw new Error("Bitte zuerst einen Gemini- oder OpenRouter-Schlüssel eintragen.");
+  throw new Error(`Gerade ist kein Modell verfügbar. Später nochmal versuchen oder den Weg über claude.ai nehmen. (${errors.join(" · ")})`);
 }
 
 function toBase64(buf: ArrayBuffer) {
@@ -56,33 +153,70 @@ function toBase64(buf: ArrayBuffer) {
   return btoa(s);
 }
 
-/** Erzeugt die drei Antworten (Rohtext) wie aus dem claude.ai-Chat; Prüfung und Speichern macht der Importer. */
+/** Erzeugt die drei Antworten (Rohtext) wie aus dem claude.ai-Chat; Prüfung und Speichern macht der Importer. via = Modellname. */
 export async function generateLecture(
-  key: string,
   file: File,
-  prompts: { notes: string; study: string; videos: (notesRaw: string) => string | null },
-  onStep: (step: "notes" | "study" | "videos", raw: string) => void,
+  prompts: { notes: string; study: string; parseNotes: (notesRaw: string) => Notes | null },
+  onStep: (step: "notes" | "study" | "videos", raw: string, via: string) => void,
 ) {
   if (file.size > MAX_PDF) throw new Error("Die PDF ist grösser als 18 MB. Bitte verkleinern oder teilen.");
-  const pdf: Part = { inline_data: { mime_type: "application/pdf", data: toBase64(await file.arrayBuffer()) } };
+  let slides: Promise<SlideText[]> | null = null;
+  const pdf = { base64: toBase64(await file.arrayBuffer()), slides: () => (slides ??= readPdf(file)) };
 
-  const history: Turn[] = [{ role: "user", parts: [pdf, { text: prompts.notes }] }];
-  const notes = await ask(key, history, { json: true });
-  onStep("notes", notes);
+  const history: Msg[] = [{ role: "user", text: prompts.notes, pdf }];
+  const notes = await ask(history, { json: true });
+  onStep("notes", notes.text, notes.via);
 
-  history.push({ role: "model", parts: [{ text: notes }] }, { role: "user", parts: [{ text: prompts.study }] });
-  onStep("study", await ask(key, history, { json: true }));
+  history.push({ role: "model", text: notes.text }, { role: "user", text: prompts.study });
+  const study = await ask(history, { json: true });
+  onStep("study", study.text, study.via);
 
-  // Videos sind optional: Fehler hier nicht weiterwerfen, sie lassen sich im Reiter „Videos“ nachholen.
-  const videosPrompt = prompts.videos(notes);
-  if (videosPrompt) {
+  // Videos sind optional: Fehler nicht weiterwerfen, Nachholen im Reiter „Videos“.
+  const parsed = prompts.parseNotes(notes.text);
+  if (parsed) {
     try {
-      onStep("videos", await findVideos(key, videosPrompt));
+      const v = await findVideos(parsed);
+      onStep("videos", v.text, v.via);
     } catch {
       // bewusst still
     }
   }
 }
 
-/** Prompt 3 mit Google-Suche, ohne PDF (spart Kontingent, die Themen stehen im Prompt). Liefert Rohtext für parseClaudeJson. */
-export const findVideos = (key: string, prompt: string) => ask(key, [{ role: "user", parts: [{ text: prompt }] }], { search: true });
+/** Videos zur Vorlesung: über die YouTube-API (zuverlässig, keine erfundenen Links), sonst Prompt 3 mit Gemini-Suche. Rohtext für parseClaudeJson. */
+export async function findVideos(notes: Pick<Notes, "title" | "course" | "sections">): Promise<Reply> {
+  const yt = getYouTubeKey();
+  if (!yt) return ask([{ role: "user", text: videosPrompt(notes) }], { search: true });
+
+  // Abschnitte gleichmässig über die Vorlesung verteilt, je ein Video (wie im Prompt: 3, bei vielen Themen 5)
+  const n = Math.min(notes.sections.length, notes.sections.length > 6 ? 5 : 3);
+  const picks = Array.from({ length: n }, (_, i) => notes.sections[Math.round((i * (notes.sections.length - 1)) / Math.max(1, n - 1))]);
+  const videos: Video[] = [];
+  for (const s of picks) {
+    const url = new URL("https://www.googleapis.com/youtube/v3/search");
+    const params = { part: "snippet", type: "video", q: `${s.title} erklärt`, maxResults: "3", relevanceLanguage: "de", videoEmbeddable: "true", safeSearch: "strict", key: yt };
+    Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+    const res = await fetch(url, { signal: AbortSignal.timeout(20_000) });
+    const body = await res.json().catch(() => null);
+    if (!res.ok) {
+      const msg: string = body?.error?.message ?? res.statusText;
+      if (/api key/i.test(msg)) throw new KeyError("Der YouTube-Schlüssel ist ungültig. Bitte neu eintragen.");
+      throw new Error(res.status === 403 ? "YouTube-Tageskontingent aufgebraucht." : `YouTube: ${msg}`);
+    }
+    const hit = (body?.items ?? []).find((i: { id: { videoId: string } }) => !videos.some((v) => v.url.endsWith(i.id.videoId)));
+    if (hit)
+      videos.push({
+        title: decodeHtml(hit.snippet.title),
+        url: `https://www.youtube.com/watch?v=${hit.id.videoId}`,
+        channel: decodeHtml(hit.snippet.channelTitle),
+        topic: s.title,
+        reason: "",
+        language: "",
+      });
+  }
+  return { text: JSON.stringify({ videos }), via: "YouTube" };
+}
+
+// YouTube liefert Titel HTML-kodiert ("&amp;", "&#39;")
+const decodeHtml = (s: string) =>
+  s.replace(/&(amp|quot|lt|gt|#39);/g, (_, e) => ({ amp: "&", quot: '"', lt: "<", gt: ">", "#39": "'" })[e as string]!);

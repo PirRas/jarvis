@@ -23,13 +23,15 @@ Persönliches Cockpit für das Studium der Pharmazeutischen Wissenschaften an de
 - **Nachbereitung**: Vorlesungsfolien mit Claude nachbereiten, Karteikarten mit verteilter Wiederholung, Quiz und
   Klausuraufgaben (siehe unten).
 
-## Automatisch mit Gemini (kostenlos)
+## Automatisch erstellen (kostenlos)
 
 1. Einmal einen kostenlosen Gemini-Schlüssel holen: https://aistudio.google.com/apikey (Google-Konto genügt, keine Kreditkarte) und unter „Vorlesungen“ → „Neue Vorlesung hinzufügen“ eintragen.
 2. Danach PDF wählen: Jarvis erstellt Nachbereitung, Karteikarten und Quiz und sucht Videos selbst (1–3 Minuten).
 
-- Der Aufruf läuft direkt im Browser zu Google (`src/lib/gemini.ts`). Der Schlüssel bleibt auf dem Gerät (localStorage) und muss pro Gerät einmal eingetragen werden.
-- Grenzen: kostenloses Tageskontingent von Google; PDFs bis 18 MB. Im kostenlosen Kontingent darf Google die Eingaben zur Verbesserung seiner Modelle verwenden – keine vertraulichen Unterlagen hochladen.
+- Die Ausweichkette: Gemini 3.5 Flash → Gemini Flash-Lite → Gemini Flash (neuestes Modell, unter Last oft sehr langsam) → OpenRouter-Gratismodelle (Nemotron). Überlastete Modelle werden nach 3 Sekunden einmal neu versucht; hängende Anfragen brechen nach 3 Minuten ab und das nächste Modell übernimmt. Optional kann man zusätzlich einen kostenlosen OpenRouter-Schlüssel eintragen (https://openrouter.ai/settings/keys); dann nutzt Jarvis als letzte Ausweiche Gratismodelle von OpenRouter (ca. 50 Anfragen pro Tag). Dabei wird nur der Folientext gelesen (Bilder/Diagramme fehlen) und es werden keine Videos gesucht – Videos kommen dann nur über YouTube (falls Schlüssel eingetragen). Die Statuszeile zeigt, welches Modell gearbeitet hat.
+- **Videos**: Mit einem kostenlosen YouTube-Schlüssel (Google Cloud Console → „YouTube Data API v3“ aktivieren → „Anmeldedaten“ → „API-Schlüssel“; am besten auf die YouTube Data API und die eigene Website beschränken) sucht Jarvis pro Thema ein passendes deutsches Video direkt bei YouTube – zuverlässig, ohne erfundene Links, ca. 100 Suchen pro Tag. Ohne YouTube-Schlüssel versucht es Gemini mit Google-Suche, die im Gratis-Kontingent aber oft gesperrt ist.
+- Der Aufruf läuft direkt im Browser zu Google (`src/lib/gemini.ts`). Die Schlüssel bleiben auf dem Gerät (localStorage) und müssen pro Gerät einmal eingetragen werden.
+- Grenzen: kostenloses Tageskontingent von Google; PDFs bis 18 MB. Im kostenlosen Kontingent darf Google die Eingaben zur Verbesserung seiner Modelle verwenden; dasselbe gilt für OpenRouter-Gratismodelle. Keine vertraulichen Unterlagen hochladen.
 - Der Weg über claude.ai (Prompts kopieren) bleibt als Ausweichweg erhalten, siehe unten.
 
 ## Nachbereitung hinzufügen
