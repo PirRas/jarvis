@@ -50,9 +50,9 @@ function cleanTitle(line: string) {
     .replace(/\(\s*\)/g, " ")
     // Füllwörter nur dort entfernen, wo Datum oder Uhrzeit standen ("am", "von … bis"), nicht mitten im Titel
     .replace(/\b(am|um|von|bis|ab)(\s+(am|um|von|bis|ab)\b)+/gi, " ")
-    .replace(/(\s+\b(am|um|von|bis|ab)\b)+[\s|•·,;:–—-]*$/gi, "")
+    .replace(/(\s+\b(am|um|von|bis|ab)\b)+[\s|•·,;:–—.-]*$/gi, "")
     .replace(/^[\s|•·,;:–—-]*(\b(am|um|von|bis|ab)\b\s+)+/gi, "")
-    .replace(/[\s|•·,;:–—-]+$/g, "")
+    .replace(/[\s|•·,;:–—.-]+$/g, "")
     .replace(/^[\s|•·,;:–—-]+/g, "")
     .replace(/\s{2,}/g, " ")
     .trim()
@@ -64,7 +64,12 @@ function cleanTitle(line: string) {
 
 /** Sucht alle Daten im Text; pro Fundstelle die Zeile (bzw. Nachbarzeile) als Titel und Kontext. */
 export function findDates(text: string, now = Date.now()): FoundDate[] {
-  const lines = text.split(/\r?\n/).map((l) => l.trim());
+  // Absätze mit mehreren Daten (z. B. aus Mails) in Sätze teilen, sonst teilen sich alle Termine Uhrzeit, Titel und Art.
+  // shortcut: Satzende = kleingeschriebenes Wort + Punkt vor Grossbuchstabe; Sätze, die auf ein Nomen enden, bleiben zusammen
+  const lines = text
+    .split(/\r?\n/)
+    .flatMap((l) => ((l.match(NUMERIC)?.length ?? 0) + (l.match(WORDY)?.length ?? 0) > 1 ? l.split(/(?<=\s[a-zäöüß]+[.!?])\s+(?=[A-ZÄÖÜ])/) : [l]))
+    .map((l) => l.trim());
   const out: FoundDate[] = [];
   const seen = new Set<string>();
   const examList = guessKind(lines.filter(Boolean).slice(0, 4).join(" ")) === "exam";
@@ -83,9 +88,11 @@ export function findDates(text: string, now = Date.now()): FoundDate[] {
       if (month && day >= 1 && day <= 31) hits.push({ day, month, y: m[3], index: m.index ?? 0 });
     }
     if (!hits.length) return;
+    hits.sort((a, b) => a.index - b.index);
 
-    // Daten vorher entfernen, sonst wird "15.01.2027" als Uhrzeit 15:01 gelesen
-    const times = [...line.replace(NUMERIC, " ").replace(WORDY, " ").matchAll(TIME)];
+    // Daten vorher (längengleich) ausblenden, sonst wird "15.01.2027" als Uhrzeit 15:01 gelesen
+    const blank = (m: string) => " ".repeat(m.length);
+    const times = [...line.replace(NUMERIC, blank).replace(WORDY, blank).matchAll(TIME)];
     const prev = lines[i - 1] ?? "";
     const next = lines[i + 1] ?? "";
     let title = cleanTitle(line);
@@ -97,12 +104,14 @@ export function findDates(text: string, now = Date.now()): FoundDate[] {
     else if (prevIsHeading && /\.$/.test(title) && title.split(" ").length >= 6) title = cleanTitle(prev);
     const context = [prev, line, next].filter(Boolean).join(" · ");
 
-    for (const h of hits) {
+    hits.forEach((h, k) => {
       const y = year(h.y, h.month, h.day, now);
       let start = new Date(y, h.month - 1, h.day).getTime();
       let end: number | null = null;
       let allDay = true;
-      const t = times[0];
+      // Uhrzeit zwischen diesem und dem nächsten Datum, sonst die erste der Zeile ("14.1. – 15.1., 9:00")
+      const until = hits[k + 1]?.index ?? Infinity;
+      const t = times.find((x) => x.index >= h.index && x.index < until) ?? times[0];
       if (t) {
         if (t[1] !== undefined) {
           start = new Date(y, h.month - 1, h.day, Number(t[1]), Number(t[2])).getTime();
@@ -117,7 +126,7 @@ export function findDates(text: string, now = Date.now()): FoundDate[] {
         if (end !== null && end <= start) end = null;
       }
       const key = `${start}|${title}`;
-      if (seen.has(key)) continue;
+      if (seen.has(key)) return;
       seen.add(key);
       // Art zuerst aus der eigenen Zeile, sonst aus dem Umfeld
       const own = guessKind(`${line} ${title}`);
@@ -125,7 +134,7 @@ export function findDates(text: string, now = Date.now()): FoundDate[] {
       // In einer Examensliste ("provisorische Examensdaten HS 2026") ist jede Zeile mit Veranstaltungsnummer eine Prüfung
       const kind = own !== "other" ? own : near !== "other" ? near : examList && /\b\d{5}\b/.test(line) ? "exam" : "other";
       out.push({ title: title.slice(0, 140), start, end, allDay, kind, context: context.slice(0, 300) });
-    }
+    });
   });
   return out.sort((a, b) => a.start - b.start);
 }
