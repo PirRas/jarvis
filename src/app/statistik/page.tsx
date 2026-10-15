@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { FocusStats } from "@/components/FocusStats";
+import { LearnMonitor } from "@/components/RingGauge";
 import { useRemoteRefresh } from "@/components/SyncBadge";
 import { allCards, getSettings, reviewsSince, setSettings, type ReviewLog } from "@/lib/db";
 import { DAY, isMastered, startOfDay, type CardState } from "@/lib/srs";
@@ -71,6 +72,11 @@ export default function StatsPage() {
           <p className="lede">Wie viel du lernst und was in den nächsten Tagen auf dich zukommt.</p>
         </div>
       </div>
+
+      <section className="sheet stat-panel" style={{ marginBottom: 20 }}>
+        <h2>Lernmonitor</h2>
+        <LearnMonitor />
+      </section>
 
       <div className="stats-grid">
         <section className="sheet stat-panel">

@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { listItems, onLocalChange } from "@/lib/db";
+import { REMOTE_CHANGE_EVENT } from "@/lib/sync";
 
-// Am Desktop alle Seiten in einer Zeile. Auf dem Handy unten nur die wichtigsten Seiten und "Mehr",
+// Am Desktop alle Seiten als Sidebar links (Zähler bei Aufgaben). Auf dem Handy unten nur die wichtigsten Seiten und "Mehr",
 // das die übrigen als Feld über der Leiste aufklappt.
 
 const MAIN = [
@@ -24,7 +26,6 @@ const MORE = [
   { href: "/links", label: "Links" },
   { href: "/karten", label: "Karten" },
   { href: "/statistik", label: "Statistik" },
-  // Am Desktop führt der Abgleich-Status oben rechts zum Konto
   { href: "/konto", label: "Konto", mobileOnly: true },
 ];
 
@@ -34,6 +35,19 @@ export function MainNav() {
   const path = usePathname() ?? "/";
   const [open, setOpen] = useState(false);
   const close = () => setOpen(false);
+  const [openTodos, setOpenTodos] = useState(0);
+  const countTodos = useCallback(() => {
+    listItems("todos").then((t) => setOpenTodos(t.filter((x) => !x.done).length));
+  }, []);
+  useEffect(() => {
+    countTodos();
+    window.addEventListener(REMOTE_CHANGE_EVENT, countTodos);
+    const off = onLocalChange(countTodos);
+    return () => {
+      off();
+      window.removeEventListener(REMOTE_CHANGE_EVENT, countTodos);
+    };
+  }, [countTodos]);
   const item = ({ href, label, mobileOnly }: { href: string; label: string; mobileOnly?: boolean }) => (
     <Link
       key={href}
@@ -43,6 +57,7 @@ export function MainNav() {
       aria-current={isActive(path, href) ? "page" : undefined}
     >
       {label}
+      {href === "/aufgaben" && openTodos > 0 && <span className="nav-count">{openTodos}</span>}
     </Link>
   );
 

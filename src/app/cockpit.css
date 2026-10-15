@@ -260,8 +260,12 @@
   min-width: 0;
 }
 
-.panel-title {
-  font-size: var(--step-1);
+.panel-title,
+.stat-panel h2 {
+  font-size: var(--step-0);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--royal);
   margin-bottom: 14px;
 }
 
@@ -562,6 +566,62 @@
   border-radius: var(--radius-s);
   background: var(--royal-wash);
   border-left: 4px solid var(--royal);
+}
+
+.tip {
+  align-items: center;
+}
+
+/* Feed-Stil: Icon links, Badge rechts (Text, nicht nur Farbe) */
+.tip::before {
+  content: "i";
+  flex: none;
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  border: 1px solid currentColor;
+  border-radius: 50%;
+  font: 700 0.75rem var(--font-hud), var(--font-ui), sans-serif;
+  color: var(--royal);
+}
+
+.tip > span:first-child {
+  flex: 1;
+  min-width: 0;
+}
+
+.tip::after {
+  content: "INFO";
+  order: 3;
+  flex: none;
+  padding: 1px 8px;
+  border: 1px solid var(--card-line);
+  border-radius: 99px;
+  font: 600 0.7rem var(--font-hud), var(--font-ui), sans-serif;
+  letter-spacing: 0.08em;
+  color: var(--royal);
+}
+
+.tip.tone-urgent::before {
+  content: "!";
+  color: var(--amber);
+}
+
+.tip.tone-urgent::after {
+  content: "WARN";
+  color: var(--amber);
+  border-color: var(--amber);
+}
+
+.tip.tone-calm::before {
+  content: "✓";
+  color: var(--green);
+}
+
+.tip.tone-calm::after {
+  content: "TIP";
+  color: var(--green);
 }
 
 .tip.tone-urgent {
@@ -1151,4 +1211,282 @@ details.panel > summary {
   .jarvis-fab {
     bottom: calc(76px + env(safe-area-inset-bottom));
   }
+}
+
+/* ---------- Lernmonitor: Ring-Gauges ---------- */
+
+.gauges {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.gauge {
+  position: relative;
+  display: grid;
+  justify-items: center;
+  gap: 8px;
+  min-width: 0;
+  text-align: center;
+}
+
+.gauge svg {
+  width: 56px;
+  height: 56px;
+  grid-area: 1 / 1;
+}
+
+.gauge circle {
+  fill: none;
+  stroke-width: 5;
+}
+
+.gauge-track {
+  stroke: rgba(70, 213, 245, 0.15);
+}
+
+.gauge-fill {
+  stroke: var(--royal);
+  stroke-linecap: round;
+  filter: drop-shadow(0 0 3px rgba(70, 213, 245, 0.7));
+  transition: stroke-dasharray 0.6s ease-out;
+}
+
+.gauge-value {
+  grid-area: 1 / 1;
+  align-self: start;
+  line-height: 56px;
+  font: 600 0.75rem/56px var(--font-hud), var(--font-ui), sans-serif;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.gauge-label {
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+}
+
+/* ---------- Kopfzeile: Uhrzeit mittig, Profil-Pille ---------- */
+
+.topbar-clock {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  margin-right: auto;
+  font-variant-numeric: tabular-nums;
+}
+
+.topbar-time {
+  font: 600 var(--step-1) var(--font-hud), var(--font-ui), sans-serif;
+  letter-spacing: 0.06em;
+  color: var(--ink);
+  text-shadow: 0 0 10px rgba(70, 213, 245, 0.6);
+}
+
+.topbar-date {
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+}
+
+.profile-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 12px 3px 4px;
+  border: 1px solid var(--card-line);
+  border-radius: 99px;
+  font-size: var(--step--1);
+  font-weight: 600;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.profile-pill:hover {
+  background: var(--royal-wash);
+}
+
+.profile-dot {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--royal-wash);
+  color: var(--royal);
+  font: 700 0.75rem var(--font-hud), var(--font-ui), sans-serif;
+}
+
+@media (max-width: 640px) {
+  .topbar-clock,
+  .profile-pill {
+    display: none;
+  }
+}
+
+/* ---------- Startseite: 3 Spalten (Desktop), sonst einspaltig ---------- */
+
+.home-grid {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+}
+
+.home-main,
+.home-col,
+.home-bottom {
+  display: grid;
+  gap: 20px;
+  align-content: start;
+  min-width: 0;
+}
+
+.home-main .jarvis-head {
+  flex-direction: column;
+  justify-content: center;
+  text-align: center;
+  margin-bottom: 0;
+}
+
+.home-main .jarvis-head-text {
+  /* in der Spalte wäre die Basis 320px sonst die Höhe */
+  flex: none;
+  width: 100%;
+}
+
+.home-main .hud-tags,
+.home-main .jarvis-head-text .row {
+  justify-content: center;
+}
+
+.home-main .nextup-wrap,
+.home-main .jarvis-head,
+.home-main .nextup-wrap > * {
+  margin-bottom: 0;
+}
+
+.home-bottom .quick-tiles {
+  margin-bottom: 0;
+}
+
+@media (min-width: 1100px) {
+  .home-grid {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr) minmax(0, 1fr);
+    grid-template-areas:
+      "left main right"
+      "bottom bottom bottom";
+  }
+  .home-main {
+    grid-area: main;
+  }
+  .home-left {
+    grid-area: left;
+  }
+  .home-right {
+    grid-area: right;
+  }
+  .home-bottom {
+    grid-area: bottom;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+    align-items: start;
+  }
+}
+
+/* ---------- Desktop-Sidebar (> 640 px); Handy-Leiste unten bleibt ---------- */
+
+.nav-count {
+  display: none;
+}
+
+@media (min-width: 641px) {
+  :root {
+    --topbar-h: 60px;
+    --side-w: 188px;
+  }
+  .topbar {
+    height: var(--topbar-h);
+    flex-wrap: nowrap;
+    padding-block: 0;
+  }
+  body {
+    padding-left: var(--side-w);
+  }
+  .topbar {
+    margin-left: calc(var(--side-w) * -1);
+    padding-left: clamp(16px, 4vw, 40px);
+  }
+  .topnav {
+    position: fixed;
+    top: var(--topbar-h);
+    bottom: 0;
+    left: 0;
+    width: var(--side-w);
+    z-index: 19;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    gap: 2px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    padding: 16px 10px;
+    background: rgba(5, 15, 27, 0.96);
+    border-right: 1px solid var(--rule);
+    scrollbar-width: thin;
+  }
+  .topnav a,
+  .topnav .nav-mobile-only {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    white-space: normal;
+  }
+  .topnav a[aria-current="page"] {
+    box-shadow: inset 3px 0 0 var(--royal);
+  }
+  .nav-count {
+    display: inline-block;
+    min-width: 22px;
+    padding: 0 7px;
+    border-radius: 99px;
+    background: var(--royal-wash);
+    color: var(--royal);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+  }
+  .page:has(.home-grid) {
+    max-width: 1480px;
+  }
+}
+
+/* ---------- Systemübersicht / KI-Status ---------- */
+
+.status-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.status-list li {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--step--1);
+  color: var(--ink-soft);
+}
+
+.status-list strong {
+  color: var(--ink);
+  text-align: right;
+}
+
+.sync-dot.is-ok {
+  background: var(--green);
+}
+
+.sync-dot.is-warn {
+  background: var(--amber);
 }

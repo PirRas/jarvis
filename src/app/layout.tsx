@@ -6,6 +6,7 @@ import { JarvisButton } from "@/components/JarvisButton";
 import { MainNav } from "@/components/MainNav";
 import { RegisterSW } from "@/components/RegisterSW";
 import { SyncBadge } from "@/components/SyncBadge";
+import { ProfilePill, TopbarClock } from "@/components/TopbarInfo";
 import "katex/dist/katex.min.css";
 import "./globals.css";
 import "./cockpit.css";
@@ -35,7 +36,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <HudMark />
             Jarvis
           </Link>
+          <TopbarClock />
           <SyncBadge />
+          <ProfilePill />
           <MainNav />
         </header>
         <main className="page">{children}</main>

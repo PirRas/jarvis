@@ -12,13 +12,13 @@ import type { Notes, Video } from "./schema";
 // Das neueste Modell (hinter "gemini-flash-latest") ist im Gratis-Kontingent oft überlastet und hängt minutenlang,
 // deshalb zuletzt; Flash-Lite antwortet auch unter Last in Sekunden (Test 15.10.2026).
 // Verschwindet ein Modell (404 "no longer available"), springt die Kette von selbst weiter.
-const GEMINI_MODELS = [
+export const GEMINI_MODELS = [
   { id: "gemini-3.5-flash", label: "Gemini 3.5 Flash" },
   { id: "gemini-flash-lite-latest", label: "Gemini Flash-Lite" },
   { id: "gemini-flash-latest", label: "Gemini Flash (neuestes)" },
 ];
 // shortcut: Gratismodelle bei OpenRouter wechseln; fallen beide weg, auf openrouter.ai/models?q=free neue eintragen
-const OPENROUTER_MODELS = [
+export const OPENROUTER_MODELS = [
   { id: "nvidia/nemotron-3-ultra-550b-a55b:free", label: "Nemotron Ultra (OpenRouter)" },
   { id: "nvidia/nemotron-3-super-120b-a12b:free", label: "Nemotron Super (OpenRouter)" },
 ];

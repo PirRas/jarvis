@@ -6,6 +6,8 @@ import { useEffect, useState } from "react";
 import { Decode, shouldBoot } from "@/components/Decode";
 import { CopyButton } from "@/components/CopyButton";
 import { HudRing } from "@/components/HudRing";
+import { LearnMonitor } from "@/components/RingGauge";
+import { SystemStatus } from "@/components/SystemStatus";
 import { LessonPreview } from "@/components/LessonPreview";
 import { OccurrenceRow } from "@/components/OccurrenceRow";
 import { RoomBadge } from "@/components/RoomBadge";
@@ -95,45 +97,6 @@ export default function Today() {
 
   return (
     <>
-      <header className={`jarvis-head${boot ? " is-boot" : ""}`}>
-        <HudRing boot={boot}>
-          <span className="hud-time">{fmtTime(now)}</span>
-          <span className="hud-day">{new Date(now).toLocaleDateString("de-CH", { weekday: "short", day: "numeric", month: "short" })}</span>
-        </HudRing>
-        <div className="jarvis-head-text">
-          <h1 className="page-title">
-            <Decode text={`${greeting(now)}${profile?.name ? `, ${profile.name}` : ""}.`} active={boot} />
-          </h1>
-          <p className="hud-tags">
-            {profile && <span className="hud-tag is-level">{levelLabel(studyLevel(profile, now))}</span>}
-            {profile?.program && <span className="hud-tag">{profile.program}</span>}
-            <span className="hud-tag">{semesterLabel(semesterAt(now))}</span>
-            {!profile && (
-              <Link className="hud-tag is-action" href="/konto#profil">
-                Name und Studiengang eintragen
-              </Link>
-            )}
-          </p>
-          <p className="lede">{status}</p>
-          <div className="row">
-            <CopyButton text={askJarvisPrompt({ list, tips: advice, now })} label="Wochenplan mit Claude besprechen" />
-          </div>
-        </div>
-      </header>
-
-      {daily && (
-        <nav className="quick-tiles" aria-label="Schnellzugriff">
-          {daily.items.map((l) => (
-            <a key={l.id} className="tile" href={l.url} target="_blank" rel="noreferrer">
-              {l.name}
-            </a>
-          ))}
-          <Link className="tile tile-more" href="/links">
-            Alle Links
-          </Link>
-        </nav>
-      )}
-
       {p.data.slots.length === 0 && !timetableFeed(p.data.feeds) && (
         <>
           <TimetableFeed feeds={p.data.feeds} caches={p.data.caches} now={p.now} />
@@ -146,172 +109,226 @@ export default function Today() {
 
       <TimetableNotice p={p} />
 
-      <section id="als-naechstes" className="nextup-wrap">
-        {focus.length === 0 ? (
-          <div className="sheet nextup">
-            <p className="nextup-label">Als Nächstes</p>
-            <h2 className="nextup-title">Nichts mehr geplant</h2>
-            <p className="muted">
-              Trag deinen <Link href="/stundenplan">Stundenplan</Link> ein oder abonniere deinen{" "}
-              <Link href="/kalender">ADAM-Kalender</Link>, dann zeigt dir Jarvis hier immer die nächste Lektion.
-            </p>
-          </div>
-        ) : (
-          focus.map((o) => (
-            <NextUp
-              key={o.key}
-              o={o}
-              now={now}
-              live={o.start <= now}
-              preview={p.previews.find((x) => x.id === previewId(o.course, o.start))}
-              last={latestLecture(o.course, p.lectures)}
-            />
-          ))
-        )}
-      </section>
+      <div className="home-grid">
+        <div className="home-main">
+          <header className={`jarvis-head${boot ? " is-boot" : ""}`}>
+            <HudRing boot={boot}>
+              <span className="hud-time">{fmtTime(now)}</span>
+              <span className="hud-day">{new Date(now).toLocaleDateString("de-CH", { weekday: "short", day: "numeric", month: "short" })}</span>
+            </HudRing>
+            <div className="jarvis-head-text">
+              <h1 className="page-title">
+                <Decode text={`${greeting(now)}${profile?.name ? `, ${profile.name}` : ""}.`} active={boot} />
+              </h1>
+              <p className="hud-tags">
+                {profile && <span className="hud-tag is-level">{levelLabel(studyLevel(profile, now))}</span>}
+                {profile?.program && <span className="hud-tag">{profile.program}</span>}
+                <span className="hud-tag">{semesterLabel(semesterAt(now))}</span>
+                {!profile && (
+                  <Link className="hud-tag is-action" href="/konto#profil">
+                    Name und Studiengang eintragen
+                  </Link>
+                )}
+              </p>
+              <p className="lede">{status}</p>
+              <div className="row">
+                <CopyButton text={askJarvisPrompt({ list, tips: advice, now })} label="Wochenplan mit Claude besprechen" />
+              </div>
+            </div>
+          </header>
 
-      <PushSetup marks={p.marks} compact />
-
-      <div className="cockpit-grid">
-        <section className="sheet panel">
-          <h2 className="panel-title">Aufgaben</h2>
-          {openTodos.length ? (
-            <ul className="todo-list todo-compact">
-              {openTodos.map((t) => (
-                <TodoItem key={t.id} todo={t} now={now} compact />
-              ))}
-            </ul>
-          ) : (
-            <p className="muted">Keine offenen Aufgaben.</p>
-          )}
-          <Link className="panel-more" href="/aufgaben">
-            Alle Aufgaben
-          </Link>
-        </section>
-
-        <section className="sheet panel">
-          <h2 className="panel-title">Lernplan heute</h2>
-          <ul className="lp-today-list">
-            {pending.length > 0 && (
-              <li>
-                <Link href="/lernplan#waechter">
-                  {pending.length} {pending.length === 1 ? "Lektion" : "Lektionen"} nachbereiten
-                </Link>
-                <span className="small muted"> · {[...new Set(pending.map((o) => o.course))].slice(0, 3).join(", ")}</span>
-              </li>
+          <section id="als-naechstes" className="nextup-wrap">
+            {focus.length === 0 ? (
+              <div className="sheet nextup">
+                <p className="nextup-label">Als Nächstes</p>
+                <h2 className="nextup-title">Nichts mehr geplant</h2>
+                <p className="muted">
+                  Trag deinen <Link href="/stundenplan">Stundenplan</Link> ein oder abonniere deinen{" "}
+                  <Link href="/kalender">ADAM-Kalender</Link>, dann zeigt dir Jarvis hier immer die nächste Lektion.
+                </p>
+              </div>
+            ) : (
+              focus.map((o) => (
+                <NextUp
+                  key={o.key}
+                  o={o}
+                  now={now}
+                  live={o.start <= now}
+                  preview={p.previews.find((x) => x.id === previewId(o.course, o.start))}
+                  last={latestLecture(o.course, p.lectures)}
+                />
+              ))
             )}
-            {newToday + reviewsToday > 0 && (
-              <li>
-                <Link href="/lernen">
-                  {newToday} neue Karten, {reviewsToday} Wiederholungen
-                </Link>
-              </li>
-            )}
-            {plans[0] && (
-              <li>
-                Nächste Prüfung: <strong>{plans[0].course}</strong> in {plans[0].daysLeft} Tagen, {plans[0].readiness} % bereit
-              </li>
-            )}
-            {!pending.length && newToday + reviewsToday === 0 && !plans[0] && <li className="muted">Nichts offen.</li>}
-          </ul>
-          <Link className="panel-more" href="/lernplan">
-            Ganzer Lernplan
-          </Link>
-        </section>
+          </section>
 
-        <section className="sheet panel">
-          <h2 className="panel-title">
-            {agendaDay === dayStart(now) ? "Heute" : agendaDay ? fmtDay(agendaDay) : "Heute"}
-          </h2>
-          {agenda.length ? (
-            <ul className="occ-list">
-              {agenda.map((o) => (
-                <OccurrenceRow key={o.key} o={o} now={now} />
-              ))}
-            </ul>
-          ) : (
-            <p className="muted">Keine Einträge.</p>
-          )}
-          <Link className="panel-more" href="/kalender">
-            Ganzer Kalender
-          </Link>
-        </section>
+          <PushSetup marks={p.marks} compact />
+        </div>
+        <div className="home-col home-left">
+          <section className="sheet panel">
+            <h2 className="panel-title">Lernmonitor</h2>
+            <LearnMonitor />
+            <Link className="panel-more" href="/statistik">
+              Statistik
+            </Link>
+          </section>
 
-        <section className="sheet panel">
-          <h2 className="panel-title">Jarvis empfiehlt</h2>
-          {advice.length ? (
-            <ul className="tips">
-              {advice.slice(0, 7).map((t) => (
-                <li key={t.id} className={`tip tone-${t.tone}`}>
-                  <span>{t.text}</span>
-                  {t.href &&
-                    (t.href.startsWith("http") ? (
-                      <a href={t.href} target="_blank" rel="noreferrer" className="tip-action">
-                        {t.action}
-                      </a>
-                    ) : (
-                      <Link href={t.href} className="tip-action">
-                        {t.action}
-                      </Link>
-                    ))}
+          <section className="sheet panel">
+            <h2 className="panel-title">Aufgaben</h2>
+            {openTodos.length ? (
+              <ul className="todo-list todo-compact">
+                {openTodos.map((t) => (
+                  <TodoItem key={t.id} todo={t} now={now} compact />
+                ))}
+              </ul>
+            ) : (
+              <p className="muted">Keine offenen Aufgaben.</p>
+            )}
+            <Link className="panel-more" href="/aufgaben">
+              Alle Aufgaben
+            </Link>
+          </section>
+
+          <section className="sheet panel">
+            <h2 className="panel-title">Lernplan heute</h2>
+            <ul className="lp-today-list">
+              {pending.length > 0 && (
+                <li>
+                  <Link href="/lernplan#waechter">
+                    {pending.length} {pending.length === 1 ? "Lektion" : "Lektionen"} nachbereiten
+                  </Link>
+                  <span className="small muted"> · {[...new Set(pending.map((o) => o.course))].slice(0, 3).join(", ")}</span>
                 </li>
-              ))}
+              )}
+              {newToday + reviewsToday > 0 && (
+                <li>
+                  <Link href="/lernen">
+                    {newToday} neue Karten, {reviewsToday} Wiederholungen
+                  </Link>
+                </li>
+              )}
+              {plans[0] && (
+                <li>
+                  Nächste Prüfung: <strong>{plans[0].course}</strong> in {plans[0].daysLeft} Tagen, {plans[0].readiness} % bereit
+                </li>
+              )}
+              {!pending.length && newToday + reviewsToday === 0 && !plans[0] && <li className="muted">Nichts offen.</li>}
             </ul>
-          ) : (
-            <p className="muted">Alles erledigt. Gönn dir eine Pause.</p>
-          )}
-        </section>
+            <Link className="panel-more" href="/lernplan">
+              Ganzer Lernplan
+            </Link>
+          </section>
+        </div>
+        <div className="home-col home-right">
+          <section className="sheet panel">
+            <h2 className="panel-title">
+              {agendaDay === dayStart(now) ? "Heute" : agendaDay ? fmtDay(agendaDay) : "Heute"}
+            </h2>
+            {agenda.length ? (
+              <ul className="occ-list">
+                {agenda.map((o) => (
+                  <OccurrenceRow key={o.key} o={o} now={now} />
+                ))}
+              </ul>
+            ) : (
+              <p className="muted">Keine Einträge.</p>
+            )}
+            <Link className="panel-more" href="/kalender">
+              Ganzer Kalender
+            </Link>
+          </section>
 
-        <section className="sheet panel">
-          <h2 className="panel-title">Prüfungen und Fristen</h2>
-          {upcoming.length ? (
-            <ul className="exam-list">
-              {upcoming.map((o) => {
-                const r = o.kind === "exam" ? readiness(o.course, p.lectures, p.cards, p.newLeft) : null;
-                const days = Math.round((dayStart(o.start) - dayStart(now)) / DAYMS);
-                return (
-                  <li key={o.key} className={`exam kind-${o.kind}`}>
-                    <span className="countdown" aria-label={`${days} Tage`}>
-                      <strong>{days}</strong>
-                      <span>{days === 1 ? "Tag" : "Tage"}</span>
-                    </span>
-                    <span className="exam-body">
-                      <span className="exam-title">{o.title}</span>
-                      <span className="small muted">
-                        {fmtShortDay(o.start)}
-                        {!o.allDay && `, ${fmtTime(o.start)}`}
-                        {o.kind === "deadline" ? " · Frist" : ""}
-                      </span>
-                      {r && r.cards > 0 && (
-                        <span className="mastery small">
-                          <span className="bar">
-                            <span style={{ width: `${r.pct}%` }} />
-                          </span>
-                          {r.pct} % sicher
-                        </span>
-                      )}
-                    </span>
+          <section className="sheet panel">
+            <h2 className="panel-title">Jarvis empfiehlt</h2>
+            {advice.length ? (
+              <ul className="tips">
+                {advice.slice(0, 7).map((t) => (
+                  <li key={t.id} className={`tip tone-${t.tone}`}>
+                    <span>{t.text}</span>
+                    {t.href &&
+                      (t.href.startsWith("http") ? (
+                        <a href={t.href} target="_blank" rel="noreferrer" className="tip-action">
+                          {t.action}
+                        </a>
+                      ) : (
+                        <Link href={t.href} className="tip-action">
+                          {t.action}
+                        </Link>
+                      ))}
                   </li>
-                );
-              })}
-            </ul>
-          ) : (
-            <p className="muted">
-              Keine eingetragen. <Link href="/kalender">Prüfungstermine hinzufügen</Link>
-            </p>
-          )}
-        </section>
+                ))}
+              </ul>
+            ) : (
+              <p className="muted">Alles erledigt. Gönn dir eine Pause.</p>
+            )}
+          </section>
 
-        <section className="sheet panel">
-          <h2 className="panel-title">Uni-Mail</h2>
-          <p className="muted small" style={{ marginTop: 0 }}>
-            Jarvis prüft dein Uni-Postfach über Claude und meldet hier, welche Mails eine Antwort brauchen. Termine aus
-            Mails landen automatisch im Kalender.
-          </p>
-          <a className="btn" href="https://outlook.office.com/mail/" target="_blank" rel="noreferrer">
-            Outlook öffnen
-          </a>
-        </section>
+          <section className="sheet panel">
+            <h2 className="panel-title">Prüfungen und Fristen</h2>
+            {upcoming.length ? (
+              <ul className="exam-list">
+                {upcoming.map((o) => {
+                  const r = o.kind === "exam" ? readiness(o.course, p.lectures, p.cards, p.newLeft) : null;
+                  const days = Math.round((dayStart(o.start) - dayStart(now)) / DAYMS);
+                  return (
+                    <li key={o.key} className={`exam kind-${o.kind}`}>
+                      <span className="countdown" aria-label={`${days} Tage`}>
+                        <strong>{days}</strong>
+                        <span>{days === 1 ? "Tag" : "Tage"}</span>
+                      </span>
+                      <span className="exam-body">
+                        <span className="exam-title">{o.title}</span>
+                        <span className="small muted">
+                          {fmtShortDay(o.start)}
+                          {!o.allDay && `, ${fmtTime(o.start)}`}
+                          {o.kind === "deadline" ? " · Frist" : ""}
+                        </span>
+                        {r && r.cards > 0 && (
+                          <span className="mastery small">
+                            <span className="bar">
+                              <span style={{ width: `${r.pct}%` }} />
+                            </span>
+                            {r.pct} % sicher
+                          </span>
+                        )}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            ) : (
+              <p className="muted">
+                Keine eingetragen. <Link href="/kalender">Prüfungstermine hinzufügen</Link>
+              </p>
+            )}
+          </section>
+
+          <SystemStatus />
+        </div>
+        <div className="home-bottom">
+          <section className="sheet panel">
+            <h2 className="panel-title">Uni-Mail</h2>
+            <p className="muted small" style={{ marginTop: 0 }}>
+              Jarvis prüft dein Uni-Postfach über Claude und meldet hier, welche Mails eine Antwort brauchen. Termine aus
+              Mails landen automatisch im Kalender.
+            </p>
+            <a className="btn" href="https://outlook.office.com/mail/" target="_blank" rel="noreferrer">
+              Outlook öffnen
+            </a>
+          </section>
+
+          {daily && (
+            <nav className="quick-tiles" aria-label="Schnellzugriff">
+              {daily.items.map((l) => (
+                <a key={l.id} className="tile" href={l.url} target="_blank" rel="noreferrer">
+                  {l.name}
+                </a>
+              ))}
+              <Link className="tile tile-more" href="/links">
+                Alle Links
+              </Link>
+            </nav>
+          )}
+        </div>
       </div>
     </>
   );
