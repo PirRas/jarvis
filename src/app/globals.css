@@ -101,6 +101,8 @@ select {
   gap: 16px;
   flex-wrap: wrap;
   padding: 14px clamp(16px, 4vw, 40px);
+  /* viewportFit "cover": Kopfzeile reicht unter die Statusleiste, sonst scheint dort der Inhalt durch */
+  padding-top: calc(14px + env(safe-area-inset-top));
   /* bewusst ohne backdrop-filter: der würde die feste Handy-Leiste in der Kopfzeile einsperren */
   background: rgba(5, 15, 27, 0.96);
   border-bottom: 1px solid var(--rule);
