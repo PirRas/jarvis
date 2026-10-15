@@ -57,29 +57,34 @@ type Reply = { text: string; via: string };
 class KeyError extends Error {}
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
+/** Roher Aufruf: liefert den ersten Antwort-Kandidaten (Text, Funktionsaufrufe) unverändert zurück. */
+async function geminiRaw(key: string, model: string, body: object, timeout = TIMEOUT) {
+  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
+    method: "POST",
+    signal: AbortSignal.timeout(timeout),
+    headers: { "Content-Type": "application/json", "x-goog-api-key": key },
+    body: JSON.stringify(body),
+  });
+  const json = await res.json().catch(() => null);
+  if (!res.ok) {
+    const msg: string = json?.error?.message ?? res.statusText;
+    if (/api key/i.test(msg)) throw new KeyError("Der Gemini-Schlüssel ist ungültig. Bitte neu eintragen.");
+    throw Object.assign(new Error(msg), { status: res.status });
+  }
+  return json?.candidates?.[0] as { content?: ChatTurn; finishReason?: string } | undefined;
+}
+
 async function geminiCall(key: string, model: string, msgs: Msg[], opts: { json?: boolean; search?: boolean }) {
   const contents = msgs.map((m) => ({
     role: m.role,
     parts: [...(m.pdf ? [{ inline_data: { mime_type: "application/pdf", data: m.pdf.base64 } }] : []), { text: m.text }],
   }));
-  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`, {
-    method: "POST",
-    signal: AbortSignal.timeout(TIMEOUT),
-    headers: { "Content-Type": "application/json", "x-goog-api-key": key },
-    body: JSON.stringify({
-      contents,
-      ...(opts.search && { tools: [{ google_search: {} }] }),
-      generationConfig: { maxOutputTokens: 65536, ...(opts.json && { responseMimeType: "application/json" }) },
-    }),
+  const cand = await geminiRaw(key, model, {
+    contents,
+    ...(opts.search && { tools: [{ google_search: {} }] }),
+    generationConfig: { maxOutputTokens: 65536, ...(opts.json && { responseMimeType: "application/json" }) },
   });
-  const body = await res.json().catch(() => null);
-  if (!res.ok) {
-    const msg: string = body?.error?.message ?? res.statusText;
-    if (/api key/i.test(msg)) throw new KeyError("Der Gemini-Schlüssel ist ungültig. Bitte neu eintragen.");
-    throw Object.assign(new Error(msg), { status: res.status });
-  }
-  const cand = body?.candidates?.[0];
-  const text: string = (cand?.content?.parts ?? []).map((p: { text?: string }) => p.text ?? "").join("");
+  const text = (cand?.content?.parts ?? []).map((p) => (typeof p.text === "string" ? p.text : "")).join("");
   if (!text) throw new Error(`keine Antwort (${cand?.finishReason ?? "leer"})`);
   return text;
 }
@@ -107,29 +112,39 @@ async function openRouterCall(key: string, model: string, msgs: Msg[]) {
   return text;
 }
 
-/** Probiert die Kette durch. Ungültige Schlüssel brechen sofort ab, Überlast und leere Kontingente führen zum nächsten Modell. */
+/** Probiert die Gemini-Modelle der Reihe nach. Ungültige Schlüssel brechen sofort ab, Überlast und leere Kontingente führen zum nächsten Modell. */
+async function geminiChain<T>(key: string, run: (model: string) => Promise<T>, errors: string[]): Promise<{ value: T; via: string } | null> {
+  for (const m of GEMINI_MODELS) {
+    // Überlast (503) ist oft nach Sekunden vorbei: einmal kurz warten, dann nächstes Modell
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        return { value: await run(m.id), via: m.label };
+      } catch (e) {
+        if (e instanceof KeyError) throw e;
+        const status = (e as { status?: number }).status;
+        if (attempt === 0 && (status === 503 || status === 500)) {
+          await wait(3000);
+          continue;
+        }
+        const why = status === 429 ? "Kontingent aufgebraucht" : status === 503 ? "überlastet" : status === 404 ? "nicht mehr verfügbar" : (e as Error).name === "TimeoutError" ? "keine Antwort (Zeitlimit)" : (e as Error).message;
+        errors.push(`${m.label}: ${why}`);
+        break;
+      }
+    }
+  }
+  return null;
+}
+
+const noModel = (errors: string[]) =>
+  new Error(`Gerade ist kein Modell verfügbar. Später nochmal versuchen oder den Weg über claude.ai nehmen. (${errors.join(" · ")})`);
+
+/** Probiert die Kette durch: erst Gemini, dann (ohne Websuche) OpenRouter. */
 async function ask(msgs: Msg[], opts: { json?: boolean; search?: boolean } = {}): Promise<Reply> {
   const errors: string[] = [];
   const gKey = getGeminiKey();
   if (gKey) {
-    for (const m of GEMINI_MODELS) {
-      // Überlast (503) ist oft nach Sekunden vorbei: einmal kurz warten, dann nächstes Modell
-      for (let attempt = 0; attempt < 2; attempt++) {
-        try {
-          return { text: await geminiCall(gKey, m.id, msgs, opts), via: m.label };
-        } catch (e) {
-          if (e instanceof KeyError) throw e;
-          const status = (e as { status?: number }).status;
-          if (attempt === 0 && (status === 503 || status === 500)) {
-            await wait(3000);
-            continue;
-          }
-          const why = status === 429 ? "Kontingent aufgebraucht" : status === 503 ? "überlastet" : status === 404 ? "nicht mehr verfügbar" : (e as Error).name === "TimeoutError" ? "keine Antwort (Zeitlimit)" : (e as Error).message;
-          errors.push(`${m.label}: ${why}`);
-          break;
-        }
-      }
-    }
+    const r = await geminiChain(gKey, (model) => geminiCall(gKey, model, msgs, opts), errors);
+    if (r) return { text: r.value, via: r.via };
   }
   const oKey = getOpenRouterKey();
   if (oKey && !opts.search) {
@@ -143,7 +158,37 @@ async function ask(msgs: Msg[], opts: { json?: boolean; search?: boolean } = {})
     }
   }
   if (!gKey && !oKey) throw new Error("Bitte zuerst einen Gemini- oder OpenRouter-Schlüssel eintragen.");
-  throw new Error(`Gerade ist kein Modell verfügbar. Später nochmal versuchen oder den Weg über claude.ai nehmen. (${errors.join(" · ")})`);
+  throw noModel(errors);
+}
+
+/** Ein Chat-Teilnehmerbeitrag im Gemini-Format (Text, functionCall, functionResponse). */
+export type ChatTurn = { role: "user" | "model"; parts: Record<string, unknown>[] };
+
+/**
+ * Ein Schritt im Sprachassistenten: Verlauf + Werkzeuge rein, Antwort des Modells (Text oder Funktionsaufrufe) raus.
+ * Nur Gemini: Funktionsaufrufe brauchen ein verlässliches Modell, und gesprochen soll es schnell gehen (Zeitlimit 40 s).
+ */
+export async function chatTurn(contents: ChatTurn[], opts: { system: string; tools: object[] }): Promise<{ content: ChatTurn; via: string }> {
+  const key = getGeminiKey();
+  if (!key) throw new Error("Bitte zuerst einen Gemini-Schlüssel eintragen.");
+  const errors: string[] = [];
+  const body = {
+    contents,
+    systemInstruction: { parts: [{ text: opts.system }] },
+    tools: [{ functionDeclarations: opts.tools }],
+    generationConfig: { maxOutputTokens: 8192 },
+  };
+  const r = await geminiChain(
+    key,
+    async (model) => {
+      const cand = await geminiRaw(key, model, body, 40_000);
+      if (!cand?.content?.parts?.length) throw new Error(`keine Antwort (${cand?.finishReason ?? "leer"})`);
+      return { role: "model" as const, parts: cand.content.parts };
+    },
+    errors,
+  );
+  if (!r) throw new Error(`Gerade ist kein KI-Modell erreichbar. Gleich nochmal versuchen. (${errors.join(" · ")})`);
+  return { content: r.value, via: r.via };
 }
 
 function toBase64(buf: ArrayBuffer) {

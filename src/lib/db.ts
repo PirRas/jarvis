@@ -233,8 +233,8 @@ export async function saveQuizResult(result: QuizResult) {
 
 // ---------- Cockpit: Stundenplan, Termine, Abos, Links, Vorschauen ----------
 
-type PlannerStore = "slots" | "events" | "feeds" | "links" | "previews" | "todos" | "sessions" | "grades" | "marks" | "news";
-type PlannerValue<S extends PlannerStore> = StudyDB[S]["value"];
+export type PlannerStore = "slots" | "events" | "feeds" | "links" | "previews" | "todos" | "sessions" | "grades" | "marks" | "news";
+export type PlannerValue<S extends PlannerStore> = StudyDB[S]["value"];
 
 export async function listItems<S extends PlannerStore>(store: S): Promise<PlannerValue<S>[]> {
   return (await (await db()).getAll(store)) as PlannerValue<S>[];

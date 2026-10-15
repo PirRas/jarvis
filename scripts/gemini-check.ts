@@ -58,5 +58,18 @@ const ok = (text: string) => ({ status: 200, body: { candidates: [{ content: { p
   assert.equal(y[0].title, "Km & Vmax 'erklärt'");
   assert.ok(calls.every((c) => c.includes("youtube")));
 
+  // Sprachassistent: Funktionsaufruf samt Signatur unverändert zurück, Werkzeuge und Systemtext gehen mit
+  const { chatTurn } = await import("../src/lib/gemini");
+  let sent: { systemInstruction?: unknown; tools?: unknown } = {};
+  globalThis.fetch = (async (_: string, init: RequestInit) => {
+    sent = JSON.parse(String(init.body));
+    const parts = [{ functionCall: { name: "x", args: {} }, thoughtSignature: "sig" }];
+    return new Response(JSON.stringify({ candidates: [{ content: { role: "model", parts } }] }), { status: 200 });
+  }) as typeof fetch;
+  const t = await chatTurn([{ role: "user", parts: [{ text: "hi" }] }], { system: "S", tools: [{ name: "x" }] });
+  assert.deepEqual(t.content.parts[0], { functionCall: { name: "x", args: {} }, thoughtSignature: "sig" });
+  assert.deepEqual(sent.systemInstruction, { parts: [{ text: "S" }] });
+  assert.deepEqual(sent.tools, [{ functionDeclarations: [{ name: "x" }] }]);
+
   console.log("gemini: alles ok");
 })();
