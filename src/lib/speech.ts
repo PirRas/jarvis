@@ -1,0 +1,138 @@
+// Sprache im Browser: Spracherkennung (Web Speech API) und Vorlesen (speechSynthesis). Nur im Client nutzbar.
+
+type Alt = { transcript: string };
+type Res = { isFinal: boolean; 0: Alt };
+type RecEvent = { resultIndex: number; results: ArrayLike<Res> };
+type Rec = {
+  lang: string;
+  interimResults: boolean;
+  continuous: boolean;
+  onresult: ((e: RecEvent) => void) | null;
+  onerror: ((e: { error: string }) => void) | null;
+  onend: (() => void) | null;
+  start(): void;
+  stop(): void;
+};
+type RecCtor = new () => Rec;
+
+function recCtor(): RecCtor | null {
+  if (typeof window === "undefined") return null;
+  const w = window as unknown as { SpeechRecognition?: RecCtor; webkitSpeechRecognition?: RecCtor };
+  return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
+}
+
+export const canListen = () => recCtor() !== null;
+
+const ERRORS: Record<string, string> = {
+  "not-allowed": "Mikrofon nicht erlaubt. Erlaube den Zugriff in den Browser-Einstellungen.",
+  "service-not-allowed": "Mikrofon nicht erlaubt. Erlaube den Zugriff in den Browser-Einstellungen.",
+  "audio-capture": "Kein Mikrofon gefunden.",
+  network: "Die Spracherkennung braucht eine Internetverbindung.",
+};
+
+/** Hört einmal zu. result liefert den fertigen Satz ('' bei Stille); stop() beendet das Zuhören vorzeitig. */
+export function listen({ onInterim }: { onInterim?: (t: string) => void }): { result: Promise<string>; stop(): void } {
+  const Ctor = recCtor();
+  let rec: Rec | null = null;
+  const result = new Promise<string>((resolve, reject) => {
+    if (!Ctor) return reject(new Error("Spracherkennung wird in diesem Browser nicht unterstützt."));
+    let text = "";
+    const run = (lang: string) => {
+      const r = new Ctor();
+      rec = r;
+      r.lang = lang;
+      r.interimResults = true;
+      r.continuous = false;
+      r.onresult = (e) => {
+        text = Array.from(e.results, (x) => x[0].transcript).join(" ").trim();
+        onInterim?.(text);
+      };
+      r.onerror = (e) => {
+        if (e.error === "language-not-supported" && lang === "de-CH") {
+          r.onend = null;
+          return run("de-DE");
+        }
+        r.onend = null;
+        if (e.error === "no-speech" || e.error === "aborted") return resolve(text);
+        reject(new Error(ERRORS[e.error] ?? `Spracherkennung fehlgeschlagen (${e.error}).`));
+      };
+      r.onend = () => resolve(text);
+      try {
+        r.start();
+      } catch {
+        reject(new Error("Spracherkennung konnte nicht starten."));
+      }
+    };
+    run("de-CH");
+  });
+  return { result, stop: () => rec?.stop() };
+}
+
+// ---------- Vorlesen ----------
+
+const synth = () => (typeof window !== "undefined" && "speechSynthesis" in window ? window.speechSynthesis : null);
+
+function pickVoice(): SpeechSynthesisVoice | undefined {
+  const v = synth()?.getVoices() ?? [];
+  return v.find((x) => x.lang.replace("_", "-") === "de-CH") ?? v.find((x) => x.lang.replace("_", "-") === "de-DE") ?? v.find((x) => x.lang.toLowerCase().startsWith("de"));
+}
+
+/** Stimmen laden in manchen Browsern erst nach dem Start nach. */
+function voicesReady(): Promise<void> {
+  const s = synth();
+  if (!s || s.getVoices().length) return Promise.resolve();
+  return new Promise((res) => {
+    const done = () => {
+      s.removeEventListener("voiceschanged", done);
+      res();
+    };
+    s.addEventListener("voiceschanged", done);
+    setTimeout(done, 800);
+  });
+}
+
+const clean = (t: string) =>
+  t
+    .replace(/https?:\/\/\S+/g, "")
+    .replace(/[*_`#>~|]/g, "")
+    .replace(/^\s*[-•]\s+/gm, "")
+    .replace(/\s+/g, " ")
+    .trim();
+
+let gen = 0;
+// Chrome verliert sonst Äusserungen an die Speicherbereinigung, und onend kommt nie
+let alive: SpeechSynthesisUtterance[] = [];
+
+/** Liest den Text laut vor. Lange Texte werden in Sätze geteilt (Chrome bricht lange Äusserungen ab). */
+export async function speak(text: string): Promise<void> {
+  const s = synth();
+  const parts = clean(text).match(/[^.!?:;\n]+[.!?:;]?/g)?.map((x) => x.trim()).filter(Boolean) ?? [];
+  if (!s || !parts.length) return;
+  const mine = ++gen;
+  s.cancel();
+  await voicesReady();
+  if (mine !== gen) return;
+  const voice = pickVoice();
+  await new Promise<void>((resolve) => {
+    let left = parts.length;
+    const fin = () => --left <= 0 && resolve();
+    // Sicherheitsnetz, falls der Browser ein Ende nie meldet (hängt sonst im Zustand "Spricht")
+    setTimeout(resolve, 4000 + text.length * 120);
+    alive = [];
+    for (const p of parts) {
+      const u = new SpeechSynthesisUtterance(p);
+      u.lang = voice?.lang ?? "de-CH";
+      if (voice) u.voice = voice;
+      u.rate = 1.05;
+      u.onend = fin;
+      u.onerror = fin;
+      alive.push(u);
+      s.speak(u);
+    }
+  });
+}
+
+export function stopSpeaking() {
+  gen++;
+  synth()?.cancel();
+}

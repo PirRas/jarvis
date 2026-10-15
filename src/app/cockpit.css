@@ -1126,3 +1126,29 @@ details.panel > summary {
 .todo-compact .todo {
   padding: 8px 0;
 }
+
+/* ---------- Schwebender Jarvis-Knopf ---------- */
+
+.jarvis-fab {
+  position: fixed;
+  right: 16px;
+  bottom: 16px;
+  z-index: 25;
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  color: var(--royal);
+  background: var(--sheet-raised);
+  border: 1px solid var(--royal);
+  border-radius: 50%;
+  box-shadow: var(--glow);
+}
+.jarvis-fab:hover {
+  background: var(--royal-wash);
+}
+@media (max-width: 640px) {
+  .jarvis-fab {
+    bottom: calc(76px + env(safe-area-inset-bottom));
+  }
+}

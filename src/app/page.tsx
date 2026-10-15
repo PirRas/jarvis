@@ -1,7 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
 import { Decode, shouldBoot } from "@/components/Decode";
 import { CopyButton } from "@/components/CopyButton";
 import { HudRing } from "@/components/HudRing";
@@ -38,7 +39,15 @@ import { usePlanner } from "@/lib/usePlanner";
 export default function Today() {
   const p = usePlanner();
   const [boot] = useState(shouldBoot);
+  const router = useRouter();
   const { now } = p;
+
+  // Beim ersten Öffnen in dieser Browser-Sitzung zuerst der Jarvis-Sprachbildschirm
+  useEffect(() => {
+    if (sessionStorage.getItem("jarvis-intro") || localStorage.getItem("jarvis-start") === "0") return;
+    sessionStorage.setItem("jarvis-intro", "1");
+    router.replace("/jarvis");
+  }, [router]);
 
   if (!p.loaded) return <p className="muted">Jarvis startet …</p>;
 
