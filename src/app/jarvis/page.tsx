@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { loadSettings, saveTimer } from "@/lib/focus";
 import { getGeminiKey, setGeminiKey } from "@/lib/gemini";
+import { briefing, userName } from "@/lib/briefing";
 import { greeting } from "@/lib/jarvis";
 import { askJarvis, type ChatTurn } from "@/lib/jarvisAgent";
 import { canListen, listen, speak, stopSpeaking } from "@/lib/speech";
@@ -60,7 +61,16 @@ export default function JarvisPage() {
   const busy = useRef(false); // wartet gerade auf die KI
   const turn = useRef(0); // zählt Antworten, damit eine unterbrochene nicht weiterläuft
   const flags = useRef({ voice: true, talk: false });
+  const name = useRef(""); // Vorname aus dem Konto
+  const greetAt = useRef(0); // wann die Begrüssung zu sprechen begann
+  const greetDone = useRef<Promise<void> | null>(null);
   const logEnd = useRef<HTMLDivElement>(null);
+
+  const say = useCallback(async (msg: string) => {
+    if (!flags.current.voice) return;
+    setState("speaking");
+    await speak(msg).catch(() => {}); // Vorlesen ist Zusatz; die Antwort steht ja da
+  }, []);
 
   useEffect(() => {
     sessionStorage.setItem("jarvis-intro", "1");
@@ -72,11 +82,41 @@ export default function JarvisPage() {
     setStartOn(flag("jarvis-start", true));
     setHasKey(Boolean(getGeminiKey()));
     setMic(canListen());
+    // Begrüssung mit Namen, Tagesprogramm und offenen Aufgaben, ohne dass man etwas sagen muss
+    let offTap = () => {};
+    userName(dbStore).then((n) => (name.current = n), () => {});
+    briefing(dbStore)
+      .then((text) => {
+        setLog((l) => (l.length ? l : [{ role: "jarvis", text }]));
+        if (!flags.current.voice) return;
+        const greet = () => {
+          greetAt.current = Date.now();
+          const id = turn.current;
+          greetDone.current = say(text).then(() => {
+            if (id === turn.current) setState("idle");
+          });
+        };
+        // Browser lesen erst nach der ersten Berührung vor; beim Start aus dem Startbildschirm also beim ersten Tippen
+        const nav = navigator as Navigator & { userActivation?: { hasBeenActive: boolean } };
+        if (nav.userActivation?.hasBeenActive) return greet();
+        const onTap = () => {
+          offTap();
+          greet();
+        };
+        offTap = () => {
+          window.removeEventListener("pointerdown", onTap, true);
+          window.removeEventListener("keydown", onTap, true);
+        };
+        window.addEventListener("pointerdown", onTap, true);
+        window.addEventListener("keydown", onTap, true);
+      })
+      .catch(() => {});
     return () => {
+      offTap();
       rec.current?.stop();
       stopSpeaking();
     };
-  }, []);
+  }, [say]);
 
   useEffect(() => {
     logEnd.current?.scrollIntoView({ block: "end" });
@@ -89,11 +129,6 @@ export default function JarvisPage() {
     if (key === "jarvis-voice" && !on) stopSpeaking();
   }
 
-  const say = useCallback(async (msg: string) => {
-    if (!flags.current.voice) return;
-    setState("speaking");
-    await speak(msg).catch(() => {}); // Vorlesen ist Zusatz; die Antwort steht ja da
-  }, []);
 
   const ask = useCallback(
     async (q: string) => {
@@ -110,6 +145,7 @@ export default function JarvisPage() {
       const ctx: ToolContext = {
         store: dbStore,
         now: Date.now(),
+        name: name.current,
         navigate: (path) => (nav = path),
         openUrl: (url) => {
           if (!window.open(url, "_blank", "noopener")) extra.push({ role: "jarvis", text: url, link: url });
@@ -168,6 +204,13 @@ export default function JarvisPage() {
   }
 
   function onOrb() {
+    // Erste Berührung startet die Begrüssung: ausreden lassen, danach zuhören
+    if (Date.now() - greetAt.current < 1500 && greetDone.current) {
+      greetAt.current = 0;
+      const id = turn.current;
+      void greetDone.current.then(() => id === turn.current && start());
+      return;
+    }
     if (state === "listening") rec.current?.stop();
     else if (state === "speaking") stopSpeaking(); // ins Wort fallen: danach wieder bereit
     else if (state !== "thinking") start();
@@ -249,15 +292,6 @@ export default function JarvisPage() {
       )}
 
       <div className="jv-log" role="log">
-        {log.length === 0 && (
-          <div className="jv-chips">
-            {SUGGESTIONS.map((s) => (
-              <button key={s} className="jv-chip" onClick={() => void ask(s)}>
-                {s}
-              </button>
-            ))}
-          </div>
-        )}
         {log.map((m, i) => (
           <div key={i} className={`jv-msg is-${m.role}`}>
             {m.link ? (
@@ -278,6 +312,15 @@ export default function JarvisPage() {
             )}
           </div>
         ))}
+        {!log.some((m) => m.role === "user") && (
+          <div className="jv-chips">
+            {SUGGESTIONS.map((s) => (
+              <button key={s} className="jv-chip" onClick={() => void ask(s)}>
+                {s}
+              </button>
+            ))}
+          </div>
+        )}
         <div ref={logEnd} />
       </div>
 

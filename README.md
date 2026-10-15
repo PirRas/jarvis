@@ -35,6 +35,9 @@ normalen App, der Mikrofon-Knopf unten rechts wieder zurück.
   wo es keine Spracherkennung gibt, z. B. Firefox, tippt man).
 - Schalter: „Stimme“ (vorlesen), „Gespräch“ (nach der Antwort gleich wieder zuhören), „Beim Start“ (Sprachbildschirm beim Öffnen).
 - Termine aus dem Stundenplan oder aus Abos ändert Jarvis nicht, nur eigene. Vor dem Löschen fragt Jarvis nach.
+- Beim Öffnen begrüsst Jarvis dich mit deinem Vornamen (aus „Konto“ → Profil), sagt, was heute noch ansteht und welche Aufgaben bald fällig sind. Browser lesen erst nach der ersten Berührung vor: einmal tippen, Jarvis begrüsst dich und hört danach zu.
+- Stimme: Jarvis nimmt die beste männliche deutsche Stimme des Geräts (am natürlichsten in Edge: „Jan“/„Conrad“ Online). Wo keine männliche Stimme erkennbar ist (z. B. Chrome), klingt die vorhandene etwas tiefer.
+- **Serientermine:** „Ich arbeite jeden Samstag von 12 bis 17 Uhr in der Zentralapotheke in Olten“ trägt einen wöchentlichen Termin ein; im Kalender geht das mit „Jede Woche wiederholen“ (optional mit Enddatum). Löschen entfernt die ganze Serie.
 
 ## Automatisch erstellen (kostenlos)
 

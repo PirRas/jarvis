@@ -13,6 +13,13 @@ keine
 
 ## Letzte Sitzungen
 
+### 2026-10-15 – Cloud-Sitzung (vm, Serientermine + Begrüssung)
+- Kalender: wöchentliche Serien (`CalEvent.repeat`, entfaltet in `occurrences()` in `planner.ts`, Schlüssel `event:<id>:<datum>`), im Editor „Jede Woche wiederholen“ + „bis“; per Sprache `termin_anlegen` mit `woechentlich`/`wiederholen_bis`. Löschen/Ändern trifft immer die ganze Serie (`skip` existiert im Typ, wird aber noch nirgends gesetzt).
+- Jarvis begrüsst beim Öffnen mit Vornamen (Profil in „Konto“), Tagesprogramm und bald fälligen Aufgaben (`src/lib/briefing.ts`, ohne KI-Aufruf). Vorlesen erst nach erster Berührung (Browser-Regel); erstes Tippen auf den Reaktor: Begrüssung, danach zuhören.
+- Stimme: männliche, „Natural/Online“-Stimmen bevorzugt (`speech.ts`), sonst tiefere Tonlage. Name geht auch in den Systemtext.
+- Tests: `voice-check.ts` (Serien inkl. Zeitumstellung, Begrüssung), Browser-Test mit simuliertem Mikrofon/Gemini.
+- Commit: `15bc0d5`.
+
 ### 2026-10-15 – Cloud-Sitzung (vm, Sprachinterface)
 - Neu: `/jarvis` Sprachbildschirm (Reaktor-Orb, Zustände hören/denken/sprechen), erscheint beim ersten Öffnen pro Browser-Sitzung (`sessionStorage` „jarvis-intro“, abschaltbar „Beim Start“). Mikrofon-Knopf auf allen Seiten.
 - Gemini Function Calling: `chatTurn` in `gemini.ts` (gleiche Modellkette), Schleife `jarvisAgent.ts`, 18 Werkzeuge in `voiceTools.ts` (Termine, Aufgaben, Überblick, Lernstand, Lernzeit, Noten, Vorlesungen, Fokus, Seiten, Links). Spracherkennung/Stimme: `speech.ts` (Web Speech API, de-CH).

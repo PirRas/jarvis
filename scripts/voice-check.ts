@@ -55,6 +55,32 @@ async function main() {
   list = await run("termine_auflisten", { von: "2026-10-20", bis: "2026-10-25" });
   assert.equal(list.anzahl, 1);
 
+  // Serie: jeden Samstag 12–17 (Zeitumstellung am 25.10.2026 ändert die Ortszeit nicht)
+  const serie = (await run("termin_anlegen", { titel: "Zentralapotheke Olten", datum: "2026-10-17", beginn: "12:00", ende: "17:00", woechentlich: true })).termin as Row;
+  assert.equal(serie.serie, "wöchentlich");
+  list = await run("termine_auflisten", { von: "2026-10-17", bis: "2026-10-30" });
+  assert.equal((list.termine as Row[]).filter((r) => r.titel === "Zentralapotheke Olten").length, 2);
+  list = await run("termine_auflisten", { von: "2026-10-17", bis: "2026-11-01" });
+  const sats = (list.termine as Row[]).filter((r) => r.titel === "Zentralapotheke Olten");
+  assert.deepEqual(sats.map((r) => r.zeit), ["12:00–17:00", "12:00–17:00", "12:00–17:00"]);
+  assert.equal(sats[2].datum, "Sa., 31. Okt.");
+  assert.equal(sats[1].serie, "wöchentlich");
+  assert.ok(String(sats[1].id).endsWith(":2026-10-24"));
+  // Ändern und Löschen über ein einzelnes Vorkommen (ID mit Datum) trifft die Serie
+  const bis = await run("termin_aendern", { id: sats[1].id, wiederholen_bis: "2026-10-24", ort: "Olten" });
+  assert.equal((bis.termin as Row).serie, "wöchentlich (bis Sa., 24. Okt.)", JSON.stringify(bis));
+  list = await run("termine_auflisten", { von: "2026-10-17", bis: "2026-12-31" });
+  assert.equal((list.termine as Row[]).filter((r) => r.titel === "Zentralapotheke Olten").length, 2);
+  assert.ok((await run("termin_anlegen", { titel: "x", datum: "2026-10-17", wiederholen_bis: "2026-10-01" })).fehler);
+  const once = await run("termin_aendern", { id: sats[0].id, woechentlich: false });
+  assert.equal((once.termin as Row).serie, undefined);
+  list = await run("termine_auflisten", { von: "2026-10-17", bis: "2026-12-31" });
+  assert.equal((list.termine as Row[]).filter((r) => r.titel === "Zentralapotheke Olten").length, 1);
+  await run("termin_aendern", { id: sats[0].id, woechentlich: true });
+  assert.equal((await run("termin_loeschen", { id: sats[1].id })).ok, true);
+  list = await run("termine_auflisten", { von: "2026-10-17", bis: "2026-12-31" });
+  assert.equal((list.termine as Row[]).filter((r) => r.titel === "Zentralapotheke Olten").length, 0);
+
   // Aufgabe: anlegen, abhaken, löschen
   const todo = (await run("aufgabe_anlegen", { titel: "Skript lesen", faellig: "2026-10-16" })).aufgabe as Row;
   assert.equal(todo.faellig, "Fr., 16. Okt. (morgen)");
@@ -134,6 +160,17 @@ async function main() {
   assert.equal(second[1].parts[0].thoughtSignature, "s1");
   assert.equal((second[2].parts[0].functionResponse as Row).name, "aufgabe_anlegen");
   assert.equal(r.history.length, 4);
+
+  // Begrüssung: Vorname aus dem Konto, offene Aufgaben, natürlich gesprochene Uhrzeit
+  const { briefing, spokenTime } = await import("../src/lib/briefing");
+  data.marks = [{ id: "profile", profile: { name: "Piravin Rasan" } } as { id: string }];
+  data.todos = [{ id: "t9", title: "Skript drucken", note: "", category: "Eigene", due: "2026-10-16", done: false, createdAt: now } as { id: string }];
+  const hi = await briefing(store, now);
+  assert.match(hi, /^Guten Morgen, Piravin\./);
+  assert.match(hi, /Skript drucken, fällig morgen/);
+  assert.match(hi, /Was hast du vor\?$/);
+  assert.equal(spokenTime(new Date(2026, 9, 15, 14, 15).getTime()), "14 Uhr 15");
+  assert.equal(spokenTime(new Date(2026, 9, 15, 9, 0).getTime()), "9 Uhr");
 
   console.log("voiceTools: alles ok");
 }

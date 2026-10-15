@@ -46,6 +46,7 @@ export type CalEvent = Synced & {
   location: string;
   note: string;
   source: "manual" | "text" | "mail";
+  repeat?: { every: "week"; until?: string; skip?: string[] }; // Serie: jede Woche, bis `until` (inkl., YYYY-MM-DD; sonst offen)
   createdAt: number;
 };
 
@@ -261,20 +262,42 @@ export function slotOccurrences(slot: Slot, from: number, to: number): Occurrenc
   return out;
 }
 
-function eventOccurrence(e: CalEvent): Occurrence {
+function eventOccurrence(e: CalEvent, key = `event:${e.id}`, start = e.start, end = e.end): Occurrence {
   return {
-    key: `event:${e.id}`,
+    key,
     title: e.title,
     course: e.course,
     kind: e.kind,
     type: KIND_LABEL[e.kind],
-    start: e.start,
-    end: e.end ?? (e.allDay ? e.start + DAYMS : e.start + HOUR),
+    start,
+    end: end ?? (e.allDay ? start + DAYMS : start + HOUR),
     allDay: e.allDay,
     location: e.location,
     note: e.note,
     origin: { kind: "event", id: e.id },
   };
+}
+
+/** Wöchentliche Serie: gleicher Wochentag und gleiche Ortszeit wie `start`, Dauer bleibt. */
+function repeatOccurrences(e: CalEvent, from: number, to: number): Occurrence[] {
+  const out: Occurrence[] = [];
+  const dur = e.end == null ? null : e.end - e.start;
+  const hhmm = `${new Date(e.start).getHours()}:${String(new Date(e.start).getMinutes()).padStart(2, "0")}`;
+  const last = e.repeat?.until ? parseIsoDate(e.repeat.until) + DAYMS : Infinity;
+  const cap = addDays(Math.max(from, e.start), 730); // offene Serien nicht endlos entfalten
+  let day = dayStart(e.start);
+  // shortcut: bei weit zurückliegendem Start Wochen überspringen statt einzeln zu laufen
+  const skipWeeks = Math.floor((dayStart(from) - day) / DAYMS / 7) - 1;
+  if (skipWeeks > 0) day = addDays(day, skipWeeks * 7);
+  for (; day < last && day < to && day < cap; day = addDays(day, 7)) {
+    const iso = isoDate(day);
+    if (e.repeat?.skip?.includes(iso)) continue;
+    const start = e.allDay ? day : atTime(day, hhmm);
+    const o = eventOccurrence(e, `event:${e.id}:${iso}`, start, dur == null ? null : start + dur);
+    o.type += " · ↻ wöchentlich";
+    if (o.end > from) out.push(o);
+  }
+  return out;
 }
 
 function feedOccurrence(feed: Feed, e: FeedEvent, courses: string[]): Occurrence {
@@ -339,6 +362,10 @@ export function occurrences(data: PlannerData, from: number, to: number, courses
   const out: Occurrence[] = [];
   for (const s of data.slots) out.push(...slotOccurrences(s, from, to));
   for (const e of data.events) {
+    if (e.repeat) {
+      out.push(...repeatOccurrences(e, from, to));
+      continue;
+    }
     const o = eventOccurrence(e);
     if (o.end > from && o.start < to) out.push(o);
   }

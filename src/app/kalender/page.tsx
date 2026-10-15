@@ -113,7 +113,8 @@ export default function CalendarPage() {
                       now={p.now}
                       onDelete={
                         o.origin.kind === "event"
-                          ? () => confirm(`„${o.title}“ löschen?`) && deleteItems("events", [o.origin.id])
+                          ? () =>
+                              confirm(o.key.split(":").length > 2 ? `Serie „${o.title}“ löschen?` : `„${o.title}“ löschen?`) && deleteItems("events", [o.origin.id])
                           : undefined
                       }
                     />
@@ -142,6 +143,8 @@ function EventEditor({ courses, onDone }: { courses: string[]; onDone: () => voi
   const [end, setEnd] = useState("12:00");
   const [location, setLocation] = useState("");
   const [note, setNote] = useState("");
+  const [weekly, setWeekly] = useState(false);
+  const [until, setUntil] = useState("");
 
   async function save() {
     const day = parseIsoDate(date);
@@ -158,6 +161,7 @@ function EventEditor({ courses, onDone }: { courses: string[]; onDone: () => voi
       location,
       note,
       source: "manual",
+      ...(weekly ? { repeat: { every: "week" as const, ...(until >= date ? { until } : {}) } } : {}),
       createdAt: Date.now(),
     });
     onDone();
@@ -201,6 +205,16 @@ function EventEditor({ courses, onDone }: { courses: string[]; onDone: () => voi
               <input type="time" value={end} onChange={(e) => setEnd(e.target.value)} />
             </label>
           </>
+        )}
+        <label className="check">
+          <input type="checkbox" checked={weekly} onChange={(e) => setWeekly(e.target.checked)} />
+          Jede Woche wiederholen
+        </label>
+        {weekly && (
+          <label className="field">
+            <span>bis (optional)</span>
+            <input type="date" value={until} min={date} onChange={(e) => setUntil(e.target.value)} />
+          </label>
         )}
         <label className="field">
           <span>Ort</span>

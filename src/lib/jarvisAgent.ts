@@ -17,7 +17,7 @@ export async function askJarvis(text: string, history: ChatTurn[], ctx: ToolCont
   const actions: string[] = [];
   let via = "";
   for (let round = 0; round < MAX_ROUNDS; round++) {
-    const res = await chatTurn(turns, { system: systemPrompt(ctx.now), tools: TOOL_DECLARATIONS });
+    const res = await chatTurn(turns, { system: systemPrompt(ctx.now, ctx.name), tools: TOOL_DECLARATIONS });
     via = res.via;
     turns.push(res.content); // unverändert zurück, sonst fehlen Gemini die Gedanken-Signaturen
     const calls = res.content.parts.map((p) => p.functionCall as FunctionCall | undefined).filter((c): c is FunctionCall => !!c);
