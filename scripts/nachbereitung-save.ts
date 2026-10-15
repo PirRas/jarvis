@@ -3,6 +3,8 @@
 //   npx tsx scripts/nachbereitung-save.ts --courses     (vorhandene Fächer auflisten)
 // Anmeldung wie in der App (E-Mail + Passwort), Zugangsdaten in .env.local:
 //   JARVIS_EMAIL=… und JARVIS_PASSWORD=…
+// Ist 2FA (TOTP) im Konto aktiv, zusätzlich den aktuellen 6-stelligen Code mitgeben:
+//   --code=123456 oder JARVIS_TOTP_CODE=123456
 import { createClient } from "@supabase/supabase-js";
 import { existsSync, readFileSync } from "node:fs";
 import { matchExistingCourse } from "../src/lib/courses";
@@ -27,6 +29,16 @@ async function login() {
   const sb = createClient(url, key);
   const { data, error } = await sb.auth.signInWithPassword({ email, password });
   if (error) fail(`Anmeldung fehlgeschlagen: ${error.message}`);
+  const factors = await sb.auth.mfa.listFactors();
+  if (factors.error) fail(`2FA-Status lesen fehlgeschlagen: ${factors.error.message}`);
+  const factor = factors.data.totp.find((f) => f.status === "verified");
+  if (factor) {
+    const code = args.find((a) => a.startsWith("--code="))?.slice("--code=".length) || process.env.JARVIS_TOTP_CODE;
+    if (!code) fail("2FA ist aktiv: Code mit --code=123456 mitgeben.");
+    if (!/^\d{6}$/.test(code)) fail("2FA-Code muss 6-stellig sein.");
+    const verify = await sb.auth.mfa.challengeAndVerify({ factorId: factor.id, code });
+    if (verify.error) fail(`2FA fehlgeschlagen: ${verify.error.message}`);
+  }
   return { sb, userId: data.user.id };
 }
 

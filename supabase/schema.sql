@@ -33,6 +33,22 @@ drop policy if exists "eigene Daten löschen" on public.sync_items;
 create policy "eigene Daten löschen" on public.sync_items for delete
   to authenticated using ((select auth.uid()) = user_id);
 
+-- Zwei-Faktor: Wer 2FA eingeschaltet hat, kommt nur mit bestätigtem Code (aal2) an die Daten.
+drop policy if exists "2FA erzwingen" on public.sync_items;
+create policy "2FA erzwingen" on public.sync_items as restrictive for all to authenticated
+  using (
+    array[(select auth.jwt()->>'aal')] <@ (
+      select case when count(id) > 0 then array['aal2'] else array['aal1', 'aal2'] end
+      from auth.mfa_factors where (select auth.uid()) = user_id and status = 'verified'
+    )
+  )
+  with check (
+    array[(select auth.jwt()->>'aal')] <@ (
+      select case when count(id) > 0 then array['aal2'] else array['aal1', 'aal2'] end
+      from auth.mfa_factors where (select auth.uid()) = user_id and status = 'verified'
+    )
+  );
+
 -- Neue Tabellen sind nicht mehr automatisch über die Data API erreichbar: Zugriff ausdrücklich erlauben.
 grant select, insert, update, delete on public.sync_items to authenticated;
 revoke all on public.sync_items from anon;

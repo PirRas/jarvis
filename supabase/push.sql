@@ -17,6 +17,22 @@ alter table public.push_subscriptions enable row level security;
 drop policy if exists "eigene Abos" on public.push_subscriptions;
 create policy "eigene Abos" on public.push_subscriptions for all
   to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
+
+-- Zwei-Faktor: Wer 2FA eingeschaltet hat, kommt nur mit bestätigtem Code (aal2) an die Daten.
+drop policy if exists "2FA erzwingen" on public.push_subscriptions;
+create policy "2FA erzwingen" on public.push_subscriptions as restrictive for all to authenticated
+  using (
+    array[(select auth.jwt()->>'aal')] <@ (
+      select case when count(id) > 0 then array['aal2'] else array['aal1', 'aal2'] end
+      from auth.mfa_factors where (select auth.uid()) = user_id and status = 'verified'
+    )
+  )
+  with check (
+    array[(select auth.jwt()->>'aal')] <@ (
+      select case when count(id) > 0 then array['aal2'] else array['aal1', 'aal2'] end
+      from auth.mfa_factors where (select auth.uid()) = user_id and status = 'verified'
+    )
+  );
 grant select, insert, update, delete on public.push_subscriptions to authenticated;
 revoke all on public.push_subscriptions from anon;
 
@@ -38,6 +54,22 @@ alter table public.push_schedule enable row level security;
 drop policy if exists "eigener Plan" on public.push_schedule;
 create policy "eigener Plan" on public.push_schedule for all
   to authenticated using ((select auth.uid()) = user_id) with check ((select auth.uid()) = user_id);
+
+-- Zwei-Faktor: Wer 2FA eingeschaltet hat, kommt nur mit bestätigtem Code (aal2) an die Daten.
+drop policy if exists "2FA erzwingen" on public.push_schedule;
+create policy "2FA erzwingen" on public.push_schedule as restrictive for all to authenticated
+  using (
+    array[(select auth.jwt()->>'aal')] <@ (
+      select case when count(id) > 0 then array['aal2'] else array['aal1', 'aal2'] end
+      from auth.mfa_factors where (select auth.uid()) = user_id and status = 'verified'
+    )
+  )
+  with check (
+    array[(select auth.jwt()->>'aal')] <@ (
+      select case when count(id) > 0 then array['aal2'] else array['aal1', 'aal2'] end
+      from auth.mfa_factors where (select auth.uid()) = user_id and status = 'verified'
+    )
+  );
 grant select, insert, update, delete on public.push_schedule to authenticated;
 revoke all on public.push_schedule from anon;
 
