@@ -136,7 +136,7 @@ export const startOfDay = (t = Date.now()) => {
   if (d.getTime() > t) d.setDate(d.getDate() - 1);
   return d.getTime();
 };
-export const endOfDay = (t = Date.now()) => startOfDay(t) + DAY;
+const endOfDay = (t = Date.now()) => startOfDay(t) + DAY;
 export { DAY };
 
 export type Counts = { new: number; learning: number; review: number };

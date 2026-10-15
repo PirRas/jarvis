@@ -51,7 +51,7 @@ const same = (a: object, b: object) => canon(a) === canon(b);
  * ("abo-…"), damit jedes Gerät dasselbe Ergebnis schreibt. Selbst angelegte Einträge bleiben unberührt;
  * die Vorlage des Departements wird ersetzt, ausser Prüfungen, die im Abo (noch) fehlen.
  */
-export async function applyTimetable(events: FeedEvent[]) {
+async function applyTimetable(events: FeedEvent[]) {
   const { slots, exams } = deriveTimetable(events);
   // Leeres Abo (z. B. Semester vorbei, neues noch nicht freigeschaltet): nichts löschen.
   if (!slots.length) return;

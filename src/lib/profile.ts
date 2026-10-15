@@ -17,7 +17,7 @@ export type Profile = {
   level?: { degree: Degree; year: number; at: string };
 };
 
-export const PROFILE_ID = "profile";
+const PROFILE_ID = "profile";
 export const BSC_YEARS = 3;
 export const MSC_YEARS = 2;
 
@@ -40,7 +40,7 @@ export function semesterAt(ms: number): { term: Term; year: number } {
 export const semesterKey = (s: { term: Term; year: number }) => `${s.term}${s.year}`;
 export const semesterLabel = (s: { term: Term; year: number }) => `${s.term} ${s.year}`;
 
-export function parseSemester(key: string): { term: Term; year: number } | null {
+function parseSemester(key: string): { term: Term; year: number } | null {
   const m = /^(HS|FS)\s?(\d{4})$/.exec(key.trim().toUpperCase());
   return m ? { term: m[1] as Term, year: Number(m[2]) } : null;
 }

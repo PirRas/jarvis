@@ -1,7 +1,7 @@
 // Molmasse aus einer Summenformel, z. B. "C6H12O6", "Ca(OH)2", "CuSO4·5H2O".
 // Atommassen: IUPAC-Standardwerte (konventionelle Werte, g/mol).
 
-export const ATOMIC_MASS: Record<string, number> = {
+const ATOMIC_MASS: Record<string, number> = {
   H: 1.008, He: 4.0026, Li: 6.94, Be: 9.0122, B: 10.81, C: 12.011, N: 14.007, O: 15.999, F: 18.998, Ne: 20.18,
   Na: 22.99, Mg: 24.305, Al: 26.982, Si: 28.085, P: 30.974, S: 32.06, Cl: 35.45, Ar: 39.95, K: 39.098, Ca: 40.078,
   Sc: 44.956, Ti: 47.867, V: 50.942, Cr: 51.996, Mn: 54.938, Fe: 55.845, Co: 58.933, Ni: 58.693, Cu: 63.546, Zn: 65.38,
@@ -20,7 +20,7 @@ export type FormulaResult = {
 const SUB: Record<string, string> = { "₀": "0", "₁": "1", "₂": "2", "₃": "3", "₄": "4", "₅": "5", "₆": "6", "₇": "7", "₈": "8", "₉": "9" };
 
 /** Zerlegt eine Summenformel; wirft einen Fehler mit verständlicher Meldung. */
-export function parseFormula(input: string): Record<string, number> {
+function parseFormula(input: string): Record<string, number> {
   const src = input.replace(/[₀-₉]/g, (d) => SUB[d]).replace(/\s+/g, "");
   if (!src) throw new Error("Bitte eine Summenformel eingeben.");
   const total: Record<string, number> = {};

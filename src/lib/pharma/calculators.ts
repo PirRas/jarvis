@@ -1,6 +1,6 @@
 // Rechner für Labor und Analytik: Verdünnung, Konzentration, pH. Reine Funktionen, alle Werte bei 25 °C.
 
-export const KW = 1e-14; // Ionenprodukt des Wassers bei 25 °C
+const KW = 1e-14; // Ionenprodukt des Wassers bei 25 °C
 
 // ---------- Einheiten ----------
 

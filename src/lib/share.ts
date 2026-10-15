@@ -5,7 +5,7 @@
 import { z } from "zod";
 import { NotesSchema, StudySchema, VideoSchema, type Notes, type Study, type Video } from "./schema";
 
-export const SHARE_VERSION = 1;
+const SHARE_VERSION = 1;
 /** Längere Links werden von Messengern und Browsern teils abgeschnitten. */
 export const SHARE_LINK_LIMIT = 12_000;
 

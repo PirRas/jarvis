@@ -6,7 +6,7 @@ import { LECTURE_FREE, SEMESTERS, UNI_DEADLINES } from "@/lib/uniDates";
 const iso = (s: string) => parseIsoDate(s);
 
 /** Aktuelles (oder nächstes) Semester mit Fortschritt der Vorlesungszeit. */
-export function semesterState(now: number) {
+function semesterState(now: number) {
   const today = dayStart(now);
   const sem = SEMESTERS.find((s) => today >= iso(s.from) && today <= iso(s.until)) ?? SEMESTERS.find((s) => iso(s.from) > today);
   if (!sem) return null;

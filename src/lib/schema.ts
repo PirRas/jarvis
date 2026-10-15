@@ -105,7 +105,6 @@ export type Notes = z.infer<typeof NotesSchema>;
 export type Study = z.infer<typeof StudySchema>;
 export type Flashcard = Study["flashcards"][number];
 export type QuizQuestion = Study["quiz"][number];
-export type ExamTask = Study["exam_tasks"][number];
 
 /**
  * Liest die von Claude kopierte Antwort ein: entfernt Codeblock-Zeichen und Text drumherum,

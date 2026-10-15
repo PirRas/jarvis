@@ -12,7 +12,7 @@ type Parsed =
   | { kind: "link"; site?: string };
 
 /** Erkennt YouTube- und Vimeo-Links, damit sie eingebettet abgespielt werden können. */
-export function parseVideoUrl(raw: string): Parsed | null {
+function parseVideoUrl(raw: string): Parsed | null {
   let url: URL;
   try {
     url = new URL(raw.trim());

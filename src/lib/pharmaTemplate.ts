@@ -20,7 +20,7 @@ export type SlotTpl = Omit<Slot, "id" | "createdAt" | "from" | "until" | "skip" 
 
 export const MATH_GROUPS = ["1. Zeitfenster", "2. Zeitfenster"];
 
-export const PHARMA_SLOTS: SlotTpl[] = [
+const PHARMA_SLOTS: SlotTpl[] = [
   { code: "10370", course: "Einführung in die Pharmazeutischen Wissenschaften", type: "Vorlesung", weekday: 1, start: "08:15", end: "10:00", room: "" },
   { code: "10380", course: "Einführung in die Chemie", type: "Vorlesung", weekday: 1, start: "10:15", end: "12:00", room: "", from: "2026-09-15" },
   { code: "10551", course: "Mathematik I", type: "Übung (1. Zeitfenster)", weekday: 1, start: "12:00", end: "15:00", room: "", from: "2026-09-21", group: "1. Zeitfenster" },

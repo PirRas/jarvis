@@ -157,7 +157,7 @@ export function validGrade(g: number) {
 }
 
 /** Auf zwei Stellen runden, halbe Hundertstel aufrunden (§ 9 Abs. 4). */
-export function round2(x: number) {
+function round2(x: number) {
   return Math.round((x + 1e-9) * 100) / 100;
 }
 
@@ -171,7 +171,7 @@ export function isPassed(r: Result | undefined) {
 const hasResult = (r: Result | undefined) => !!r && (r.grade !== undefined || r.status !== "offen");
 
 /** Modulnote: nach KP gewichteter Durchschnitt der benoteten Leistungen; null ohne Noten. */
-export function moduleGrade(courses: PlanCourse[], results: Map<string, Result>) {
+function moduleGrade(courses: PlanCourse[], results: Map<string, Result>) {
   let sum = 0;
   let kp = 0;
   for (const c of courses) {
@@ -187,7 +187,7 @@ export function moduleGrade(courses: PlanCourse[], results: Map<string, Result>)
  * Erworbene KP einer Veranstaltung. Kompensation: In Modulen mit mehreren Leistungsüberprüfungen zählen
  * ungenügend benotete Leistungen, wenn die Modulnote genügend ist.
  */
-export function earnedKp(course: PlanCourse, moduleCourses: PlanCourse[], results: Map<string, Result>) {
+function earnedKp(course: PlanCourse, moduleCourses: PlanCourse[], results: Map<string, Result>) {
   const r = results.get(course.id);
   if (isPassed(r)) return course.kp;
   if (r?.grade === undefined || moduleCourses.length < 2) return 0;

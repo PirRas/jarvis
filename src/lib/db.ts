@@ -231,10 +231,6 @@ export async function saveQuizResult(result: QuizResult) {
   changed();
 }
 
-export async function quizResultsForLecture(lectureId: string) {
-  return (await db()).getAllFromIndex("quiz", "byLecture", lectureId);
-}
-
 // ---------- Cockpit: Stundenplan, Termine, Abos, Links, Vorschauen ----------
 
 type PlannerStore = "slots" | "events" | "feeds" | "links" | "previews" | "todos" | "sessions" | "grades" | "marks" | "news";

@@ -43,7 +43,7 @@ const hhmm = (t: number) => {
 };
 
 /** "10551-09 Übun: Mathematik I für Naturwissenschaften (Pharmazeutische Wissenschaften)" zerlegen. */
-export function parseEntry(e: FeedEvent): Parsed | null {
+function parseEntry(e: FeedEvent): Parsed | null {
   const m = /^(P\s+)?(\d{3,6})-(\d+)\s+([^:]+):\s*(.+)$/.exec(e.title.trim());
   if (!m) return null;
   const [, p, code, section, abbr, rest] = m;

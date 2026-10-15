@@ -36,7 +36,7 @@ function parseDate(s: string) {
 }
 
 /** RSS 2.0, RSS 1.0 (RDF) und Atom in eine einheitliche Liste umwandeln. */
-export function parseFeed(xml: string, feed: Pick<NewsFeed, "id" | "name">): NewsItem[] {
+function parseFeed(xml: string, feed: Pick<NewsFeed, "id" | "name">): NewsItem[] {
   const doc = new DOMParser().parseFromString(xml, "application/xml");
   if (doc.getElementsByTagName("parsererror").length) throw new Error("Der Feed ist beschädigt und lässt sich nicht lesen.");
   const out: NewsItem[] = [];

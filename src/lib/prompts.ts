@@ -12,7 +12,7 @@ const OUTPUT_RULES = `Ausgabeformat:
 - Gib das JSON in einem Codeblock aus (\`\`\`json … \`\`\`), damit ich es kopieren kann.
 - Innerhalb der Strings ist Markdown erlaubt. Formeln in LaTeX ($...$ inline, $$...$$ abgesetzt); Backslashes im JSON korrekt escapen (\\\\frac statt \\frac).`;
 
-export const NOTES_PROMPT_BASE = `Du bist ein erfahrener Tutor, der Vorlesungsfolien für Studierende nachbereitet. Im Anhang sind die Folien einer Vorlesung.
+const NOTES_PROMPT_BASE = `Du bist ein erfahrener Tutor, der Vorlesungsfolien für Studierende nachbereitet. Im Anhang sind die Folien einer Vorlesung.
 
 Ziel: Eine Nachbereitung, mit der man die Vorlesung vollständig verstehen und für die Prüfung lernen kann, ohne die Folien nochmals öffnen zu müssen.
 

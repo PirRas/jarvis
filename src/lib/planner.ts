@@ -177,8 +177,6 @@ export const fmtDay = (t: number) =>
   new Date(t).toLocaleDateString("de-CH", { weekday: "long", day: "numeric", month: "long" });
 export const fmtShortDay = (t: number) =>
   new Date(t).toLocaleDateString("de-CH", { weekday: "short", day: "numeric", month: "short" });
-export const fmtDate = (t: number) =>
-  new Date(t).toLocaleDateString("de-CH", { day: "numeric", month: "long", year: "numeric" });
 
 /** "heute", "morgen", "in 5 Tagen" … */
 export function relDay(t: number, now = Date.now()) {
@@ -218,7 +216,7 @@ export function defaultSemester(now = Date.now()) {
 const EXAM_RE = /(prüfung|pruefung|klausur|\bexam|examen|midterm|testat|leistungsüberprüfung|zwischentest|nachholtermin)/i;
 const DEADLINE_RE = /(abgabe|deadline|frist|einsendeschluss|anmeldeschluss|anmeldung|abmeldung|einreichen)/i;
 
-export function looksLikeExam(text: string) {
+function looksLikeExam(text: string) {
   return EXAM_RE.test(text);
 }
 
@@ -365,10 +363,6 @@ export function nowAndNext(list: Occurrence[], now = Date.now()) {
   const current = timed.filter((o) => o.start <= now && o.end > now);
   const next = timed.find((o) => o.start > now) ?? null;
   return { current, next };
-}
-
-export function upcomingExams(list: Occurrence[], now = Date.now()) {
-  return list.filter((o) => o.kind === "exam" && o.end > now);
 }
 
 /** ID für die Vorschau einer Lektion: gleiches Fach am gleichen Tag. */

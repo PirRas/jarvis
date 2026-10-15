@@ -2,7 +2,7 @@
 // z. B. "Allgemeine Chemie (Chemie0), Universität Basel" und "Allgemeine Chemie (Chemie_0), Universität Basel".
 
 /** Kleinbuchstaben, ohne Akzente, ohne Satz- und Leerzeichen. */
-export function normalizeCourse(name: string) {
+function normalizeCourse(name: string) {
   return name
     .toLowerCase()
     .normalize("NFD")
