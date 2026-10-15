@@ -23,6 +23,19 @@ Persönliches Cockpit für das Studium der Pharmazeutischen Wissenschaften an de
 - **Nachbereitung**: Vorlesungsfolien mit Claude nachbereiten, Karteikarten mit verteilter Wiederholung, Quiz und
   Klausuraufgaben (siehe unten).
 
+## Mit Jarvis sprechen
+
+Beim Öffnen der App (Handy oder Browser) erscheint zuerst der Sprachbildschirm. Reaktor antippen (am PC: Leertaste),
+sprechen, Jarvis antwortet laut und erledigt es: Termine nennen, eintragen, verschieben und löschen, Aufgaben anlegen und
+abhaken, Lernstand und Lernzeit, Noten eintragen, Fokus-Timer starten, Seiten und Links öffnen. „Cockpit“ führt zur
+normalen App, der Mikrofon-Knopf unten rechts wieder zurück.
+
+- Braucht denselben kostenlosen Gemini-Schlüssel wie die Nachbereitung (Funktionsaufrufe, `src/lib/jarvisAgent.ts`,
+  Werkzeuge in `src/lib/voiceTools.ts`). Spracherkennung und Stimme kommen vom Browser (Chrome/Edge am besten;
+  wo es keine Spracherkennung gibt, z. B. Firefox, tippt man).
+- Schalter: „Stimme“ (vorlesen), „Gespräch“ (nach der Antwort gleich wieder zuhören), „Beim Start“ (Sprachbildschirm beim Öffnen).
+- Termine aus dem Stundenplan oder aus Abos ändert Jarvis nicht, nur eigene. Vor dem Löschen fragt Jarvis nach.
+
 ## Automatisch erstellen (kostenlos)
 
 1. Einmal einen kostenlosen Gemini-Schlüssel holen: https://aistudio.google.com/apikey (Google-Konto genügt, keine Kreditkarte) und unter „Vorlesungen“ → „Neue Vorlesung hinzufügen“ eintragen.

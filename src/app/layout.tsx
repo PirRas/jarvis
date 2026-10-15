@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Chakra_Petch, Hanken_Grotesk } from "next/font/google";
 import Link from "next/link";
 import { HudMark } from "@/components/HudRing";
+import { JarvisButton } from "@/components/JarvisButton";
 import { MainNav } from "@/components/MainNav";
 import { RegisterSW } from "@/components/RegisterSW";
 import { SyncBadge } from "@/components/SyncBadge";
@@ -38,6 +39,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <MainNav />
         </header>
         <main className="page">{children}</main>
+        <JarvisButton />
         <RegisterSW />
       </body>
     </html>

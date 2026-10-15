@@ -13,6 +13,12 @@ keine
 
 ## Letzte Sitzungen
 
+### 2026-10-15 – Cloud-Sitzung (vm, Sprachinterface)
+- Neu: `/jarvis` Sprachbildschirm (Reaktor-Orb, Zustände hören/denken/sprechen), erscheint beim ersten Öffnen pro Browser-Sitzung (`sessionStorage` „jarvis-intro“, abschaltbar „Beim Start“). Mikrofon-Knopf auf allen Seiten.
+- Gemini Function Calling: `chatTurn` in `gemini.ts` (gleiche Modellkette), Schleife `jarvisAgent.ts`, 18 Werkzeuge in `voiceTools.ts` (Termine, Aufgaben, Überblick, Lernstand, Lernzeit, Noten, Vorlesungen, Fokus, Seiten, Links). Spracherkennung/Stimme: `speech.ts` (Web Speech API, de-CH).
+- Tests: `scripts/voice-check.ts` (Werkzeuge + simulierte Gesprächsrunde), Browser-Test mit simuliertem Mikrofon und Gemini (Handy + Desktop): Termin per Sprache landet im Kalender. Nutzer hat mit echtem Schlüssel getestet: „läuft alles“.
+- Gebaut auf Branch `claude/voice-interface-r35y46`, PR #1, in `main` übernommen. Commits: `c5e7b4d` chatTurn, `9be3e46` Werkzeuge, `a8ce7ca` Sprachbildschirm, `dd8b717` Feinschliff.
+
 ### 2026-10-15 – PiravinLap2
 - Plugins `ponytail` + `superpowers` im Projekt aktiviert (`.claude/settings.json`), graphify-Graph gebaut (`graphify-out/` ignoriert, pdf.js-Worker per `.graphifyignore` ausgeschlossen).
 - Browser-Test aller 16 Seiten (Desktop + Handy) ohne Fehler; Fix: „Termine aus Text“ – mehrere Daten in einem Absatz bekommen eigene Uhrzeit/Titel/Art (`scripts/textdates-check.ts`).
