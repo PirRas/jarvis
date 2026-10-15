@@ -72,9 +72,17 @@ export function listen({ onInterim }: { onInterim?: (t: string) => void }): { re
 
 const synth = () => (typeof window !== "undefined" && "speechSynthesis" in window ? window.speechSynthesis : null);
 
+// Männliche Stimmen nach Namen (Windows/Edge, macOS/iOS); Android und Chrome verraten das Geschlecht nicht.
+const MALE = /\b(jan|conrad|killian|florian|stefan|markus|yannick|viktor|martin|ralf|bernd|christoph|kasper|klaus|male|männlich)\b/i;
+
+/** Beste deutsche Stimme: männlich vor weiblich, "Natural"/"Online" (neuronal, klingt natürlich) vor klassisch, de-CH vor de-DE. */
 function pickVoice(): SpeechSynthesisVoice | undefined {
-  const v = synth()?.getVoices() ?? [];
-  return v.find((x) => x.lang.replace("_", "-") === "de-CH") ?? v.find((x) => x.lang.replace("_", "-") === "de-DE") ?? v.find((x) => x.lang.toLowerCase().startsWith("de"));
+  const lang = (v: SpeechSynthesisVoice) => v.lang.replace("_", "-");
+  const score = (v: SpeechSynthesisVoice) =>
+    (MALE.test(v.name) ? 8 : 0) + (/natural|online|neural|premium|enhanced/i.test(v.name) ? 4 : 0) + (lang(v) === "de-CH" ? 2 : lang(v) === "de-DE" ? 1 : 0);
+  return (synth()?.getVoices() ?? [])
+    .filter((v) => lang(v).toLowerCase().startsWith("de"))
+    .sort((a, b) => score(b) - score(a))[0];
 }
 
 /** Stimmen laden in manchen Browsern erst nach dem Start nach. */
@@ -123,7 +131,9 @@ export async function speak(text: string): Promise<void> {
       const u = new SpeechSynthesisUtterance(p);
       u.lang = voice?.lang ?? "de-CH";
       if (voice) u.voice = voice;
-      u.rate = 1.05;
+      u.rate = 1.0;
+      // Ohne erkennbar männliche Stimme etwas tiefer, damit es mehr nach Jarvis klingt
+      u.pitch = voice && MALE.test(voice.name) ? 1 : 0.8;
       u.onend = fin;
       u.onerror = fin;
       alive.push(u);

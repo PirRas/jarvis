@@ -211,7 +211,7 @@ body:has(.jarvis-screen) .page {
   flex-wrap: wrap;
   justify-content: center;
   gap: 8px;
-  margin: auto 0;
+  margin: 8px 0 auto;
 }
 .jv-chip {
   padding: 7px 12px;

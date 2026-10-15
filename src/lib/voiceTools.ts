@@ -61,6 +61,7 @@ export type ToolContext = {
   navigate: (path: string) => void;
   openUrl: (url: string) => void;
   startFocus: (course: string, minutes: number) => void;
+  name?: string; // Vorname aus dem Konto, für die Anrede
 };
 
 type Args = Record<string, unknown>;
@@ -106,7 +107,8 @@ export const TOOL_DECLARATIONS: { name: string; description: string; parameters?
   },
   {
     name: "termin_anlegen",
-    description: "Legt einen neuen eigenen Termin an. Ohne Beginn ist er ganztägig, ohne Ende dauert er eine Stunde.",
+    description:
+      "Legt einen neuen eigenen Termin an. Ohne Beginn ist er ganztägig, ohne Ende dauert er eine Stunde. Wiederkehrend („jeden Samstag“): woechentlich = true und datum = der nächste solche Wochentag; ein Termin genügt, die Wiederholungen erscheinen automatisch.",
     parameters: obj(
       {
         titel: S("Titel des Termins"),
@@ -117,6 +119,8 @@ export const TOOL_DECLARATIONS: { name: string; description: string; parameters?
         fach: S("Fach, falls passend"),
         ort: S("Ort oder Raum"),
         notiz: S("Notiz"),
+        woechentlich: { type: "boolean", description: "true = jede Woche am selben Wochentag wiederholen" },
+        wiederholen_bis: DATUM("Letzter Tag der Wiederholung (inklusive), ohne Angabe unbegrenzt"),
       },
       ["titel", "datum"],
     ),
@@ -124,7 +128,7 @@ export const TOOL_DECLARATIONS: { name: string; description: string; parameters?
   {
     name: "termin_aendern",
     description:
-      "Ändert einen eigenen Termin. Termine aus dem Stundenplan oder aus Kalender-Abos lassen sich nicht ändern. Nur angegebene Felder werden geändert.",
+      "Ändert einen eigenen Termin. Termine aus dem Stundenplan oder aus Kalender-Abos lassen sich nicht ändern. Nur angegebene Felder werden geändert. Bei einer Serie (serie in der Liste) gilt die Änderung für die ganze Serie.",
     parameters: obj(
       {
         id: ID_TERMIN,
@@ -136,13 +140,15 @@ export const TOOL_DECLARATIONS: { name: string; description: string; parameters?
         ort: S("Neuer Ort"),
         notiz: S("Neue Notiz"),
         fach: S("Neues Fach"),
+        woechentlich: { type: "boolean", description: "true = jede Woche wiederholen, false = Wiederholung entfernen" },
+        wiederholen_bis: DATUM("Neues Ende der Wiederholung (inklusive), leer = unbegrenzt"),
       },
       ["id"],
     ),
   },
   {
     name: "termin_loeschen",
-    description: "Löscht einen eigenen Termin. Vorher beim Nutzer nachfragen, ausser er hat es eindeutig verlangt.",
+    description: "Löscht einen eigenen Termin (bei einer Serie die ganze Serie). Vorher beim Nutzer nachfragen, ausser er hat es eindeutig verlangt.",
     parameters: obj({ id: ID_TERMIN }, ["id"]),
   },
   {
@@ -313,6 +319,9 @@ async function plannerData(ctx: ToolContext): Promise<PlannerData> {
   return { slots, events, feeds, caches, todos };
 }
 
+const serieText = (e?: CalEvent) =>
+  e?.repeat ? `wöchentlich${e.repeat.until ? ` (bis ${fmtShortDay(parseIsoDate(e.repeat.until))})` : ""}` : undefined;
+
 const row = (o: Occurrence) => ({
   id: o.key,
   titel: o.title,
@@ -326,15 +335,18 @@ const row = (o: Occurrence) => ({
   aenderbar: o.origin.kind === "event",
 });
 
-const eventRow = (e: CalEvent) => row(occurrences({ ...EMPTY_PLANNER, events: [e] }, 0, Infinity)[0]);
+/** Zeile eines eigenen Termins; bei Serien mit Hinweis. */
+const eventOccRow = (o: Occurrence, e?: CalEvent) => ({ ...row(o), ...(serieText(e) ? { serie: serieText(e) } : {}) });
 
-/** Eigener Termin zur ID ("event:<uuid>" oder nur die uuid); andere Quellen werden abgewiesen. */
+const eventRow = (e: CalEvent) => eventOccRow(occurrences({ ...EMPTY_PLANNER, events: [e] }, 0, Infinity)[0], e); // bei Serien nur das erste Vorkommen
+
+/** Eigener Termin zur ID ("event:<uuid>", "event:<uuid>:<datum>" bei Serien oder nur die uuid); andere Quellen werden abgewiesen. */
 async function ownEvent(a: Args, ctx: ToolContext) {
   const id = req(a, "id");
   const other = /^(slot|feed):/.exec(id);
   if (other) fail("Dieser Termin kommt aus dem Stundenplan oder einem Kalender-Abo und lässt sich per Sprache nicht ändern.");
   if (id.startsWith("todo:")) fail("Das ist eine Aufgabe mit Datum, kein Termin. Dafür gibt es aufgabe_aendern.");
-  const bare = id.replace(/^event:/, "");
+  const bare = id.replace(/^event:/, "").replace(/:\d{4}-\d{2}-\d{2}$/, "");
   const e = (await ctx.store.list("events")).find((x) => x.id === bare);
   return e ?? fail(`Keinen eigenen Termin mit der ID „${id}“ gefunden.`);
 }
@@ -372,7 +384,7 @@ const TOOLS: Record<string, (a: Args, ctx: ToolContext) => Promise<Record<string
     const all = occurrences(data, parseIsoDate(von), parseIsoDate(bis) + DAYMS, await courseNames(ctx, data)).filter(
       (o) => !art || o.kind === art,
     );
-    return { anzahl: all.length, termine: all.slice(0, MAX_LIST).map(row), ...(all.length > MAX_LIST ? { gekuerzt: `Nur die ersten ${MAX_LIST} gezeigt.` } : {}) };
+    return { anzahl: all.length, termine: all.slice(0, MAX_LIST).map((o) => eventOccRow(o, o.origin.kind === "event" ? data.events.find((e) => e.id === o.origin.id) : undefined)), ...(all.length > MAX_LIST ? { gekuerzt: `Nur die ersten ${MAX_LIST} gezeigt.` } : {}) };
   },
 
   async termin_anlegen(a, ctx) {
@@ -386,6 +398,8 @@ const TOOLS: Record<string, (a: Args, ctx: ToolContext) => Promise<Record<string
     const end = beginn ? (ende ? atTime(day, ende) : start + HOUR) : null;
     if (end !== null && end <= start) fail("Das Ende muss nach dem Beginn liegen.");
     const fach = str(a, "fach") ?? "";
+    const bis = date(a, "wiederholen_bis");
+    if (bis && bis < datum) fail("wiederholen_bis liegt vor datum.");
     const e: CalEvent = {
       id: crypto.randomUUID(),
       title: titel,
@@ -397,6 +411,7 @@ const TOOLS: Record<string, (a: Args, ctx: ToolContext) => Promise<Record<string
       location: str(a, "ort") ?? "",
       note: str(a, "notiz") ?? "",
       source: "manual",
+      ...(a.woechentlich === true || (a.woechentlich !== false && bis) ? { repeat: { every: "week" as const, ...(bis ? { until: bis } : {}) } } : {}),
       createdAt: ctx.now,
     };
     await ctx.store.put("events", e);
@@ -427,6 +442,13 @@ const TOOLS: Record<string, (a: Args, ctx: ToolContext) => Promise<Record<string
       next.end = von ? (ende ? atTime(day, ende) : next.start + dauer) : null;
       if (next.end !== null && next.end <= next.start) fail("Das Ende muss nach dem Beginn liegen.");
     }
+    const bis = date(a, "wiederholen_bis", true);
+    if (a.woechentlich === false) delete next.repeat;
+    else if (a.woechentlich === true || bis) {
+      const until = bis === undefined ? e.repeat?.until : bis || undefined;
+      next.repeat = { every: "week", ...(until ? { until } : {}), ...(e.repeat?.skip ? { skip: e.repeat.skip } : {}) };
+    }
+    if (next.repeat?.until && next.repeat.until < isoDate(next.start)) fail("wiederholen_bis liegt vor dem Termin.");
     await ctx.store.put("events", next);
     return { ok: true, termin: eventRow(next) };
   },
@@ -679,9 +701,9 @@ export async function runTool(name: string, args: Record<string, unknown>, ctx: 
   }
 }
 
-export function systemPrompt(now: number): string {
+export function systemPrompt(now: number, name = ""): string {
   const long = new Date(now).toLocaleDateString("de-CH", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
-  return `Du bist Jarvis, der persönliche Sprachassistent im Uni-Cockpit, ganz im Stil von J.A.R.V.I.S. aus Iron Man: höflich, souverän, knapp und mit einem Hauch trockenem Humor. Du duzt dein Gegenüber. Es studiert im 1. Semester Pharmazeutische Wissenschaften an der Uni Basel.
+  return `Du bist Jarvis, der persönliche Sprachassistent im Uni-Cockpit, ganz im Stil von J.A.R.V.I.S. aus Iron Man: höflich, souverän, knapp und mit einem Hauch trockenem Humor. Du duzt dein Gegenüber${name ? ` und sprichst es ab und zu mit seinem Namen ${name} an` : ""}. Es studiert im 1. Semester Pharmazeutische Wissenschaften an der Uni Basel.
 
 Jetzt: ${long}, ${fmtTime(now)} Uhr. Heutiges Datum (ISO): ${isoDate(now)}. Rechne relative Angaben wie „morgen“ oder „nächsten Dienstag“ selbst in ein Datum YYYY-MM-DD um; Uhrzeiten gibst du den Werkzeugen als HH:MM.
 
