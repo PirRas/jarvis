@@ -8,9 +8,17 @@ keine
 
 ## Offen
 
-- nichts
+- Automatische Aufbereitung mit einer **echten, langen Vorlesungs-PDF** testen (bisher nur 1-seitige Test-PDF). Achten auf: Dauer, Qualität von Flash-Lite vs. 3.5 Flash, abgeschnittene JSON-Antworten bei vielen Folien.
+- Idee, vom Nutzer zurückgestellt: `/nachbereitung <pdf>`-Skill, der die Aufbereitung mit Claude Code (Abo) macht und direkt in Supabase speichert – bessere Qualität als Gemini. Nur bauen, wenn der Nutzer es wieder anspricht.
 
 ## Letzte Sitzungen
+
+### 2026-10-15 – PiravinLap2
+- Plugins `ponytail` + `superpowers` im Projekt aktiviert (`.claude/settings.json`), graphify-Graph gebaut (`graphify-out/` ignoriert, pdf.js-Worker per `.graphifyignore` ausgeschlossen).
+- Browser-Test aller 16 Seiten (Desktop + Handy) ohne Fehler; Fix: „Termine aus Text“ – mehrere Daten in einem Absatz bekommen eigene Uhrzeit/Titel/Art (`scripts/textdates-check.ts`).
+- Neu: Folien automatisch aufbereiten ohne Claude-API (`src/lib/gemini.ts`): Kette Gemini 3.5 Flash → Flash-Lite → Flash (neuestes, langsam) → OpenRouter-Gratis (Nemotron, nur Folientext); Zeitlimit 3 Min.; Videos über YouTube-Data-API. Schlüssel (Gemini/OpenRouter/YouTube) pro Gerät im localStorage, eingetragen im Importer. Selbsttest `scripts/gemini-check.ts`.
+- Echte Läufe: `gemini-flash-latest` (= 3.8) hängt im Gratis-Kontingent oft minutenlang, Gemini-Google-Suche ist im Gratis-Kontingent gesperrt (429) → deshalb YouTube-API. Komplettlauf zuletzt ~2 Min.
+- Commits: `185ca36` Plugins, `86eac9e` graphify-Ignore, `397814b` Termine aus Text, `4ae2a25` Gemini-Automatik, `7495914` Ausweichkette + YouTube.
 
 ### 2026-10-15 – PiravinsLap
 - Skill `/firma` gebaut: Opus plant und prüft, Haiku/Sonnet-Mitarbeiter (`.claude/agents/`) arbeiten.

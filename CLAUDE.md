@@ -31,6 +31,9 @@ Persönliches Uni-Cockpit (Pharmazeutische Wissenschaften, Uni Basel). Details z
 - Grössere Features: erst `superpowers:brainstorming`, dann `superpowers:writing-plans`. Vor „fertig“ immer die Checks unten laufen lassen (`superpowers:verification-before-completion`).
 - Review: `/ponytail-review` für eine Änderung, `/ponytail-audit` fürs ganze Repo.
 
+- Agenten aus `.claude/agents/` gibt es nur, wenn Claude im Ordner `jarvis` gestartet wurde; sonst `general-purpose` mit `model: haiku/sonnet`.
+- KI-Aufbereitung kostenlos halten: keine bezahlten APIs (auch keine Claude-API). Gratis-Kette steht in `src/lib/gemini.ts`.
+
 ## Skills
 - `/firma <aufgabe>`: Opus als Chef, Mitarbeiter-Agenten in `.claude/agents/` (Haiku/Sonnet).
 - `/close [nächste aufgabe]`: Sitzung abschliessen – Checks, Commit + Push, Gedächtnis pflegen, Fenster schliessen.
