@@ -23,6 +23,15 @@ Persönliches Cockpit für das Studium der Pharmazeutischen Wissenschaften an de
 - **Nachbereitung**: Vorlesungsfolien mit Claude nachbereiten, Karteikarten mit verteilter Wiederholung, Quiz und
   Klausuraufgaben (siehe unten).
 
+## Automatisch mit Gemini (kostenlos)
+
+1. Einmal einen kostenlosen Gemini-Schlüssel holen: https://aistudio.google.com/apikey (Google-Konto genügt, keine Kreditkarte) und unter „Vorlesungen“ → „Neue Vorlesung hinzufügen“ eintragen.
+2. Danach PDF wählen: Jarvis erstellt Nachbereitung, Karteikarten und Quiz und sucht Videos selbst (1–3 Minuten).
+
+- Der Aufruf läuft direkt im Browser zu Google (`src/lib/gemini.ts`). Der Schlüssel bleibt auf dem Gerät (localStorage) und muss pro Gerät einmal eingetragen werden.
+- Grenzen: kostenloses Tageskontingent von Google; PDFs bis 18 MB. Im kostenlosen Kontingent darf Google die Eingaben zur Verbesserung seiner Modelle verwenden – keine vertraulichen Unterlagen hochladen.
+- Der Weg über claude.ai (Prompts kopieren) bleibt als Ausweichweg erhalten, siehe unten.
+
 ## Nachbereitung hinzufügen
 
 1. Unter „Vorlesungen“ auf „Neue Vorlesung hinzufügen“ tippen.

@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CopyButton } from "@/components/CopyButton";
+import { findVideos, getGeminiKey } from "@/lib/gemini";
 import { videosPrompt } from "@/lib/prompts";
 import { allowedSite } from "@/lib/videoSites";
 import { parseClaudeJson, VideosSchema, type Notes, type Video } from "@/lib/schema";
@@ -154,6 +155,10 @@ export function Videos({
   const [raw, setRaw] = useState("");
   const [manualUrl, setManualUrl] = useState("");
   const [manualTitle, setManualTitle] = useState("");
+  const [autoBusy, setAutoBusy] = useState(false);
+  const [autoError, setAutoError] = useState("");
+  const [hasKey, setHasKey] = useState(false);
+  useEffect(() => setHasKey(!!getGeminiKey()), []);
   const parsed = useMemo(() => (raw.trim() ? parseClaudeJson(raw, VideosSchema) : null), [raw]);
   const filtered = parsed?.ok ? filterSuggestedVideos(parsed.data.videos) : null;
   const prompt = useMemo(() => videosPrompt(notes), [notes]);
@@ -167,6 +172,18 @@ export function Videos({
     await onChange([...base, ...fresh.filter((v) => !known.has(v.url))]);
     setRaw("");
     setSearching(false);
+  }
+
+  async function searchAuto() {
+    setAutoBusy(true);
+    setAutoError("");
+    try {
+      setRaw(await findVideos(getGeminiKey(), prompt));
+    } catch (e) {
+      setAutoError((e as Error).message);
+    } finally {
+      setAutoBusy(false);
+    }
   }
 
   async function addManual(e: React.FormEvent) {
@@ -209,7 +226,21 @@ export function Videos({
           </div>
           <ol className="steps">
             <li>
-              <h3>Prompt an Claude geben</h3>
+              <h3>Automatisch suchen</h3>
+              <p className="muted">Jarvis sucht mit dem kostenlosen Gemini-Kontingent selbst passende Videos.</p>
+              {hasKey ? (
+                <button className="btn btn-primary" onClick={searchAuto} disabled={autoBusy}>
+                  {autoBusy ? "Suche läuft …" : "Automatisch suchen"}
+                </button>
+              ) : (
+                <p className="muted small" style={{ margin: 0 }}>
+                  Dafür einmal unter „Vorlesungen → Neue Vorlesung hinzufügen“ den Gemini-Schlüssel eintragen.
+                </p>
+              )}
+              {autoError && <p className="error small">{autoError}</p>}
+            </li>
+            <li>
+              <h3>Oder: Prompt an Claude geben</h3>
               <p className="muted">
                 Kopiere den Prompt und sende ihn auf claude.ai, im Chat dieser Vorlesung oder in einem neuen. Die Websuche
                 muss eingeschaltet sein, damit Claude echte Videos findet.

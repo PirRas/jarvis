@@ -6,6 +6,7 @@ import { CopyButton } from "@/components/CopyButton";
 import { describeFilter, filterSuggestedVideos } from "@/components/Videos";
 import { groupByCourse, matchExistingCourse } from "@/lib/courses";
 import { listLectures, saveLecture } from "@/lib/db";
+import { generateLecture, getGeminiKey, setGeminiKey } from "@/lib/gemini";
 import { notesPrompt, STUDY_PROMPT, videosPrompt } from "@/lib/prompts";
 import { NotesSchema, parseClaudeJson, StudySchema, VideosSchema } from "@/lib/schema";
 
@@ -31,6 +32,16 @@ export function Importer() {
   const [videosRaw, setVideosRaw] = useState("");
   const [courses, setCourses] = useState<string[]>([]);
   const [saving, setSaving] = useState(false);
+  const [geminiKey, setKey] = useState("");
+  const [editKey, setEditKey] = useState(false);
+  const [keyInput, setKeyInput] = useState("");
+  const [status, setStatus] = useState("");
+  const [genError, setGenError] = useState("");
+  const [running, setRunning] = useState(false);
+
+  useEffect(() => {
+    setKey(getGeminiKey());
+  }, []);
 
   useEffect(() => {
     const d = loadDraft();
@@ -79,13 +90,63 @@ export function Importer() {
     router.push(`/vorlesung?id=${id}`);
   }
 
+  function saveKey() {
+    setGeminiKey(keyInput.trim());
+    setKey(keyInput.trim());
+    setKeyInput("");
+    setEditKey(false);
+  }
+
+  async function onPdf(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setNotesRaw("");
+    setStudyRaw("");
+    setVideosRaw("");
+    setGenError("");
+    setRunning(true);
+    setStatus("Nachbereitung wird erstellt …");
+    try {
+      await generateLecture(
+        geminiKey,
+        file,
+        {
+          notes: notesPrompt(courses),
+          study: STUDY_PROMPT,
+          videos: (raw) => {
+            const parsed = parseClaudeJson(raw, NotesSchema);
+            return parsed.ok ? videosPrompt(parsed.data) : null;
+          },
+        },
+        (step, raw) => {
+          if (step === "notes") {
+            setNotesRaw(raw);
+            setStatus("Karteikarten und Quiz werden erstellt …");
+          } else if (step === "study") {
+            setStudyRaw(raw);
+            setStatus("Videos werden gesucht …");
+          } else {
+            setVideosRaw(raw);
+          }
+        },
+      );
+      setStatus("Fertig – prüfe unten und speichere.");
+    } catch (err) {
+      setStatus("");
+      setGenError(err instanceof Error ? err.message : "Unbekannter Fehler.");
+    } finally {
+      setRunning(false);
+    }
+  }
+
   if (!open) {
     return (
       <div className="drop" onClick={() => setOpen(true)} role="button" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && setOpen(true)}>
         <span className="drop-title">Neue Vorlesung hinzufügen</span>
         <span className="muted">
-          Die Folien bereitest du kostenlos mit deinem Claude-Konto auf claude.ai auf. Die App führt dich Schritt
-          für Schritt durch.
+          Folien hochladen – Jarvis erstellt Nachbereitung, Karteikarten und Videos automatisch (kostenlos mit
+          Gemini). Alternativ manuell über claude.ai.
         </span>
         <span className="btn btn-primary" style={{ marginTop: 10 }}>
           Los geht’s
@@ -102,6 +163,50 @@ export function Importer() {
           Schließen
         </button>
       </div>
+
+      <div style={{ display: "grid", gap: 12, justifyItems: "start" }}>
+        <h3>Automatisch erstellen</h3>
+        <p className="muted">
+          Jarvis erstellt Nachbereitung, Karteikarten, Quiz und Videos selbst mit dem kostenlosen Gemini-Kontingent von
+          Google. Das dauert 1–3 Minuten.
+        </p>
+        {!geminiKey || editKey ? (
+          <div className="row">
+            <label className="field">
+              Gemini-Schlüssel
+              <input type="password" value={keyInput} onChange={(e) => setKeyInput(e.target.value)} autoComplete="off" />
+            </label>
+            <button className="btn" onClick={saveKey} disabled={!keyInput.trim()}>
+              Speichern
+            </button>
+            <a href="https://aistudio.google.com/apikey" target="_blank" rel="noreferrer">
+              Schlüssel kostenlos holen
+            </a>
+          </div>
+        ) : (
+          <div className="row">
+            <span className="muted small">Gemini-Schlüssel gespeichert</span>
+            <button className="btn btn-quiet" onClick={() => setEditKey(true)}>
+              Ändern
+            </button>
+          </div>
+        )}
+        <label
+          className="btn btn-primary"
+          style={!geminiKey || running ? { opacity: 0.45, cursor: "not-allowed" } : undefined}
+        >
+          {running ? "Wird erstellt …" : "PDF wählen und erstellen"}
+          <input className="sr-only" type="file" accept="application/pdf" onChange={onPdf} disabled={!geminiKey || running} />
+        </label>
+        {status && (
+          <p className="muted small" role="status">
+            {status}
+          </p>
+        )}
+        {genError && <p className="error small">{genError}</p>}
+      </div>
+
+      <p className="muted">Oder manuell über claude.ai:</p>
 
       <ol className="steps">
         <li>
