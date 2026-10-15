@@ -63,4 +63,4 @@ Nur wenn Schritte 1–5 ohne offenes Problem durchgelaufen sind und der Push gek
 powershell -NoProfile -ExecutionPolicy Bypass -File .claude/skills/close/fenster-schliessen.ps1 -Delay 15
 ```
 
-Das Skript beendet nur diese Sitzung (und ihr Terminal bzw. ihren Tab), nicht andere Claude-Fenster. Danach den Abschlussbericht schreiben und nichts mehr tun.
+Das Skript schliesst das Fenster dieser Sitzung (z. B. Git Bash, gefunden über den Sitzungstitel im Fenstertitel) und beendet die Sitzung. Andere Claude-Fenster bleiben offen. Ist das Fenster nicht eindeutig, endet nur die Sitzung, und der Bericht sagt das. Danach den Abschlussbericht schreiben und nichts mehr tun.
