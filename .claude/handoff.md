@@ -8,10 +8,17 @@ keine
 
 ## Offen
 
+- Sprachinterface (Branch `claude/voice-interface-r35y46`, Draft-PR): Nutzer testet auf Handy und PC, dann mergen. Mit echtem Gemini-Schlüssel noch nicht gelaufen (nur simuliert); prüfen: Antwortzeit, ob Gemini die Werkzeuge zuverlässig wählt, deutsche Stimme auf Android.
+
 - Automatische Aufbereitung mit einer **echten, langen Vorlesungs-PDF** testen (bisher nur 1-seitige Test-PDF). Achten auf: Dauer, Qualität von Flash-Lite vs. 3.5 Flash, abgeschnittene JSON-Antworten bei vielen Folien.
 - Idee, vom Nutzer zurückgestellt: `/nachbereitung <pdf>`-Skill, der die Aufbereitung mit Claude Code (Abo) macht und direkt in Supabase speichert – bessere Qualität als Gemini. Nur bauen, wenn der Nutzer es wieder anspricht.
 
 ## Letzte Sitzungen
+
+### 2026-10-15 – Cloud (Sprachinterface)
+- Neu: `/jarvis` Sprachbildschirm (Reaktor-Orb, Zustände hören/denken/sprechen), erscheint beim ersten Öffnen pro Browser-Sitzung (`sessionStorage` „jarvis-intro“, abschaltbar „Beim Start“). Mikrofon-Knopf auf allen Seiten.
+- Gemini Function Calling: `chatTurn` in `gemini.ts` (gleiche Modellkette), Schleife `jarvisAgent.ts`, 18 Werkzeuge in `voiceTools.ts` (Termine, Aufgaben, Überblick, Lernstand, Lernzeit, Noten, Vorlesungen, Fokus, Seiten, Links). Spracherkennung/Stimme: `speech.ts` (Web Speech API, de-CH).
+- Tests: `scripts/voice-check.ts` (Werkzeuge + simulierte Gesprächsrunde), Browser-Test mit simuliertem Mikrofon und Gemini (Handy + Desktop): Termin per Sprache landet im Kalender.
 
 ### 2026-10-15 – PiravinLap2
 - Plugins `ponytail` + `superpowers` im Projekt aktiviert (`.claude/settings.json`), graphify-Graph gebaut (`graphify-out/` ignoriert, pdf.js-Worker per `.graphifyignore` ausgeschlossen).

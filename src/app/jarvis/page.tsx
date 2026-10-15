@@ -57,7 +57,8 @@ export default function JarvisPage() {
   const [mic, setMic] = useState(true);
   const history = useRef<ChatTurn[]>([]);
   const rec = useRef<{ stop(): void } | null>(null);
-  const busy = useRef(false);
+  const busy = useRef(false); // wartet gerade auf die KI
+  const turn = useRef(0); // zählt Antworten, damit eine unterbrochene nicht weiterläuft
   const flags = useRef({ voice: true, talk: false });
   const logEnd = useRef<HTMLDivElement>(null);
 
@@ -91,7 +92,7 @@ export default function JarvisPage() {
   const say = useCallback(async (msg: string) => {
     if (!flags.current.voice) return;
     setState("speaking");
-    await speak(msg);
+    await speak(msg).catch(() => {}); // Vorlesen ist Zusatz; die Antwort steht ja da
   }, []);
 
   const ask = useCallback(
@@ -99,6 +100,7 @@ export default function JarvisPage() {
       const input = q.trim();
       if (!input || busy.current) return;
       busy.current = true;
+      turn.current++;
       stopSpeaking();
       setInterim("");
       setLog((l) => [...l, { role: "user", text: input }]);
@@ -118,17 +120,22 @@ export default function JarvisPage() {
           nav = "/fokus";
         },
       };
+      let reply: string;
       try {
         const r = await askJarvis(input, history.current, ctx);
         history.current = trim(r.history);
         setLog((l) => [...l, { role: "jarvis", text: r.reply, actions: r.actions }, ...extra]);
-        await say(r.reply);
+        reply = r.reply;
       } catch (e) {
         const m = e instanceof Error ? e.message : "Das hat nicht geklappt.";
         setLog((l) => [...l, { role: "error", text: m }]);
-        await say(m.length > 120 ? "Das hat leider nicht geklappt." : m);
+        reply = m.length > 120 ? "Das hat leider nicht geklappt." : m;
       }
+      // Ab hier darf schon die nächste Frage kommen; sie unterbricht das Vorlesen
       busy.current = false;
+      const id = ++turn.current;
+      await say(reply);
+      if (id !== turn.current) return;
       setState("idle");
       if (nav) {
         const to = nav;
@@ -141,6 +148,7 @@ export default function JarvisPage() {
 
   function start() {
     if (busy.current) return;
+    turn.current++;
     stopSpeaking();
     setInterim("");
     setState("listening");
@@ -259,11 +267,11 @@ export default function JarvisPage() {
             ) : (
               m.text
             )}
-            {m.actions && m.actions.length > 0 && (
+            {m.actions?.some((a) => ACTION_LABEL[a]) && (
               <span className="jv-actions">
-                {m.actions.map((a, j) => (
+                {m.actions.filter((a) => ACTION_LABEL[a]).map((a, j) => (
                   <span key={j} className="jv-action">
-                    {ACTION_LABEL[a] ?? a}
+                    {ACTION_LABEL[a]}
                   </span>
                 ))}
               </span>
