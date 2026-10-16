@@ -1,0 +1,152 @@
+name: Android-App
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+      - "claude/**"
+    paths:
+      - "android/**"
+      - "android-shell/**"
+      - "capacitor.config.ts"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/android.yml"
+  pull_request:
+    paths:
+      - "android/**"
+      - "android-shell/**"
+      - "capacitor.config.ts"
+      - "package.json"
+      - "package-lock.json"
+      - ".github/workflows/android.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: APK bauen
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+          cache: gradle
+
+      - name: Abhängigkeiten installieren
+        run: npm ci
+
+      - name: Capacitor synchronisieren
+        run: npx cap sync android
+
+      - name: Gradle-Wrapper ausführbar machen
+        run: chmod +x android/gradlew
+
+      - name: APK bauen
+        id: apk
+        env:
+          JARVIS_VERSION_CODE: ${{ github.run_number }}
+          JARVIS_VERSION_NAME: 1.0.${{ github.run_number }}
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          EVENT_NAME: ${{ github.event_name }}
+        run: |
+          set -euo pipefail
+          cd android
+          if [ -n "$KEYSTORE_B64" ] && [ "$EVENT_NAME" != "pull_request" ]; then
+            echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/jarvis.jks"
+            export JARVIS_KEYSTORE_FILE="$RUNNER_TEMP/jarvis.jks"
+            export JARVIS_KEYSTORE_PASSWORD="$KEYSTORE_PASSWORD"
+            export JARVIS_KEY_ALIAS="$KEY_ALIAS"
+            export JARVIS_KEY_PASSWORD="$KEY_PASSWORD"
+            ./gradlew assembleRelease
+            echo "variant=signiert" >> "$GITHUB_OUTPUT"
+            echo "apk=android/app/build/outputs/apk/release/app-release.apk" >> "$GITHUB_OUTPUT"
+          else
+            echo "::warning::Ohne Signierschlüssel: Debug-APK wird gebaut. Sie lässt sich nicht als Update über eine signierte Version installieren."
+            ./gradlew assembleDebug
+            echo "variant=debug" >> "$GITHUB_OUTPUT"
+            echo "apk=android/app/build/outputs/apk/debug/app-debug.apk" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Signierschlüssel löschen
+        if: always()
+        run: rm -f "$RUNNER_TEMP/jarvis.jks"
+
+      - name: APK und Prüfsumme bereitstellen
+        env:
+          APK_PATH: ${{ steps.apk.outputs.apk }}
+          VARIANT: ${{ steps.apk.outputs.variant }}
+          VERSION_NAME: 1.0.${{ github.run_number }}
+        run: |
+          set -euo pipefail
+          cp "$APK_PATH" jarvis.apk
+          sha256sum jarvis.apk > jarvis.apk.sha256
+          {
+            echo "## Jarvis Android"
+            echo ""
+            echo "- Variante: $VARIANT"
+            echo "- Version: $VERSION_NAME"
+            echo "- SHA-256: \`$(cut -d' ' -f1 jarvis.apk.sha256)\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: jarvis-android
+          path: |
+            jarvis.apk
+            jarvis.apk.sha256
+          retention-days: 30
+          if-no-files-found: error
+
+  release:
+    name: Release aktualisieren
+    needs: build
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: jarvis-android
+
+      - name: Release android-latest aktualisieren
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+          VERSION_NAME: 1.0.${{ github.run_number }}
+        run: |
+          set -euo pipefail
+          TITLE="Jarvis Android (neueste)"
+          NOTES="Version: $VERSION_NAME
+          Commit: $SHA
+
+          APK auf dem Handy öffnen und installieren (Installation aus unbekannten Quellen für den Browser erlauben)."
+          if gh release view android-latest >/dev/null 2>&1; then
+            gh release upload android-latest jarvis.apk jarvis.apk.sha256 --clobber
+            gh release edit android-latest --title "$TITLE" --notes "$NOTES"
+          else
+            gh release create android-latest jarvis.apk jarvis.apk.sha256 \
+              --prerelease --title "$TITLE" --notes "$NOTES" --target "$SHA"
+          fi

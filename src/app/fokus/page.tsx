@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { FocusStats, useSessions } from "@/components/FocusStats";
 import type { StudySession } from "@/lib/assistant";
 import { deleteItems, putItem } from "@/lib/db";
+import { appNotifyPermission, appRequestNotifyPermission, appScheduleFocus, isNativeApp, type FocusAlert } from "@/lib/native";
 import {
   elapsedMs,
   fmtClock,
@@ -50,7 +51,22 @@ function beep(ctx: AudioContext | null) {
   }
 }
 
+const focusDoneText = (t: TimerState) =>
+  t.breakMinutes ? `${t.minutes} Min. ${t.course || "gelernt"}. Jetzt ${t.breakMinutes} Min. Pause.` : `${t.minutes} Min. gelernt.`;
+
+/** Android-App: Ende von Fokus und Pause vorausplanen (siehe appScheduleFocus). */
+function focusAlerts(t: TimerState | null): FocusAlert[] {
+  if (!t || t.pausedAt) return [];
+  const end = phaseEnd(t);
+  if (t.phase === "break") return [{ kind: "break", at: end, title: "Pause vorbei", body: "Bereit für die nächste Runde?" }];
+  const out: FocusAlert[] = [{ kind: "focus", at: end, title: "Fokus-Einheit fertig", body: focusDoneText(t) }];
+  if (t.breakMinutes > 0) out.push({ kind: "break", at: end + t.breakMinutes * MIN, title: "Pause vorbei", body: "Bereit für die nächste Runde?" });
+  return out;
+}
+
 async function notify(title: string, body: string) {
+  // In der App ist die Meldung schon vorausgeplant (focusAlerts)
+  if (isNativeApp()) return;
   if (typeof Notification === "undefined" || Notification.permission !== "granted") return;
   try {
     // Über den Service Worker klappt es auch auf Android; sonst direkt.
@@ -106,7 +122,8 @@ export default function FocusPage() {
     } catch {
       // ohne Speicher eben ohne Vorbelegung
     }
-    setPermission(typeof Notification === "undefined" ? "unsupported" : Notification.permission);
+    if (isNativeApp()) appNotifyPermission().then(setPermission, () => {});
+    else setPermission(typeof Notification === "undefined" ? "unsupported" : Notification.permission);
     const onStorage = (e: StorageEvent) => e.key === "fokus-timer" && setTimer(loadTimer());
     window.addEventListener("storage", onStorage);
     return () => window.removeEventListener("storage", onStorage);
@@ -122,6 +139,10 @@ export default function FocusPage() {
       clearInterval(tick);
       document.removeEventListener("visibilitychange", onVisible);
     };
+  }, [timer]);
+
+  useEffect(() => {
+    if (isNativeApp()) appScheduleFocus(focusAlerts(timer)).catch(() => {});
   }, [timer]);
 
   // Restzeit im Tab-Titel
@@ -151,7 +172,7 @@ export default function FocusPage() {
       saveSession(timer, timer.minutes);
       if (fresh) {
         beep(audio.current);
-        notify("Fokus-Einheit fertig", timer.breakMinutes ? `${timer.minutes} Min. ${timer.course || "gelernt"}. Jetzt ${timer.breakMinutes} Min. Pause.` : `${timer.minutes} Min. gelernt.`);
+        notify("Fokus-Einheit fertig", focusDoneText(timer));
       }
       setMessage(`${fmtMinutes(timer.minutes)} ${timer.course ? `für ${timer.course} ` : ""}gespeichert.`);
       const brk: TimerState = { ...timer, phase: "break", minutes: timer.breakMinutes, startedAt: end, pausedAt: null, pausedMs: 0 };
@@ -219,6 +240,7 @@ export default function FocusPage() {
   }
 
   async function askPermission() {
+    if (isNativeApp()) return setPermission(await appRequestNotifyPermission());
     if (typeof Notification === "undefined") return;
     setPermission(await Notification.requestPermission());
   }
@@ -346,7 +368,7 @@ export default function FocusPage() {
                 </button>
               )}
               {permission === "denied" && (
-                <span className="small muted">Benachrichtigungen sind im Browser blockiert; es gibt nur einen Ton.</span>
+                <span className="small muted">Benachrichtigungen sind blockiert; es gibt nur einen Ton.</span>
               )}
             </div>
           </>

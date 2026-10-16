@@ -1,4 +1,7 @@
 // Sprache im Browser: Spracherkennung (Web Speech API) und Vorlesen (speechSynthesis). Nur im Client nutzbar.
+// In der Android-App übernehmen native Plugins (native.ts), weil die WebView beides nicht kann.
+
+import { appListen, appSpeak, appStopSpeaking, isNativeApp } from "./native";
 
 type Alt = { transcript: string };
 type Res = { isFinal: boolean; 0: Alt };
@@ -21,7 +24,7 @@ function recCtor(): RecCtor | null {
   return w.SpeechRecognition ?? w.webkitSpeechRecognition ?? null;
 }
 
-export const canListen = () => recCtor() !== null;
+export const canListen = () => isNativeApp() || recCtor() !== null;
 
 const ERRORS: Record<string, string> = {
   "not-allowed": "Mikrofon nicht erlaubt. Erlaube den Zugriff in den Browser-Einstellungen.",
@@ -32,6 +35,7 @@ const ERRORS: Record<string, string> = {
 
 /** Hört einmal zu. result liefert den fertigen Satz ('' bei Stille); stop() beendet das Zuhören vorzeitig. */
 export function listen({ onInterim }: { onInterim?: (t: string) => void }): { result: Promise<string>; stop(): void } {
+  if (isNativeApp()) return appListen();
   const Ctor = recCtor();
   let rec: Rec | null = null;
   const result = new Promise<string>((resolve, reject) => {
@@ -71,6 +75,8 @@ export function listen({ onInterim }: { onInterim?: (t: string) => void }): { re
 // ---------- Vorlesen ----------
 
 const synth = () => (typeof window !== "undefined" && "speechSynthesis" in window ? window.speechSynthesis : null);
+
+export const canSpeak = () => isNativeApp() || synth() !== null;
 
 // Männliche Stimmen nach Namen (Windows/Edge, macOS/iOS); Android und Chrome verraten das Geschlecht nicht.
 const MALE = /\b(jan|conrad|killian|florian|stefan|markus|yannick|viktor|martin|ralf|bernd|christoph|kasper|klaus|male|männlich)\b/i;
@@ -115,6 +121,11 @@ let alive: SpeechSynthesisUtterance[] = [];
 export async function speak(text: string): Promise<void> {
   const s = synth();
   const parts = clean(text).match(/[^.!?:;\n]+[.!?:;]?/g)?.map((x) => x.trim()).filter(Boolean) ?? [];
+  if (isNativeApp() && parts.length) {
+    const mine = ++gen;
+    appStopSpeaking();
+    return appSpeak(parts, () => mine === gen);
+  }
   if (!s || !parts.length) return;
   const mine = ++gen;
   s.cancel();
@@ -144,5 +155,6 @@ export async function speak(text: string): Promise<void> {
 
 export function stopSpeaking() {
   gen++;
-  synth()?.cancel();
+  if (isNativeApp()) appStopSpeaking();
+  else synth()?.cancel();
 }

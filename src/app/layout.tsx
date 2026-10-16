@@ -4,6 +4,7 @@ import Link from "next/link";
 import { HudMark } from "@/components/HudRing";
 import { JarvisButton } from "@/components/JarvisButton";
 import { MainNav } from "@/components/MainNav";
+import { NativeShell } from "@/components/NativeShell";
 import { Particles } from "@/components/Particles";
 import { PageTitleDecode } from "@/components/PageTitleDecode";
 import { RegisterSW } from "@/components/RegisterSW";
@@ -52,6 +53,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </main>
         <JarvisButton />
         <RegisterSW />
+        <NativeShell />
       </body>
     </html>
   );
