@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Datenschutz – Jarvis" };
+export const metadata: Metadata = { title: "Datenschutz · Jarvis" };
 
 // Werte in Vercel setzen (Environment Variables), nicht in .env: die Datei ist eingecheckt.
 const operator = process.env.NEXT_PUBLIC_OPERATOR_NAME;
@@ -88,7 +88,7 @@ export default function DatenschutzPage() {
           </li>
           <li>
             <strong>Have I Been Pwned:</strong> Beim Wählen eines neuen Passworts wird geprüft, ob es in bekannten
-            Datenlecks vorkommt. Übermittelt werden nur die ersten 5 Zeichen seines Hashwerts, nie das Passwort selbst.
+            Datenlecks vorkommt. Übermittelt werden nur die ersten 5{" "}Zeichen seines Hashwerts, nie das Passwort selbst.
           </li>
           <li>
             <strong>Spracherkennung des Browsers:</strong> Je nach Browser läuft sie über Server des Herstellers, bei Chrome

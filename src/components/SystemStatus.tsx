@@ -36,7 +36,7 @@ function StatusList({ rows }: { rows: Row[] }) {
   );
 }
 
-/** Systemübersicht (Sync, Push, Stimme) und KI-Status (nur gesetzt / nicht gesetzt, nie der Schlüssel selbst). */
+/** Verbindungen (Sync, Push, Stimme) und KI-Status (nur gesetzt / nicht gesetzt, nie der Schlüssel selbst). */
 export function SystemStatus() {
   const [sync, setSync] = useState<SyncStatus>({ state: "off" });
   const [push, setPush] = useState<PushState | null>(null);
@@ -74,7 +74,7 @@ export function SystemStatus() {
   return (
     <>
       <section className="sheet panel">
-        <h2 className="panel-title">Systemübersicht</h2>
+        <h2 className="panel-title">Verbindungen</h2>
         <StatusList rows={system} />
       </section>
       <section className="sheet panel">

@@ -14,7 +14,7 @@ const CIRC = 2 * Math.PI * R;
 export function RingGauge({ pct, value, label }: { pct: number; value: string; label: string }) {
   const p = Math.max(0, Math.min(100, pct));
   return (
-    <div className="gauge" role="img" aria-label={`${label}: ${value}, ${Math.round(p)} %`}>
+    <div className="gauge" role="img" aria-label={`${label}: ${value}, ${Math.round(p)} %`}>
       <svg viewBox="0 0 56 56" aria-hidden focusable="false">
         <circle className="gauge-track" cx="28" cy="28" r={R} />
         <circle
@@ -57,7 +57,7 @@ export function LearnMonitor() {
 
   return (
     <div className="gauges">
-      <RingGauge pct={pct(mastered, active.length)} value={`${Math.round(pct(mastered, active.length))} %`} label="Lernstand" />
+      <RingGauge pct={pct(mastered, active.length)} value={`${Math.round(pct(mastered, active.length))} %`} label="Lernstand" />
       <RingGauge pct={pct(minutes, goal)} value={String(minutes)} label="Lernzeit heute (Min.)" />
       <RingGauge pct={pct(done, todos.length)} value={`${done}/${todos.length}`} label="Aufgaben erledigt" />
     </div>

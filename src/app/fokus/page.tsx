@@ -132,7 +132,7 @@ export default function FocusPage() {
       return;
     }
     const label = timer.phase === "focus" ? "Fokus" : "Pause";
-    document.title = `${fmtClock(remainingMs(timer, now))} ${timer.pausedAt ? "(pausiert) " : ""}· ${label} – Jarvis`;
+    document.title = `${fmtClock(remainingMs(timer, now))} ${timer.pausedAt ? "(pausiert) " : ""}· ${label} · Jarvis`;
     return () => {
       document.title = original;
     };

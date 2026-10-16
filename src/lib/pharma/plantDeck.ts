@@ -33,7 +33,7 @@ export function plantDeck(): { notes: Notes; study: Study } {
       title: family,
       slides: "",
       content: plants
-        .map((p) => `### ${p.latin} – ${p.german}${p.toxic ? " ☠" : ""}\n\n![](${p.image})\n\n- **Droge:** ${p.part}\n- **Inhaltsstoffe:** ${p.constituents}\n- **Anwendung / Wirkung:** ${p.use}`)
+        .map((p) => `### ${p.latin} (${p.german})${p.toxic ? ", giftig" : ""}\n\n![](${p.image})\n\n- **Droge:** ${p.part}\n- **Inhaltsstoffe:** ${p.constituents}\n- **Anwendung / Wirkung:** ${p.use}`)
         .join("\n\n"),
       key_points: plants.map((p) => `${p.latin}: ${p.constituents}`),
       exam_hint: "",
@@ -48,7 +48,7 @@ export function plantDeck(): { notes: Notes; study: Study } {
   for (const p of PLANTS) {
     flashcards.push({
       front: `![](${p.image})\n\nWelche Pflanze ist das?`,
-      back: `**${p.latin}** – ${p.german}\n\nFamilie: ${p.family}${p.toxic ? "\n\n☠ giftig" : ""}`,
+      back: `**${p.latin}** (${p.german})\n\nFamilie: ${p.family}${p.toxic ? "\n\n**Giftig**" : ""}`,
       topic: p.family,
       kind: "fakt",
     });

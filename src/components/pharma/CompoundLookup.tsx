@@ -98,7 +98,7 @@ export function CompoundLookup() {
             <ul className="ph-rules">
               {lip.rules.map((r) => (
                 <li key={r.label} className={r.ok ? "is-ok" : "is-bad"}>
-                  <span aria-hidden>{r.ok ? "✓" : "✗"}</span> {r.label}: <strong>{r.value}</strong>
+                  <span>{r.ok ? "ja" : "nein"}</span> · {r.label}: <strong>{r.value}</strong>
                 </li>
               ))}
             </ul>

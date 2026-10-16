@@ -30,7 +30,7 @@ export function SemesterCard({ now }: { now: number }) {
     <section className="sheet panel st-semester">
       <h2 className="panel-title">{st.sem.name}</h2>
       <p className="small muted" style={{ margin: 0 }}>
-        Vorlesungen {fmtShortDay(iso(st.sem.lecturesFrom))} – {fmtShortDay(iso(st.sem.lecturesUntil))}
+        Vorlesungen {fmtShortDay(iso(st.sem.lecturesFrom))}–{fmtShortDay(iso(st.sem.lecturesUntil))}
       </p>
       {st.phase === "während" ? (
         <>
@@ -45,7 +45,7 @@ export function SemesterCard({ now }: { now: number }) {
         <p className="small" style={{ margin: 0 }}>
           {st.phase === "vor"
             ? `Vorlesungsbeginn ${relDay(iso(st.sem.lecturesFrom), now)}`
-            : "Vorlesungszeit vorbei – jetzt ist Prüfungszeit bzw. vorlesungsfrei."}
+            : "Vorlesungszeit vorbei. Jetzt ist Prüfungszeit bzw. vorlesungsfrei."}
         </p>
       )}
     </section>
@@ -82,7 +82,7 @@ export function DatesView({ now }: { now: number }) {
                   </div>
                   {d.from && (
                     <div className="small muted">
-                      Zeitraum {fmtShortDay(iso(d.from))} – {fmtShortDay(due)}
+                      Zeitraum {fmtShortDay(iso(d.from))}–{fmtShortDay(due)}
                     </div>
                   )}
                   <p className="small muted" style={{ margin: "4px 0" }}>
@@ -107,7 +107,7 @@ export function DatesView({ now }: { now: number }) {
         <ul className="st-free">
           {free.map((f) => (
             <li key={f.from}>
-              <span>{f.from === f.until ? fmtShortDay(iso(f.from)) : `${fmtShortDay(iso(f.from))} – ${fmtShortDay(iso(f.until))}`}</span>
+              <span>{f.from === f.until ? fmtShortDay(iso(f.from)) : `${fmtShortDay(iso(f.from))}–${fmtShortDay(iso(f.until))}`}</span>
               <span className="muted">{f.name}</span>
             </li>
           ))}
@@ -121,7 +121,7 @@ export function DatesView({ now }: { now: number }) {
             <li key={s.id}>
               <span>{s.name}</span>
               <span className="muted">
-                Vorlesungen {fmtShortDay(iso(s.lecturesFrom))} – {fmtShortDay(iso(s.lecturesUntil))}
+                Vorlesungen {fmtShortDay(iso(s.lecturesFrom))}–{fmtShortDay(iso(s.lecturesUntil))}
               </span>
             </li>
           ))}

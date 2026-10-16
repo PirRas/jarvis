@@ -92,7 +92,7 @@ export default function CalendarPage() {
           </button>
         </div>
         <span className="muted small">
-          {fmtShortDay(from)} – {fmtShortDay(addDays(to, -1))}
+          {fmtShortDay(from)}–{fmtShortDay(addDays(to, -1))}
         </span>
       </div>
 

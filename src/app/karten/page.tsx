@@ -178,7 +178,7 @@ function BrowserInner() {
               Zurückgestellt (wird nicht abgefragt)
             </label>
             <p className="muted small" style={{ margin: 0 }}>
-              {QUEUE_LABEL[draft.queue]}, Intervall {draft.queue === "review" ? formatInterval(draft.interval * 86400000) : "–"},
+              {QUEUE_LABEL[draft.queue]}, Intervall {draft.queue === "review" ? formatInterval(draft.interval * 86400000) : "keine Angabe"},
               Leichtigkeit {Math.round(draft.ease * 100)} %, {draft.lapses}× vergessen. Markdown und LaTeX ($…$) möglich.
             </p>
             {(draft.front || draft.back) && (

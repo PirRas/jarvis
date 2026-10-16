@@ -18,7 +18,7 @@ import {
   type Summary,
 } from "@/lib/studyPlan";
 
-const fmt = (g: number | null) => (g === null ? "–" : g.toFixed(2));
+const fmt = (g: number | null) => (g === null ? "keine Angabe" : g.toFixed(2));
 
 function toRecord(c: PlanCourse, status: CourseRecord["status"], grade: number | undefined, createdAt?: number): CourseRecord {
   return {
@@ -182,7 +182,7 @@ export function PlanView({
       <p className="muted small">
         Trag nach jeder Prüfung Status oder Note ein. Noten in ganzen oder halben Schritten, bestanden ab 4.0. Modulnoten sind
         nach KP gewichtet; in Modulen mit mehreren Prüfungen zählen die KP einer ungenügenden Note, wenn die Modulnote
-        genügend ist (Kompensation). Alles ohne Gewähr – massgebend sind die Online-Services.
+        genügend ist (Kompensation). Alles ohne Gewähr. Massgebend sind die Online-Services.
       </p>
 
       <div className="tabs" role="tablist">

@@ -85,7 +85,7 @@ export default function StudiumPage() {
         <div>
           <h1 className="page-title">Studium</h1>
           <p className="lede">
-            Kreditpunkte, Noten, Fristen und Neuigkeiten im Bachelor Pharmazeutische Wissenschaften – nach Wegleitung (ab HS
+            Kreditpunkte, Noten, Fristen und Neuigkeiten im Bachelor Pharmazeutische Wissenschaften, nach Wegleitung (ab HS
             2025) und Bachelor-Ordnung der Phil.-Nat. Fakultät.
           </p>
         </div>
@@ -189,7 +189,7 @@ function Overview({
         <h2 className="panel-title">Nachweise</h2>
         <p className="small" style={{ margin: 0 }}>
           Famulatur: {famulatur ? <strong className="st-ok">erledigt</strong> : <strong>noch offen</strong>}
-          <span className="muted"> – Pflicht bis zum Bachelorabschluss (2 Wochen Apotheke).</span>
+          <span className="muted">: Pflicht bis zum Bachelorabschluss (2 Wochen Apotheke).</span>
         </p>
         <p className="small" style={{ marginBottom: 0 }}>
           Wahlbereich: {summary.byStage.Wahlbereich.earned} von 9 KP

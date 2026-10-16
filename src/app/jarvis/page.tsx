@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { loadSettings, saveTimer } from "@/lib/focus";
@@ -163,9 +164,9 @@ export default function JarvisPage() {
         setLog((l) => [...l, { role: "jarvis", text: r.reply, actions: r.actions }, ...extra]);
         reply = r.reply;
       } catch (e) {
-        const m = e instanceof Error ? e.message : "Das hat nicht geklappt.";
+        const m = e instanceof Error ? e.message : "Das hat nicht geklappt. Bitte nochmal versuchen.";
         setLog((l) => [...l, { role: "error", text: m }]);
-        reply = m.length > 120 ? "Das hat leider nicht geklappt." : m;
+        reply = m.length > 120 ? "Das hat leider nicht geklappt. Bitte versuch es nochmal." : m;
       }
       // Ab hier darf schon die nächste Frage kommen; sie unterbricht das Vorlesen
       busy.current = false;
@@ -245,12 +246,12 @@ export default function JarvisPage() {
 
   return (
     <div className="jarvis-screen" data-state={state}>
-      <button className="jv-home" onClick={() => router.push("/")} aria-label="Zum Cockpit">
+      <Link className="jv-home" href="/">
         <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round">
           <path d="M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10" />
         </svg>
-        Cockpit
-      </button>
+        Zur Übersicht
+      </Link>
       <div className="jv-toggles">
         <label>
           <input type="checkbox" checked={voice} onChange={(e) => toggle("jarvis-voice", e.target.checked, setVoice, "voice")} /> Stimme
@@ -264,9 +265,12 @@ export default function JarvisPage() {
       </div>
 
       <button className="jv-orb" onClick={onOrb} aria-label={state === "listening" ? "Zuhören beenden" : "Mit Jarvis sprechen"} disabled={!mic && state !== "speaking"}>
-        <Orb />
+        <svg viewBox="0 0 24 24" width="40%" height="40%" aria-hidden fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+          <rect x="9" y="3" width="6" height="12" rx="3" />
+          <path d="M5 11a7 7 0 0014 0M12 18v3" />
+        </svg>
       </button>
-      <h1 className="jv-title">J.A.R.V.I.S.</h1>
+      <h1 className="jv-title">Jarvis</h1>
       {log.length === 0 && <p className="jv-greet">{greeting()}. Womit kann ich dienen?</p>}
       <p className="jv-state" aria-live="polite">
         {STATE_LABEL[state]}
@@ -283,7 +287,7 @@ export default function JarvisPage() {
             . Er bleibt nur in diesem Browser.
           </p>
           <div className="jv-row">
-            <input type="password" value={keyInput} onChange={(e) => setKeyInput(e.target.value)} autoComplete="off" aria-label="Gemini-Schlüssel" />
+            <input type="password" name="gemini-key" value={keyInput} onChange={(e) => setKeyInput(e.target.value)} autoComplete="off" aria-label="Gemini-Schlüssel" />
             <button className="btn" onClick={saveKey} disabled={!keyInput.trim()} aria-label="Gemini-Schlüssel speichern">
               Speichern
             </button>
@@ -327,7 +331,7 @@ export default function JarvisPage() {
       <form className="jv-form" onSubmit={submit}>
         {!mic && <p className="jv-hint">Spracheingabe geht hier nicht, schreib stattdessen.</p>}
         <div className="jv-row">
-          <input value={text} onChange={(e) => setText(e.target.value)} placeholder="Oder tippe etwas …" aria-label="Nachricht an Jarvis" />
+          <input name="nachricht" autoComplete="off" value={text} onChange={(e) => setText(e.target.value)} placeholder="Frag etwas …" aria-label="Nachricht an Jarvis" />
           {mic && (
             <button type="button" className="jv-mic" onClick={onOrb} aria-label={state === "listening" ? "Zuhören beenden" : "Mikrofon einschalten"}>
               <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
@@ -342,53 +346,5 @@ export default function JarvisPage() {
         </div>
       </form>
     </div>
-  );
-}
-
-const C = "#46d5f5";
-const AMBER = "#f2b13d";
-const circ = (r: number) => 2 * Math.PI * r;
-
-/** Reaktor-Orb: Ringe drehen je nach Zustand (data-state am Elternelement, siehe jarvis.css). */
-function Orb() {
-  return (
-    <svg className="jv-svg" viewBox="0 0 320 320" aria-hidden focusable="false">
-      <defs>
-        <radialGradient id="jv-core" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="#d8fbff" />
-          <stop offset="35%" stopColor={C} />
-          <stop offset="100%" stopColor="#071a2a" />
-        </radialGradient>
-        <filter id="jv-glow" x="-30%" y="-30%" width="160%" height="160%">
-          <feGaussianBlur stdDeviation="3" result="b" />
-          <feMerge>
-            <feMergeNode in="b" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
-      </defs>
-      <circle className="jv-ripple" cx="160" cy="160" r="100" fill="none" stroke={C} strokeWidth="2" />
-      <circle className="jv-ripple jv-ripple2" cx="160" cy="160" r="100" fill="none" stroke={C} strokeWidth="2" />
-      <circle cx="160" cy="160" r="154" fill="none" stroke={C} strokeOpacity="0.22" />
-      <g className="jv-r1">
-        <circle cx="160" cy="160" r="144" fill="none" stroke={C} strokeOpacity="0.6" strokeWidth="8" strokeDasharray={`1.4 ${circ(144) / 90 - 1.4}`} />
-        <circle cx="160" cy="160" r="144" fill="none" stroke={C} strokeWidth="12" strokeDasharray={`2.2 ${(circ(144) / 90) * 6 - 2.2}`} />
-      </g>
-      <g className="jv-r2" filter="url(#jv-glow)">
-        <circle cx="160" cy="160" r="122" fill="none" stroke={C} strokeOpacity="0.8" strokeWidth="14" strokeDasharray={`${circ(122) / 24 - 4} 4`} />
-      </g>
-      <g className="jv-r3">
-        <circle cx="160" cy="160" r="102" fill="none" stroke={AMBER} strokeWidth="3" strokeLinecap="round" strokeDasharray={`${circ(102) * 0.28} ${circ(102)}`} />
-        <circle cx="160" cy="160" r="102" fill="none" stroke={AMBER} strokeOpacity="0.5" strokeWidth="3" strokeLinecap="round" strokeDasharray={`${circ(102) * 0.08} ${circ(102)}`} transform="rotate(180 160 160)" />
-      </g>
-      <g className="jv-scan">
-        <circle cx="160" cy="160" r="84" fill="none" stroke={C} strokeWidth="4" strokeLinecap="round" strokeDasharray={`${circ(84) * 0.22} ${circ(84)}`} />
-      </g>
-      <g className="jv-r4">
-        <circle cx="160" cy="160" r="72" fill="none" stroke={C} strokeOpacity="0.35" strokeDasharray="3 6" />
-      </g>
-      <circle className="jv-core" cx="160" cy="160" r="52" fill="url(#jv-core)" filter="url(#jv-glow)" />
-      <circle cx="160" cy="160" r="52" fill="none" stroke={C} strokeWidth="1.5" />
-    </svg>
   );
 }

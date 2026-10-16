@@ -12,3 +12,6 @@ next-env.d.ts
 
 # graphify (lokal erzeugt)
 graphify-out/
+.shots/
+.taste-skill/
+.playwright-cli/

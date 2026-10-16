@@ -2,10 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { Decode, shouldBoot } from "@/components/Decode";
+import { useEffect } from "react";
 import { CopyButton } from "@/components/CopyButton";
-import { HudRing } from "@/components/HudRing";
 import { LearnMonitor } from "@/components/RingGauge";
 import { SystemStatus } from "@/components/SystemStatus";
 import { LessonPreview } from "@/components/LessonPreview";
@@ -40,7 +38,6 @@ import { usePlanner } from "@/lib/usePlanner";
 
 export default function Today() {
   const p = usePlanner();
-  const [boot] = useState(shouldBoot);
   const router = useRouter();
   const { now } = p;
 
@@ -51,7 +48,7 @@ export default function Today() {
     router.replace("/jarvis");
   }, [router]);
 
-  if (!p.loaded) return <p className="muted">Jarvis startet …</p>;
+  if (!p.loaded) return <p className="muted">Lädt …</p>;
 
   const courses = knownCourses(p.data, p.lectures.map((l) => l.course));
   const list = occurrences(p.data, addDays(dayStart(now), -4), addDays(now, 120), courses);
@@ -111,23 +108,24 @@ export default function Today() {
 
       <div className="home-grid">
         <div className="home-main">
-          <header className={`jarvis-head${boot ? " is-boot" : ""}`}>
-            <HudRing boot={boot}>
-              <span className="hud-time">{fmtTime(now)}</span>
-              <span className="hud-day">{new Date(now).toLocaleDateString("de-CH", { weekday: "short", day: "numeric", month: "short" })}</span>
-            </HudRing>
+          <header className="jarvis-head">
+            <p className="head-clock">
+              <span className="head-time">{fmtTime(now)}</span>
+              <span className="head-date">
+                {new Date(now).toLocaleDateString("de-CH", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+              </span>
+            </p>
             <div className="jarvis-head-text">
-              <h1 className="page-title">
-                <Decode text={`${greeting(now)}${profile?.name ? `, ${profile.name}` : ""}.`} active={boot} />
-              </h1>
-              <p className="hud-tags">
-                {profile && <span className="hud-tag is-level">{levelLabel(studyLevel(profile, now))}</span>}
-                {profile?.program && <span className="hud-tag">{profile.program}</span>}
-                <span className="hud-tag">{semesterLabel(semesterAt(now))}</span>
+              <h1 className="page-title">{`${greeting(now)}${profile?.name ? `, ${profile.name}` : ""}.`}</h1>
+              <p className="head-meta">
+                {[profile && levelLabel(studyLevel(profile, now)), profile?.program, semesterLabel(semesterAt(now))]
+                  .filter(Boolean)
+                  .join(" · ")}
                 {!profile && (
-                  <Link className="hud-tag is-action" href="/konto#profil">
-                    Name und Studiengang eintragen
-                  </Link>
+                  <>
+                    {" · "}
+                    <Link href="/konto#profil">Name und Studiengang eintragen</Link>
+                  </>
                 )}
               </p>
               <p className="lede">{status}</p>
@@ -208,7 +206,7 @@ export default function Today() {
               )}
               {plans[0] && (
                 <li>
-                  Nächste Prüfung: <strong>{plans[0].course}</strong> in {plans[0].daysLeft} Tagen, {plans[0].readiness} % bereit
+                  Nächste Prüfung: <strong>{plans[0].course}</strong> in {plans[0].daysLeft} Tagen, {plans[0].readiness} % bereit
                 </li>
               )}
               {!pending.length && newToday + reviewsToday === 0 && !plans[0] && <li className="muted">Nichts offen.</li>}
@@ -271,7 +269,7 @@ export default function Today() {
                   const days = Math.round((dayStart(o.start) - dayStart(now)) / DAYMS);
                   return (
                     <li key={o.key} className={`exam kind-${o.kind}`}>
-                      <span className="countdown" aria-label={`${days} Tage`}>
+                      <span className="countdown">
                         <strong>{days}</strong>
                         <span>{days === 1 ? "Tag" : "Tage"}</span>
                       </span>
@@ -284,10 +282,10 @@ export default function Today() {
                         </span>
                         {r && r.cards > 0 && (
                           <span className="mastery small">
-                            <span className="bar">
+                            <span className="bar" role="progressbar" aria-valuenow={r.pct} aria-valuemin={0} aria-valuemax={100} aria-label="Sicher gelernt">
                               <span style={{ width: `${r.pct}%` }} />
                             </span>
-                            {r.pct} % sicher
+                            {r.pct} % sicher
                           </span>
                         )}
                       </span>

@@ -157,7 +157,7 @@ export function Importer() {
         },
       );
       setStatus(
-        `Fertig mit ${[...models].join(", ")} – prüfe unten und speichere.${videosDone ? "" : " Videos fehlen, im Reiter „Videos“ nachholen."}`,
+        `Fertig mit ${[...models].join(", ")}. Prüfe unten und speichere.${videosDone ? "" : " Videos fehlen, im Reiter „Videos“ nachholen."}`,
       );
     } catch (err) {
       setStatus("");
@@ -172,7 +172,7 @@ export function Importer() {
       <div className="drop" onClick={() => setOpen(true)} role="button" tabIndex={0} onKeyDown={(e) => e.key === "Enter" && setOpen(true)}>
         <span className="drop-title">Neue Vorlesung hinzufügen</span>
         <span className="muted">
-          Folien hochladen – Jarvis erstellt Nachbereitung, Karteikarten und Videos automatisch (kostenlos mit
+          Folien hochladen. Jarvis erstellt Nachbereitung, Karteikarten und Videos automatisch (kostenlos mit
           Gemini). Alternativ manuell über claude.ai.
         </span>
         <span className="btn btn-primary" style={{ marginTop: 10 }}>

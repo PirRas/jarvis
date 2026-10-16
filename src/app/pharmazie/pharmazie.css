@@ -2,17 +2,17 @@
 
 .ph-stack {
   display: grid;
-  gap: 20px;
+  gap: 24px;
 }
 .ph-grow {
   flex: 1 1 240px;
 }
 .ph-chip {
-  padding: 4px 10px;
+  padding: 4px 12px;
 }
 .ph-mono,
 .ph-formula {
-  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-family: var(--font-mono);
 }
 .ph-break {
   overflow-wrap: anywhere;
@@ -21,7 +21,7 @@
   font-size: var(--step--1);
   font-weight: 700;
   color: var(--ink-soft);
-  margin: 18px 0 6px;
+  margin: 16px 0 8px;
 }
 
 /* Steckbrief */
@@ -37,10 +37,9 @@
   }
 }
 .ph-structure {
-  background: #fff; /* Strukturbilder von PubChem haben weissen Hintergrund */
-  border: 1px solid var(--rule);
-  border-radius: var(--radius-m);
-  padding: 8px;
+  background: white; /* Strukturbilder von PubChem haben weissen Hintergrund, auch im Dunkelmodus */
+  border-radius: var(--radius-s);
+  padding: var(--space-2);
   display: grid;
   place-items: center;
 }
@@ -52,7 +51,7 @@
 .ph-dl {
   display: grid;
   grid-template-columns: max-content minmax(0, 1fr);
-  gap: 6px 16px;
+  gap: 8px 16px;
   margin: 12px 0 0;
 }
 .ph-dl dt {
@@ -92,12 +91,12 @@
 .ph-calc-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 420px), 1fr));
-  gap: 20px;
+  gap: 24px;
   align-items: start;
 }
 .ph-calc-grid .panel {
   display: grid;
-  gap: 10px;
+  gap: 12px;
 }
 .ph-calc-grid .panel > p {
   margin: 0;
@@ -110,7 +109,7 @@
 }
 .ph-unit {
   display: flex;
-  gap: 6px;
+  gap: 8px;
 }
 .ph-unit input {
   flex: 1 1 auto;
@@ -138,7 +137,7 @@
 .ph-table th,
 .ph-table td {
   text-align: left;
-  padding: 6px 8px;
+  padding: 8px;
   border-bottom: 1px solid var(--rule);
 }
 .ph-table th {
@@ -168,10 +167,10 @@
   aspect-ratio: 4 / 3;
   object-fit: cover;
   display: block;
-  background: var(--grid);
+  background: var(--sheet-raised);
 }
 .ph-plant-body {
-  padding: 12px 14px 14px;
+  padding: 12px 16px 16px;
   display: grid;
   gap: 4px;
   align-content: start;
@@ -196,7 +195,7 @@
   font-style: normal;
   font-weight: 700;
   padding: 1px 8px;
-  border-radius: 99px;
+  border-radius: var(--radius-s);
   background: var(--red-wash);
   color: var(--red);
 }

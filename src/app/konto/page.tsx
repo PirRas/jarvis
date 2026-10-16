@@ -16,7 +16,7 @@ function translateAuthError(message: string) {
   if (/email not confirmed/i.test(message))
     return "Bitte bestätige zuerst deine E-Mail-Adresse über den Link in der Bestätigungsmail.";
   if (/already registered/i.test(message)) return "Für diese E-Mail gibt es schon ein Konto. Melde dich an.";
-  if (/password should be at least/i.test(message)) return "Das Passwort muss mindestens 10 Zeichen lang sein.";
+  if (/password should be at least/i.test(message)) return "Das Passwort muss mindestens 10 Zeichen lang sein.";
   if (/rate limit/i.test(message)) return "Zu viele Versuche. Warte ein paar Minuten.";
   return message;
 }
@@ -147,13 +147,13 @@ export default function AccountPage() {
     try {
       const res = await fetch("/api/konto/loeschen", { method: "POST", headers: { authorization: `Bearer ${token ?? ""}` } });
       const body = await res.json().catch(() => ({}));
-      if (!res.ok) throw new Error(body.error ?? "Das Konto konnte nicht gelöscht werden.");
+      if (!res.ok) throw new Error(body.error ?? "Das Konto konnte nicht gelöscht werden. Bitte versuche es später noch einmal.");
       // Erst abmelden, dann leeren: Ohne Sitzung lädt der Abgleich (Timer, Änderungs-Ereignis) nichts mehr hoch.
       await sb.auth.signOut({ scope: "local" });
       await clearLocalData();
       setMessage({ kind: "ok", text: "Dein Konto und alle Daten wurden gelöscht." });
     } catch (err) {
-      setMessage({ kind: "error", text: err instanceof Error ? err.message : "Das Konto konnte nicht gelöscht werden." });
+      setMessage({ kind: "error", text: err instanceof Error ? err.message : "Das Konto konnte nicht gelöscht werden. Bitte versuche es später noch einmal." });
     }
     setBusy(false);
   }
@@ -171,10 +171,10 @@ export default function AccountPage() {
         <h2>Neues Passwort setzen</h2>
         <label className="field">
           Neues Passwort
-          <input type="password" autoComplete="new-password" required minLength={MIN_PASSWORD_LENGTH} value={password} onChange={(e) => setPassword(e.target.value)} />
+          <input type="password" name="password" autoComplete="new-password" required minLength={MIN_PASSWORD_LENGTH} value={password} onChange={(e) => setPassword(e.target.value)} />
         </label>
-        <p className="muted small" style={{ margin: 0 }}>Mindestens {MIN_PASSWORD_LENGTH} Zeichen, nicht nur Ziffern, ohne deine E-Mail-Adresse.</p>
-        {message && <p className={message.kind === "ok" ? "verdict-ok small" : "error small"} style={{ margin: 0 }}>{message.text}</p>}
+        <p className="muted small" style={{ margin: 0 }}>Mindestens {MIN_PASSWORD_LENGTH}{" "}Zeichen, nicht nur Ziffern, ohne deine E-Mail-Adresse.</p>
+        {message && <p className={message.kind === "ok" ? "verdict-ok small" : "error small"} role={message.kind === "ok" ? "status" : "alert"} style={{ margin: 0 }}>{message.text}</p>}
         <button className="btn btn-primary" disabled={busy}>
           {busy ? "Einen Moment …" : "Passwort speichern"}
         </button>
@@ -200,7 +200,7 @@ export default function AccountPage() {
               : status.state === "error"
                 ? status.message
                 : last
-                  ? `Zuletzt abgeglichen um ${last.toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" })} Uhr.`
+                  ? `Zuletzt abgeglichen um ${last.toLocaleTimeString("de-CH", { hour: "2-digit", minute: "2-digit" })} Uhr.`
                   : "Noch nicht abgeglichen."}
           </p>
           <p className="muted small" style={{ margin: 0 }}>
@@ -217,7 +217,7 @@ export default function AccountPage() {
               Abmelden und Gerät leeren
             </button>
           </div>
-          {message && <p className={message.kind === "ok" ? "verdict-ok small" : "error small"}>{message.text}</p>}
+          {message && <p className={message.kind === "ok" ? "verdict-ok small" : "error small"} role={message.kind === "ok" ? "status" : "alert"}>{message.text}</p>}
         </section>
         <TwoFactor />
         <p className="muted small">
@@ -233,7 +233,7 @@ export default function AccountPage() {
               Konto endgültig löschen
             </button>
           </div>
-          {message && <p className={message.kind === "ok" ? "verdict-ok small" : "error small"}>{message.text}</p>}
+          {message && <p className={message.kind === "ok" ? "verdict-ok small" : "error small"} role={message.kind === "ok" ? "status" : "alert"}>{message.text}</p>}
         </section>
         <ProfileForm />
       </>
@@ -255,17 +255,18 @@ export default function AccountPage() {
         {mode === "signup" && (
           <label className="field">
             Name
-            <input autoComplete="given-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Wie soll Jarvis dich nennen?" />
+            <input name="name" autoComplete="given-name" value={name} onChange={(e) => setName(e.target.value)} placeholder="z. B. Lea" />
           </label>
         )}
         <label className="field">
           E-Mail
-          <input type="email" autoComplete="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
+          <input type="email" name="email" autoComplete="email" spellCheck={false} required value={email} onChange={(e) => setEmail(e.target.value)} />
         </label>
         <label className="field">
           Passwort
           <input
             type="password"
+            name="password"
             autoComplete={mode === "login" ? "current-password" : "new-password"}
             required
             minLength={mode === "signup" ? MIN_PASSWORD_LENGTH : undefined}
@@ -275,10 +276,10 @@ export default function AccountPage() {
         </label>
         {mode === "signup" && (
           <p className="muted small" style={{ margin: 0 }}>
-            Mindestens {MIN_PASSWORD_LENGTH} Zeichen, nicht nur Ziffern, ohne deine E-Mail-Adresse. Wir prüfen, ob das Passwort in bekannten Datenlecks vorkommt.
+            Mindestens {MIN_PASSWORD_LENGTH}{" "}Zeichen, nicht nur Ziffern, ohne deine E-Mail-Adresse. Wir prüfen, ob das Passwort in bekannten Datenlecks vorkommt.
           </p>
         )}
-        {message && <p className={message.kind === "ok" ? "verdict-ok small" : "error small"} style={{ margin: 0 }}>{message.text}</p>}
+        {message && <p className={message.kind === "ok" ? "verdict-ok small" : "error small"} role={message.kind === "ok" ? "status" : "alert"} style={{ margin: 0 }}>{message.text}</p>}
         <button className="btn btn-primary" disabled={busy}>
           {busy ? "Einen Moment …" : mode === "login" ? "Anmelden" : "Konto erstellen"}
         </button>
