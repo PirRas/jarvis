@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { CountUp } from "@/components/CountUp";
 import { useSessions } from "@/components/FocusStats";
 import { useRemoteRefresh } from "@/components/SyncBadge";
 import { allCards, listItems, onLocalChange } from "@/lib/db";
@@ -22,11 +23,12 @@ export function RingGauge({ pct, value, label }: { pct: number; value: string; l
           cx="28"
           cy="28"
           r={R}
-          strokeDasharray={`${(CIRC * p) / 100} ${CIRC}`}
+          strokeDasharray={CIRC}
+          style={{ "--circ": CIRC, "--off": CIRC * (1 - p / 100) } as React.CSSProperties}
           transform="rotate(-90 28 28)"
         />
       </svg>
-      <span className="gauge-value">{value}</span>
+      <span className="gauge-value">{value.split(/(\d+)/).map((t, i) => (i % 2 ? <CountUp key={i} value={Number(t)} /> : t))}</span>
       <span className="gauge-label">{label}</span>
     </div>
   );

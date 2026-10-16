@@ -67,7 +67,7 @@
   margin: 0;
   padding: 0;
   display: grid;
-  gap: 6px;
+  gap: 8px;
 }
 
 .st-pill-est {
@@ -81,7 +81,7 @@
   color: var(--green);
 }
 .st-pill-comp {
-  margin-left: 6px;
+  margin-left: 8px;
   background: color-mix(in srgb, var(--amber) 18%, var(--sheet));
   color: var(--amber);
 }
@@ -110,16 +110,17 @@
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 8px 16px;
   align-items: center;
-  padding: 12px;
+  padding: 12px 0 12px 12px;
+  border-left: 3px solid var(--rule);
 }
 .st-course + .st-course {
   border-top: 1px solid var(--rule);
 }
 .st-course.is-passed {
-  background: var(--green-wash);
+  border-left-color: var(--green);
 }
 .st-course.is-failed {
-  background: var(--red-wash);
+  border-left-color: var(--red);
 }
 .st-course-main {
   min-width: 0;
@@ -137,7 +138,7 @@
 .st-grade {
   font: inherit;
   padding: 8px;
-  border: 1px solid var(--rule);
+  border: 1.5px solid var(--rule);
   border-radius: var(--radius-s);
   background: var(--sheet);
   color: var(--ink);
@@ -222,14 +223,14 @@
   padding: 0;
 }
 .st-news-list li {
-  padding: 12px;
-  background: var(--royal-wash);
+  padding: 12px 0 12px 12px;
+  border-left: 3px solid var(--royal);
 }
 .st-news-list li + li {
   border-top: 1px solid var(--rule);
 }
 .st-news-list li.is-read {
-  background: none;
+  border-left-color: var(--rule);
 }
 .st-news-list li.is-read .st-news-title {
   font-weight: 500;
@@ -253,7 +254,7 @@
   white-space: nowrap;
 }
 .st-help {
-  background: var(--sheet-raised);
+  border: 1px solid var(--rule);
   border-radius: var(--radius-s);
   padding: 12px 16px;
 }

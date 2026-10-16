@@ -1,154 +1,317 @@
-# DESIGN.md – Jarvis
+# DESIGN.md – Jarvis Uni-Cockpit
 
-> Gestaltungsregeln für Menschen und KI-Agenten. Gilt ab 2026-10-16 und ersetzt das frühere Sci-Fi-HUD (Cyan-Glow, Eck-Klammern, Reaktor-Orb).
-> **Grundregel:** Tokens in `:root` von `src/app/globals.css` sind die Wahrheit. Neue Werte dort anlegen, nie Hex-Werte in Komponenten kopieren.
-
----
-
-## 1. Idee
-
-Jarvis ist ein Werkzeug für den Alltag im Pharmaziestudium an der Uni Basel: Stundenplan, Räume, Fristen, Karteikarten, Labor- und Rechenhilfen. Vorbild ist nicht ein Kommandozentrum aus dem Film, sondern das, was auf dem Labortisch liegt: **das Laborjournal und die Etikette auf der Arzneimittelpackung.**
-
-- Ruhige, helle Flächen wie Papier. Daten sind die Hauptsache, nicht Effekte.
-- Jede Information steht so klar wie auf einer Etikette: Name, Menge, Zeit, Ort. Nichts darf verwechselt werden.
-- Ein Akzent (Mint-Petrol, angelehnt an das Mint der Uni Basel), sonst Graustufen und Statusfarben.
-- Dunkel nur, wenn das Gerät es verlangt (`prefers-color-scheme: dark`), mit gleicher Ruhe.
-
-**Was es nicht gibt:** Leuchten (Glow), Verläufe, Glas/Blur, Eck-Klammern, Raster-Hintergrund, rotierende Ringe, Zeichen-Entschlüsselung, Schimmer auf Buttons, Karten mit farbigem Linksrand, Grossbuchstaben mit Sperrung, Emojis, Gedankenstrich-Ketten und Werbewörter.
+> Design-System für KI-Agenten (Claude Code, Cursor, Google Stitch). Zielbild: der Look des «JARVIS Command Center»-Referenzbilds (dunkles Sci-Fi-HUD, Cyan-Glow, dichte Panels, Sidebar, Hero-Kern, Sprachleiste), **übertragen auf die bestehende App** (Next.js 15, Studium Pharmazeutische Wissenschaften, Uni Basel).
+>
+> **Grundregel:** Die vorhandenen Tokens und Klassen in `src/app/globals.css` und `src/app/cockpit.css` sind die Wahrheit. Neues Design wird daraus aufgebaut, nicht daneben. Abschnitt 10 zeigt, was sich gegenüber heute ändert.
 
 ---
 
-## 2. Schrift
+## 1. Visual Theme & Atmosphere
 
-Eine Familie in zwei Schnitten, beide über `next/font/google` lokal eingebunden (keine externe Anfrage, CSP bleibt `font-src 'self'`):
+- **Idee:** Ein persönliches Kommandozentrum für den Studienalltag. Dunkles Blauschwarz, Cyan als Leuchtfarbe, Bernstein als zweiter Akzent. Alles wirkt, als leuchte es aus der Tiefe.
+- **Stimmung:** technisch, ruhig, cineastisch (Iron-Man-Jarvis), aber nützlich: jede Karte zeigt echte Studiendaten.
+- **Dichte:** mittel bis hoch am Desktop (mehrere Panels nebeneinander wie im Referenzbild), auf dem Handy einspaltig und luftiger.
+- **Licht statt Fläche:** Tiefe entsteht durch Glow, Konturen und Verläufe, nie durch helle Flächen. Hell leuchten nur: Uhrzeit, Jarvis-Kern, aktive Zustände, Primär-Button.
+- **Hintergrund:** Blaupausen-Raster (24 px, sehr schwach) plus weiches Cyan-Leuchten von oben (`body`-Hintergrund in `globals.css`).
+- **Panel-Charakter:** Jedes Panel (`.sheet`) trägt kurze hellere **HUD-Ecken-Klammern**, die beim Laden einrasten (`hud-lock`). Das ist das wichtigste Wiedererkennungsmerkmal und bleibt.
+- **Sprache der App:** Deutsch, Zahlen und Daten im Format `de-CH`.
 
-| Variable | Schrift | Wofür | Warum |
-|---|---|---|---|
-| `--font-ui` | **Atkinson Hyperlegible Next** (variabel) | Alles: Überschriften, Text, Navigation, Zahlen | Für Lesbarkeit gebaut: I/l/1 und 0/O sind klar verschieden. Bei Dosierungen, Substanznamen und Raumnummern zählt genau das. |
-| `--font-mono` | **Atkinson Hyperlegible Mono** | Nur Summenformeln, Rechner-Ergebnisse, Codes (2FA) | Ziffern stehen bündig untereinander. |
+---
 
-`--font-hud` gibt es nicht mehr (Alias auf `--font-ui`, bis alle Stellen umgestellt sind).
+## 2. Color Palette & Roles
 
-**Skala** (nicht mehr als diese Grössen):
+Alle Farben existieren bereits als CSS-Variablen in `:root` (`globals.css`). **Immer die Variable verwenden, nie den Hex-Wert.**
 
-| Token | Grösse | Rolle |
+### Flächen
+| Variable | Wert | Rolle |
 |---|---|---|
-| `--step--1` | 0.875rem | Meta, Labels, Zähler |
-| `--step-0` | 1rem | Fliesstext (min. 16 px) |
-| `--step-1` | 1.1875rem | Panel-Titel |
-| `--step-2` | 1.5rem | Abschnittstitel |
-| `--step-3` | 2.125rem | Uhrzeit, grosse Kennzahlen |
-| `--step-4` | 3rem | Seitentitel (Desktop) |
+| `--paper` | `#050f1b` | App-Hintergrund, auch `themeColor` |
+| `--sheet` | `#0b1d2e` | Panels, Inputs, Buttons, Handy-Leiste |
+| `--sheet-raised` | `#0f2639` | Verschachtelte/erhöhte Elemente, Mikrofon-Knopf |
+| `--grid` | `rgba(70,213,245,0.05)` | Hintergrund-Raster, leere Heatmap-Zellen |
+| Panel-Verlauf | `rgba(15,38,57,.92)` → `rgba(9,26,41,.92)` | Fläche von `.sheet` |
+| Sprachbildschirm | `radial #0c2a40 → --paper` | Hintergrund von `/jarvis` |
 
-- Überschriften: Gewicht 700, `letter-spacing: -0.01em`, `line-height: 1.15`, `text-wrap: balance`. **Satzschreibung**, keine Grossbuchstaben mit Sperrung.
-- Fliesstext: 400, `line-height: 1.5`, max. 70ch.
-- Zahlen, die sich ändern (Zeiten, Zähler, Countdowns, Noten): `font-variant-numeric: tabular-nums`.
-- Marke «Jarvis» in der Kopfzeile: normal geschrieben, 700, `--step-1`.
+### Text
+| Variable | Wert | Rolle |
+|---|---|---|
+| `--ink` | `#dcf3ff` | Haupttext, Titel |
+| `--ink-soft` | `#98bbd0` | Untertitel, Metadaten, Nav-Links |
+| `--ink-faint` | `#6f93ab` | Platzhalter, deaktiviert, «geprüft um…» |
 
----
+### Akzente (`--royal` heisst so aus Altlast, ist das Cyan)
+| Variable | Wert | Rolle |
+|---|---|---|
+| `--royal` | `#46d5f5` | **Primärfarbe:** Titel, Icons, aktive Nav, Ringe, Fokus, Links, Neu-Zähler |
+| `--royal-wash` | `rgba(70,213,245,.12)` | Hover-/Aktiv-Hintergrund, Bars-Spur |
+| `--glow` | `0 0 18px rgba(70,213,245,.35)` | Standard-Leuchten (Primär-Button, Tags, FAB) |
+| `--amber` | `#f2b13d` | **Zweiter Akzent:** Warnung, Raumänderung, Aktion, Fokus-Fenster |
+| `--marker` | `rgba(242,177,61,.32)` | Hervorhebung/Markierung |
 
-## 3. Farben
+### Status
+| Variable | Wert | Rolle |
+|---|---|---|
+| `--green` / `--green-wash` | `#3fe0a6` | OK, Live, gelernt/Reife, Wiederholung fällig, Sync «bereit» |
+| `--red` / `--red-wash` | `#ff6b7a` | Überfällig, Fehler, Lernen-Zähler, Löschen |
+| `--amber` | siehe oben | Warnung, Raum fehlt/geändert |
 
-Variablennamen bleiben aus Kompatibilität (`--royal` ist der Akzent). Alle Paare sind nach WCAG AA geprüft (Text ≥ 4.5:1 auf `--paper`, `--sheet` und `--sheet-raised`).
+### Linien & Schatten
+| Variable | Wert | Rolle |
+|---|---|---|
+| `--rule` | `rgba(70,213,245,.16)` | Standard-Rahmen und Trennlinien |
+| `--card-line` | `rgba(70,213,245,.3)` | Stärkere Konturen (Tags, Chips, Inputs im Sprachbildschirm) |
+| `--shadow` | `0 0 0 1px rgba(70,213,245,.04), 0 14px 32px -18px rgba(0,0,0,.9)` | Panel-Schatten |
 
-| Variable | Hell | Dunkel | Rolle |
-|---|---|---|---|
-| `--paper` | `#f3f4f1` | `#111617` | Seitenhintergrund, `themeColor` |
-| `--sheet` | `#ffffff` | `#192022` | Panels, Inputs |
-| `--sheet-raised` | `#e8ebe7` | `#222a2d` | Verschachteltes, Hover-Fläche, Spur von Balken |
-| `--ink` | `#1b2326` | `#e6eceb` | Text (14.5:1 / 15.3:1) |
-| `--ink-soft` | `#475256` | `#b1bdbb` | Meta, Untertitel (7.3:1 / 9.4:1) |
-| `--ink-faint` | `#5f6a6c` | `#8f9c9a` | Platzhalter, Vergangenes (5.0:1 / 6.4:1) |
-| `--royal` (Akzent) | `#0d6763` | `#7dcdc4` | Links, aktive Navigation, Primär-Button, Fokus |
-| `--on-accent` | `#ffffff` | `#0b1f1d` | Text auf Akzentfläche |
-| `--royal-wash` | `#dcefec` | `#1f3533` | Aktiv-/Auswahlfläche |
-| `--green` / `--green-wash` | `#2a6f30` / `#e1f0e1` | `#86cf8f` / `#1d3322` | OK, läuft gerade, gelernt |
-| `--amber` / `--marker` | `#8a5100` / `#fbe8c8` | `#e8b45c` / `#3a2e17` | Warnung, Raumänderung, Markierung |
-| `--red` / `--red-wash` | `#b3261e` / `#f8e1de` | `#f2918a` / `#3a1f1d` | Überfällig, Fehler, Löschen |
-| `--rule` | `#d5d9d4` | `#2c3538` | Trennlinien in Listen und Tabellen, Input-Rahmen |
-
-- `--glow` und `--shadow` sind `none`. `--grid` und `--card-line` entfallen (`--card-line` = `--rule`).
-- Akzent nur für: Primär-Button, Links, aktive Navigation, Fokus, Fortschritt. Nicht für Titel.
-- Status nie nur über Farbe: immer Text dazu («überfällig», «Anderer Raum»).
-
----
-
-## 4. Abstände, Radien, Flächen
-
-**Raster 4/8 px.** Nur diese Werte für `padding`, `margin`, `gap`:
-
-`--space-1` 4px · `--space-2` 8px · `--space-3` 12px · `--space-4` 16px · `--space-5` 24px · `--space-6` 32px · `--space-7` 48px · `--space-8` 64px
-
-- Panel-Innenabstand `--space-5` (Handy `--space-4`), Abstand zwischen Panels `--space-5`, Seitenrand `--space-4` (Handy) bis `--space-6`.
-- Ausnahmen nur für 1–2 px (Rahmen, Feinjustage von Icons).
-
-**Radien:** `--radius-s` 4px (Buttons, Inputs, Chips), `--radius-m` 8px (Panels). Rund (50 %) nur für den Jarvis-Knopf, Avatar, Statuspunkt.
-
-**Tiefe:** Flächen trennen sich durch Tonstufe (`--paper` → `--sheet` → `--sheet-raised`), nicht durch Schatten oder Rahmen. Schatten nur auf echtem Overlay (Handy-«Mehr»-Feld, Dialog): `0 8px 24px rgb(0 0 0 / .18)`.
-
-**Linien:** 1 px `--rule` nur, wo sie Daten gliedern: Listenzeilen, Tabellen, Formularfelder, Kopfzeile unten.
+> **Hinweis zum Referenzbild:** Dort kommen zusätzlich Violett und Orange als Kategorie-Farben vor. In der App gibt es sie nicht. Wer Kategorien (z. B. Fächer) farblich trennen will, nimmt **Cyan, Grün, Bernstein, Rot** und Abstufungen davon. Neue Farben nur auf ausdrücklichen Wunsch einführen und dann als Variable in `:root` anlegen.
 
 ---
 
-## 5. Komponenten
+## 3. Typography Rules
 
-- **Panel `.sheet` / `.panel`:** `--sheet`, Radius 8 px, kein Rahmen, kein Schatten, keine Eck-Deko, keine Einblende-Animation. Titel `.panel-title`: `--step-1`, 700, `--ink`, Satzschreibung.
-- **Buttons:** `.btn` = `--sheet-raised`-Fläche, `--ink`, kein Rahmen; Hover: eine Tonstufe dunkler (`color-mix(in srgb, var(--sheet-raised), var(--ink) 8%)`). `.btn-primary` = `--royal`-Fläche, `--on-accent`; Hover 10 % dunkler. Kein Verblassen (`opacity`) beim Hover, kein Schimmer. Höchstens ein Primär-Button pro Ansicht. Disabled: Deckkraft 0.5 + `cursor: not-allowed`.
-- **Formulare `.field`:** Input `--sheet`, 1 px `--rule`, Radius 4 px; `:focus-visible` = 2 px Ring `--royal`, Offset 2 px.
-- **Kopfzeile:** `--paper`, 1 px `--rule` unten, kein Blur. Marke «Jarvis» als Text (Logo-Zeichen: statische Kapsel, keine Drehung). Uhrzeit `tabular-nums`, ohne Leuchten.
-- **Navigation:** Desktop-Sidebar: Link `--ink-soft`; Hover `--sheet-raised`; aktiv `--royal-wash` + `--royal`, 700. Handy: feste Leiste unten (`--sheet`, Linie oben), «Mehr» öffnet Feld darüber.
-- **«Als Nächstes» `.nextup`:** Fläche `--royal-wash` (läuft gerade: `--green-wash`), kein Linksbalken. Label «Als Nächstes» in Satzschreibung `--step--1`, 700.
-- **Empfehlung `.tip`:** Zeile in `--sheet-raised`, Art als Wort («Hinweis», «Dringend», «Erledigt») statt Symbol, kein Linksbalken.
-- **Stundenplan-Block `.slot`:** Fläche `--royal-wash`, kein Linksbalken.
-- **Raumwarnung `.room-alert`:** Fläche `--marker`, Text `--amber` 700 «Anderer Raum», alter Raum durchgestrichen. Kein Pulsieren, kein Leuchten.
-- **Zähler/Chips:** `--sheet-raised`, Radius 4 px, `--step--1`, `tabular-nums`.
-- **Fortschritt:** `.bar` 8 px, Spur `--sheet-raised`, Füllung `--royal` (Reife: `--green`). Ring-Gauges (`RingGauge`) mit Spur `--sheet-raised`, Füllung `currentColor`, kein Leuchten.
-- **Startseite Kopf:** grosse Uhrzeit (`--step-3`, `tabular-nums`) und Datum als Text, darunter Begrüssung. Kein Ring.
-- **Jarvis-Knopf `.jarvis-fab`:** 52 px rund, `--royal`-Fläche, Mikrofon-Icon `--on-accent`, kein Leuchten.
-- **Sprachbildschirm `/jarvis`:** gleicher Hintergrund wie die App. Statt Reaktor ein ruhiger Kreis (Mikrofon) mit Zustand als **Text** («Ich höre zu», «Ich denke nach», «Ich spreche»); Zustand zusätzlich über Farbe der Kreisfläche (hören: `--royal`, denken: `--sheet-raised`, sprechen: `--green`). Einzige Bewegung: sanftes Skalieren (transform) beim Hören, aus bei `prefers-reduced-motion`. Verlauf: Jarvis-Nachrichten auf `--sheet`, eigene auf `--royal-wash`, ohne Seitenrand.
+**Schriften** (in `layout.tsx` über `next/font/google` geladen):
+- `--font-hud` = **Chakra Petch** (500/600/700): Marke, Überschriften, Navigation, Tags, grosse Zahlen, Uhrzeit.
+- `--font-ui` = **Atkinson Hyperlegible Next**: Fliesstext, Formulare, Beschreibungen (klare Unterscheidung von I/l/1 und 0/O bei Dosierungen, Substanzen, Räumen).
+- Monospace (`ui-monospace, Consolas`) nur für Formeln/Code (Pharmazie-Rechner).
 
----
+**Skala** (`--step-*`): `-1` 0.875rem · `0` 1rem · `1` 1.1875rem · `2` 1.5rem · `3` 2.125rem · `4` 3rem.
 
-## 6. Bewegung
-
-- Nur Rückmeldung auf Bedienung: Hover-/Aktiv-Farbe (120 ms), Aufklappen des «Mehr»-Felds, Kartenumdrehen beim Lernen, Fortschrittsbalken (`transform: scaleX`).
-- Keine Endlos-Animationen ausser Lade-/Abgleichzustand (Statuspunkt).
-- Nur `transform` und `opacity` animieren. `prefers-reduced-motion: reduce` schaltet alles ab (globale Regel).
-
----
-
-## 7. Sprache
-
-- Deutsch, Schweizer Schreibung (ss), Datum/Zahlen `de-CH`.
-- Kurze Sätze, Satzschreibung in Titeln und Buttons. Buttons sagen, was passiert («Termin speichern»).
-- Keine Gedankenstriche als Satzverbinder; Punkt oder Komma. Für Spannen «9 bis 10 Uhr» oder `9–10` (Halbgeviertstrich nur bei Zahlenbereichen).
-- Keine Werbewörter (smart, nahtlos, KI-gestützt, System, Mission, Cockpit).
-- Fehlermeldungen nennen den nächsten Schritt.
-
----
-
-## 8. Responsive
-
-| Breite | Verhalten |
+| Rolle | Stil |
 |---|---|
-| ≤ 640 px | Handy: einspaltig, Navigation unten, Jarvis-Knopf über der Leiste, Panel-Innenabstand 16 px |
-| 641–1099 px | Sidebar links, Inhalt einspaltig bis zweispaltig |
-| ≥ 1100 px | Startseite dreispaltig |
+| Marke «JARVIS» (Kopfzeile) | HUD, 600, `--step-1`, **Grossbuchstaben**, Letter-spacing `0.22em` |
+| Hero «JARVIS» (Sprachbildschirm) | HUD, 600, `clamp(1.5rem, 6vw, 2.2rem)`, Letter-spacing `0.32em`, `--royal`, `--glow` |
+| Seitentitel `.page-title` | HUD, 600, `clamp(2rem, 5vw, --step-4)` |
+| Panel-Titel `.panel-title` | HUD, `--step-1`. **Ziel:** wie im Referenzbild kleiner, Grossbuchstaben, Letter-spacing ~`0.12em`, `--royal` |
+| Uhrzeit `.hud-time` | HUD, 600, `clamp(2.2rem, 9vw, 3.1rem)`, `tabular-nums`, Letter-spacing `0.06em`, Text-Glow `rgba(70,213,245,.7)` |
+| Label «Als Nächstes» `.nextup-label` | 700, `--step--1`, Grossbuchstaben, Letter-spacing `0.06em`, `--royal` (grün bei live) |
+| Grosse Zahlen `.big-number`, `.score` | HUD, 600, `--step-4`, `tabular-nums` |
+| Navigation | HUD, 500, Letter-spacing `0.03em`, aktiv `--royal` + Text-Glow |
+| Lead `.lede` | `--ink-soft`, max. `60ch` |
+| Meta/Klein `.small`, `.muted` | `--step--1`, `--ink-soft` |
 
-- Touch-Ziele ≥ 44 px. `touch-action: manipulation` global. `env(safe-area-inset-*)` beachten.
-- Kein horizontales Scrollen bei 390 px.
+Zahlen, die sich ändern (Zeiten, Zähler, Countdowns), immer mit `font-variant-numeric: tabular-nums`.
 
 ---
 
-## 9. Kurzreferenz für Agenten
+## 4. Component Stylings
 
+### 4.1 Panel `.sheet` (+ `.panel`)
+- Verlauf-Fläche, 1 px `--rule`, Radius `--radius-m` (6 px), `--shadow`.
+- `::before` zeichnet die vier HUD-Eck-Klammern (14 px, 1.5 px, `rgba(70,213,245,.75)`); bei Hover Voll-Cyan + Drop-Glow. Animation `hud-lock` (0.55 s).
+- `.panel`: Innenabstand `clamp(18px, 3vw, 26px)`. Titel `.panel-title`, Fusslink `.panel-more` («Alle anzeigen ›»-Stil, `--royal`, 600, `--step--1`).
+
+### 4.2 Kopfzeile `.topbar`
+- Sticky, `rgba(5,15,27,.96)`, 1 px `--rule` unten, **bewusst ohne `backdrop-filter`** (würde die feste Handy-Leiste einsperren).
+- Links Marke (`HudMark` mit drehendem Cyan-Ring und Bernstein-Bogen + «JARVIS»), dann `SyncBadge`, rechts Navigation.
+- **Ziel (Referenzbild):** in der Kopfzeile zusätzlich Datum + Uhrzeit mittig und Sync-Status als «System-Status»-Pille (siehe 10).
+
+### 4.3 Navigation `.topnav`
+- Desktop: alle Seiten in einer Zeile. Link: `--ink-soft`, Radius 4 px. Hover: `--royal-wash`. Aktiv (`aria-current="page"`): `--royal`, `--royal-wash`, innerer Cyan-Balken unten (`inset 0 -2px`), Text-Glow.
+- Handy (≤ 640 px): feste Leiste unten (`--sheet`), 4 Hauptseiten + «Mehr»; «Mehr» öffnet ein 2-spaltiges Feld über der Leiste (`nav-sheet-in`).
+- Seiten: Heute, Aufgaben, Stundenplan, Lernplan | Kalender, Vorlesungen, Lernen, Fokus, Studium, Pharmazie, Links, Karten, Statistik, Konto (nur Handy).
+
+### 4.4 Buttons
+- `.btn`: 1.5 px Rahmen `--ink`, `--sheet`, 600, Radius 4 px; Hover `--royal-wash`.
+- `.btn-primary`: `--royal`-Fläche, Text `#04121f`, `--glow`, Lichtreflex-Schimmer beim Hover. **Pro Ansicht höchstens ein Primär-Button.**
+- `.btn-quiet`: transparent, `--ink-soft`. `.btn-danger`: `--red`, Hover `--red-wash`.
+- Disabled: Deckkraft 0.45.
+
+### 4.5 Tags, Pillen, Kacheln
+- `.hud-tag`: 1 px `--card-line`, HUD-Schrift 600; `.is-level` = Cyan-Fläche mit Glow; `.is-action` = Bernstein-Kontur.
+- `.pill`: runde Pille, `--royal-wash`, `--ink-soft`. `.live-pill`: grün. 
+- `.tile` (Schnellzugriff `.quick-tiles`): Pille (99 px), `--sheet`, 1 px `--rule`; Hover Cyan.
+- `.sync-badge` mit `.sync-dot`: grün = bereit, Cyan pulsierend = Abgleich, rot = Fehler.
+
+### 4.6 Formulare `.field`
+- Label 600 `--step--1`; Input/Textarea/Select: `--sheet`, 1.5 px `--rule`, Radius 4 px; Fokus: Rand `--royal`. Globaler Fokus-Ring: 2.5 px `--royal`, Offset 2 px.
+
+### 4.7 «Als Nächstes» `.nextup`
+- Panel mit 6 px Linksbalken `--royal` (grün bei `.is-live`). Titel gross, darunter Art und Raum. Raumänderung als `.room-alert` (siehe 4.9).
+
+### 4.8 HUD-Ring `HudRing` und Fortschritt
+- `HudRing` (`src/components/HudRing.tsx`): Skalenring, 36 Cyan-Segmente (74 % gefüllt), Bernstein-Bogen, Kern mit Radar-Schweif. Inhalt (Uhrzeit) liegt in `.hud-ring-center`. Beim Start einmal pro Sitzung «Hochfahren» (`is-boot`), danach nur langsame Drehungen.
+- `.bar` (8 px, rund, `--royal-wash` Spur, `--royal` Füllung); `.mastery .bar > span` grün.
+- Heatmap `.heat`: 5 Stufen aus `--grid` bis `--royal`.
+- **Ziel (Referenzbild «System Monitor»):** kleine Ring-Gauges (SVG, Ø ~56 px, Strich 5 px, Spur `rgba(70,213,245,.15)`, Füllung `--royal` mit Glow) für Lernstand, Lernzeit heute, Aufgaben erledigt.
+
+### 4.9 Raumwarnung `.room-alert`
+- Bernstein: Fläche `rgba(242,177,61,.14)`, 1.5 px `--amber`, doppelter Glow, `room-pulse` (3×). Label «Anderer Raum!» in Grossbuchstaben, üblicher Raum durchgestrichen daneben. `.room-missing` = Bernstein, `.room-unknown` = `--ink-faint`.
+
+### 4.10 Listen (Aufgaben, Termine, Prüfungen)
+- Zeilen mit 1 px `--rule` als Trenner, Titel 600, Meta `--ink-soft`, Überfälliges in `--red`. Zähler `.counts`: `.c-new` Cyan, `.c-learn` Rot, `.c-review` Grün, `.c-zero` `--ink-faint`.
+- Karteikarten (`.index-card`, `.flip`), Bewertung `.rate-1…4` (Nochmal/Schwer/Gut/Einfach).
+
+### 4.11 Jarvis-Sprachbildschirm `/jarvis`
+- Vollbild (`position: fixed`), Topbar ausgeblendet. **Reaktor-Orb** (`.jv-orb`, SVG mit Ringen `.jv-r1…r4`, Kern `.jv-core`), Zustände über `data-state`: `listening` (schneller, Ripple), `thinking` (Scan-Linie), `speaking` (pulsierender Kern).
+- Verlauf `.jv-msg` (Jarvis: Cyan-Linksrand; Nutzer: Bernstein-Rechtsrand), Aktionen `.jv-action` (grün), Chips `.jv-chip`, Eingabe `.jv-row`, Mikrofon `.jv-mic`.
+- Schwebender Knopf `.jarvis-fab`: 52 px rund, Cyan-Rand, `--glow`, unten rechts (auf dem Handy über der Leiste); auf `/jarvis` selbst ausgeblendet.
+
+### 4.12 Weitere Seitenmodule
+- Fokus (`fokus.css`), Pharmazie (`pharmazie.css`, Rechner/Pflanzen/Substanzen), Studium (`studium.css`), Teilen (`teilen.css`): Seiten-CSS liegt neben `page.tsx` und wird dort importiert. Gleiche Tokens, keine eigenen Farben.
+
+---
+
+## 5. Layout Principles
+
+- **Seitenbreite:** `.page` max. **1180 px**, mittig; Seitenrand `clamp(16px, 4vw, 40px)`, oben `clamp(24px, 5vw, 56px)`, unten 96 px (Handy: `84px + safe-area` wegen Leiste).
+- **Seitenkopf:** `.page-head` (Titel links, Aktionen rechts, 32 px Abstand nach unten).
+- **Raster Startseite:** `.cockpit-grid` = `repeat(auto-fit, minmax(min(100%, 340px), 1fr))`, Abstand **20 px**.
+- **Spacing:** 4 · 8 · 12 · 16 · 20 · 24 · 32 px; Panel-Abstand 20 px, innerer Abstand `clamp(18px, 3vw, 26px)`.
+- **Radien:** `--radius-s` 4 px (Buttons, Inputs, Nav), `--radius-m` 6 px (Panels), 99 px (Pillen, Kacheln, Chips), 50 % (FAB).
+- **Ziel-Anordnung Startseite «Heute»** (Desktop, angelehnt ans Referenzbild, 3 Spalten):
+  - **Mitte oben:** Hero mit `HudRing` (Uhrzeit, Wochentag) und Status-Tags, darunter «Als Nächstes».
+  - **Links:** Aufgaben, Lernplan heute.
+  - **Rechts:** Kalender/Heute-Termine, «Jarvis empfiehlt», Prüfungen und Fristen.
+  - **Unten:** Uni-Mail, Schnellzugriff-Kacheln, Sprachleiste (siehe 10).
+- Titel linksbündig, Kennzahlen und Hero zentriert.
+
+---
+
+## 6. Depth & Elevation
+
+| Ebene | Behandlung |
+|---|---|
+| 0 Hintergrund | `--paper` + Raster + Cyan-Aufhellung oben |
+| 1 Panel | `.sheet`: Verlauf, 1 px `--rule`, `--shadow`, HUD-Ecken |
+| 2 Hover/aktiv | Ecken voll Cyan + Drop-Glow, Rand `--royal` |
+| 3 Primäraktion | `--glow`, Schimmer (Primär-Button), FAB mit Glow |
+| 4 Overlay | Handy-«Mehr»-Feld: `--sheet`, Schatten `0 -10px 24px -12px rgba(0,0,0,.8)` |
+
+Schatten sind tief und dunkel, Leuchten ist immer **Cyan** (Bernstein nur für Warnungen).
+
+---
+
+## 7. Do's and Don'ts
+
+**Do**
+- Immer CSS-Variablen aus `:root` nutzen; neue Werte dort ergänzen.
+- Bestehende Klassen wiederverwenden (`.sheet`, `.panel`, `.btn*`, `.tile`, `.hud-tag`, `.field`, `.bar`).
+- Statusfarben konsequent: Grün = ok/live, Bernstein = Warnung/Raum, Rot = überfällig/Fehler, Cyan = Primär/Neu.
+- Status nie nur über Farbe zeigen (zusätzlich Text, Punkt oder Icon).
+- Animationen nur mit Rücksicht auf `prefers-reduced-motion` (globale Regel in `globals.css` greift).
+- UI-Texte auf Deutsch, Datum/Zahl `de-CH`.
+- Kleinste Änderung, die die Aufgabe löst (Projektregel «Ponytail»); bewusste Abkürzungen mit `// shortcut:` markieren.
+
+**Don't**
+- Keine weissen/hellen Flächen, kein Light-Theme (`color-scheme: dark`).
+- Kein `backdrop-filter` auf der Kopfzeile.
+- Keine neuen Farben, Schriften oder UI-Bibliotheken ohne Rückfrage.
+- Kein Glow auf Fliesstext (nur Titel, Uhrzeit, Kennzahlen, aktive Nav).
+- Nicht mehrere Primär-Buttons pro Ansicht.
+- Keine harten schwarzen Drop-Shadows als Dekor, keine runden/verspielten Formen, keine Serifen.
+- Keine bezahlten KI-APIs (auch nicht Claude-API); KI-Funktionen laufen über die Gratis-Kette in `src/lib/gemini.ts`.
+- Hex-Werte nicht in CSS kopieren (Ausnahme: SVG-Konstanten `C`/`AMBER` in `HudRing.tsx`).
+
+---
+
+## 8. Responsive Behavior
+
+| Breakpoint | Verhalten |
+|---|---|
+| > 900 px | Volles Raster, `.browser` zweispaltig (1.4fr / 1fr) |
+| ≤ 900 px | `.browser` einspaltig |
+| ≤ 720 px | Deck-Liste zweispaltig → Reife-Balken eigene Zeile |
+| ≤ 640 px | **Handy-Modus:** Nav als feste Leiste unten, «Mehr»-Feld, `.jarvis-fab` über der Leiste, `.hud-ring` 220 px, Sync-Label ausgeblendet, Tastenkürzel-Hinweise `.kbd` aus |
+| ≤ 520 px | Termin-Zeilen `.occ` stapeln sich |
+
+- Touch-Ziele mindestens ~44 px (Nav-Links 12 px Padding, FAB 52 px).
+- `env(safe-area-inset-*)` für Leiste, Sprachbildschirm und FAB beachten.
+- `@media (hover: none)`: Hover-Hinweise und Tastenkürzel ausblenden.
+- Die App ist als PWA installierbar (Android/Windows); `themeColor` `#050f1b`.
+
+---
+
+## 9. Agent Prompt Guide
+
+### Farb-Kurzreferenz
 ```
-Schrift: Atkinson Hyperlegible Next (--font-ui), Mono nur Formeln (--font-mono)
-Hell:  paper #f3f4f1  sheet #fff  raised #e8ebe7  ink #1b2326  soft #475256  akzent #0d6763
-Dunkel: paper #111617 sheet #192022 raised #222a2d ink #e6eceb soft #b1bdbb akzent #7dcdc4
-Abstände: 4 8 12 16 24 32 48 64 (--space-1…8)   Radien: 4 / 8
-Verboten: glow, gradient, backdrop-filter, box-shadow in Ruhe, border-left als Farbbalken,
-          uppercase + letter-spacing, Emoji, Endlos-Animation, Hex-Werte ausserhalb :root
+--paper #050f1b   --sheet #0b1d2e   --sheet-raised #0f2639
+--ink #dcf3ff     --ink-soft #98bbd0   --ink-faint #6f93ab
+--royal (Cyan) #46d5f5   --amber #f2b13d
+--green #3fe0a6   --red #ff6b7a
+--rule rgba(70,213,245,.16)   --card-line rgba(70,213,245,.3)
+--glow 0 0 18px rgba(70,213,245,.35)
+Schriften: Chakra Petch (--font-hud), Atkinson Hyperlegible Next (--font-ui)
 ```
 
-Checks vor «fertig»: `npx tsc --noEmit` · `npx eslint . --max-warnings 0` · `npm run build` · bei Sprachassistent `npx tsx scripts/voice-check.ts` · Screenshots Handy 390 px und Laptop 1440 px, hell und dunkel, ohne Konsolen- oder CSP-Fehler.
+### Fertige Prompts
+1. **Neue Seite:**
+   «Lege die Seite `/xyz` an (`src/app/xyz/page.tsx`, CSS in `xyz/xyz.css`, dort importieren). Nutze `.page-head`, `.page-title`, `.lede`, `.cockpit-grid` mit `.sheet.panel`-Karten und nur Tokens aus DESIGN.md. Texte auf Deutsch.»
+2. **Panel im Referenzstil:**
+   «Baue ein Panel für ‹Lernstand› im Stil der DESIGN.md: `.sheet.panel`, Titel in Grossbuchstaben mit Letter-spacing, drei Ring-Gauges (Lernstand, Lernzeit, Aufgaben) mit Cyan-Glow, `tabular-nums`.»
+3. **Startseite umbauen:**
+   «Baue die Startseite `src/app/page.tsx` nach Abschnitt 5 (‹Ziel-Anordnung›) um: Hero mit `HudRing` in der Mitte, Aufgaben/Lernplan links, Termine/Empfehlungen/Fristen rechts. Bestehende Daten und Logik unverändert lassen.»
+4. **Desktop-Sidebar:**
+   «Ersetze am Desktop (> 640 px) die Zeilen-Navigation durch eine linke Sidebar nach Abschnitt 10; auf dem Handy bleibt die Leiste unten unverändert. Gleiche Links wie in `MainNav.tsx`.»
+5. **Komponente:**
+   «Erstelle eine Status-Pille ‹Alles bereit› mit grünem Punkt in der Kopfzeile, Verhalten wie `.sync-badge`.»
+
+### Checks vor ‹fertig›
+`npx tsc --noEmit` · `npx eslint . --max-warnings 0` · `npm run build` (es gibt keine automatischen Tests; Sprachassistent: `npx tsx scripts/voice-check.ts`).
+
+---
+
+## 10. Referenzbild → Jarvis: Abgleich und Ziel-Änderungen
+
+Das Referenzbild zeigt ein generisches «KI-Kommandozentrum». Jedes Modul wird auf eine **bereits vorhandene Funktion** der App abgebildet. Was keine Entsprechung hat, entfällt.
+
+| Referenzbild | In Jarvis | Quelle / Stand |
+|---|---|---|
+| Sidebar links (Command Center, Agents, Tasks, Calendar, Memory …) | Desktop-Sidebar mit den echten Seiten: Heute, Aufgaben, Stundenplan, Lernplan, Kalender, Vorlesungen, Lernen, Fokus, Studium, Pharmazie, Links, Karten, Statistik, Konto; Zähler-Pillen z. B. bei Aufgaben | **neu** (heute: Zeilen-Nav, `MainNav.tsx`) |
+| Top-Bar: System-Status, Datum + Uhrzeit, Suche, Glocke, Profil | System-Status = `SyncBadge` (Abgleich/Push), Uhrzeit/Datum mittig, Profil-Pille mit Vorname aus «Konto»; Glocke → Push-Einstellungen | teils neu |
+| Hero «JARVIS AI Core» (Kugel mit Orbit-Ringen) | `HudRing` mit Uhrzeit/Wochentag auf der Startseite; Orb auf `/jarvis` | vorhanden |
+| AI Core Overview (Core, Memory, Voice, Agents, LLMs, System) | **Systemübersicht:** Sync, Push, Stimme/Spracherkennung, Gemini-Kette (aktives Modell), Schlüssel gesetzt ja/nein | neu, Daten vorhanden (`gemini.ts`, `speech.ts`, `sync.ts`, `push.ts`) |
+| Live Intelligence Feed | «Jarvis empfiehlt», Prüfungen und Fristen, Raumwarnungen, Uni-Mail (`feeds.ts`, `news.ts`) | vorhanden, Stil angleichen (Icon links, Badge rechts: INFO/WARN/TIP) |
+| Active Agents (Coding/Research/Memory …) | **Entfällt** als Agenten. Ersatz: «Werkzeuge» von Jarvis (Termine, Aufgaben, Lernstand, Fokus …, `voiceTools.ts`) als Kachelraster | optional |
+| Mission Timeline | Tagesverlauf/«Als Nächstes» mit Zeit links, Punkt auf Linie, Status «in 42 Min» (Stundenplan + Termine, Räume live) | vorhanden, Darstellung neu |
+| Quick Commands | `.quick-tiles` (Neue Aufgabe, Kalender, Fokus starten, Sprachchat) | vorhanden |
+| System Monitor (CPU/RAM/Disk) | **Lernmonitor:** Ring-Gauges für Lernstand, Lernzeit heute, erledigte Aufgaben (`focus.ts`, `srs.ts`, Statistik) | neu |
+| Memory Insights (Konstellation, Memories) | Karteikarten-Überblick: fällig heute, Neu/Lernen/Wiederholen (`.counts`), Reife-Balken pro Deck, Heatmap | vorhanden, Stil angleichen |
+| LLM Status (Claude, OpenAI, Gemini …) | **KI-Status:** nur die echte Kette – Gemini 3.5 Flash → Flash-Lite → Flash → OpenRouter, YouTube-Schlüssel; je «Verbunden / Nicht gesetzt» | neu, bezahlte APIs bleiben ausgeschlossen |
+| Bottom-Bar «Talk to JARVIS», Standort/Wetter/Netz | Sprachleiste unten (Desktop) bzw. `.jarvis-fab` (Handy) mit «Mit Jarvis sprechen»; Chips: Sync, Push; **kein** Wetter/Standort | FAB vorhanden, Leiste neu |
+| «Executive Briefing»-Button | «Tagesbriefing» (Begrüssung mit Tagesprogramm aus `briefing.ts`) | vorhanden |
+
+### Umsetzungsreihenfolge (kleinste Schritte, jeweils lauffähig)
+1. Panel-Titel im Referenzstil (Grossbuchstaben, Letter-spacing) und Feed-Zeilen mit Icon + Badge – reine CSS-Änderung.
+2. Ring-Gauges als wiederverwendbare Komponente (`src/components/`), Einbau in Statistik und Startseite.
+3. Kopfzeile: Datum/Uhrzeit mittig, Profil-Pille.
+4. Startseite in die 3-Spalten-Anordnung (Abschnitt 5).
+5. Desktop-Sidebar (nur > 640 px); Handy-Leiste bleibt.
+6. Systemübersicht und KI-Status als neue Panels.
+
+Jeder Schritt: Checks aus Abschnitt 9, dann Commit auf Deutsch im Format `Bereich: was gemacht wurde`.
+
+---
+
+## 11. Verfeinerung (2026-10-16): Jarvis bleibt, Handwerk wird sauberer
+
+Ein Versuch mit ruhigem, hellem «Laborjournal»-Stil wurde wieder verworfen: **Das HUD mit Orb, Ring, Boot-Effekt, Eck-Klammern und Glow ist gewollt und bleibt.** Was aus dem Versuch übernommen wird:
+
+- **Schrift:** Chakra Petch nur für HUD-Elemente (Marke, Titel, Uhr, Kennzahlen, Navigation). Fliesstext Atkinson Hyperlegible Next. Mehr Familien nicht. Monospace nur für Formeln.
+- **Abstände:** 4/8-px-Raster über `--space-1…8` (4 · 8 · 12 · 16 · 24 · 32 · 48 · 64). Keine 5, 7, 9, 10, 14, 18, 22, 26 px mehr.
+- **Kontrast:** Text mind. 4.5:1 (WCAG AA). Kein Text mit `opacity` abschwächen, stattdessen `--ink-faint`. Glow nie auf Fliesstext.
+- **Texte:** keine Gedankenstriche als Satzverbinder, Satzschreibung in Fliesstext/Buttons, Fehlermeldungen nennen den nächsten Schritt, `de-CH`.
+- **Barrierefreiheit:** Skip-Link «Zum Inhalt», `:focus-visible`-Ring, `role="status"/"alert"` für Meldungen, `name` an Formularfeldern, `touch-action: manipulation`, Touch-Ziele ≥ 44 px.
+- **Linksbalken** an Karten bleiben nur, wo sie Status tragen (Als Nächstes, Raumwarnung, Stundenplan-Block); sonst Flächenton.
+
+### Animationen (Jarvis darf sich bewegen)
+| Animation | Wo | Art |
+|---|---|---|
+| Boot + Decode | Startseite, 1× pro Sitzung | wie bisher (`Decode.tsx`, `hud-*`) |
+| Panel-Einrasten gestaffelt | alle `.sheet`, beim Laden | `opacity` + `translateY(8px)`, je Panel +60 ms, Ecken rasten ein |
+| Scan-Linie | `.sheet:hover` | dünne Cyan-Linie läuft 1× von oben nach unten (`transform`) |
+| Nav-Indikator | aktiver Link | Cyan-Balken gleitet/leuchtet auf |
+| Zahlen hochzählen | Kennzahlen, Countdown-Tage, Gauges | kurz (≤ 600 ms), nur beim ersten Anzeigen |
+| Button-Puls | `.btn-primary`, Jarvis-Knopf | Glow atmet langsam (`opacity` eines Pseudo-Elements) |
+| Orb | `/jarvis` | Ringe drehen, Zustände hören/denken/sprechen wie bisher; dazu Partikel, die um den Kern kreisen, und Klang-Balken (Equalizer) beim Sprechen |
+| Hintergrund | `body` | Raster driftet sehr langsam (Pseudo-Element, `transform`), dazu ein weicher Lichtschein, der langsam pulsiert |
+| Datenfluss | Kopfzeile unten, Sidebar-Rand | ein Lichtpunkt wandert entlang der Linie (alle ~6 s) |
+| Seitenwechsel | `main` | Inhalt blendet ein und gleitet 8 px hoch, Seitentitel mit kurzem Decode-Effekt |
+| Listen gestaffelt | Aufgaben, Termine, Fristen, Sidebar-Links | Zeilen erscheinen nacheinander (+40 ms) |
+| Fortschritt | `.bar`, Ring-Gauges | füllt sich beim Erscheinen, Lichtreflex läuft über den Balken |
+| Hover Panel | `.sheet:hover` | Eck-Klammern dehnen sich aus, Rand leuchtet auf |
+| Abhaken | Aufgaben-Checkbox | kurzer Cyan-Ring, der sich ausdehnt und verblasst |
+| Jarvis-Knopf | `.jarvis-fab` | Ripple-Ring alle paar Sekunden |
+| Uhr | Uhr-Ring Startseite | Sekunden-Markierung tickt mit |
+| Statuspunkte | Sync, Verbindungen | pulsieren je nach Zustand |
+
+Regeln: nur `transform` und `opacity` animieren, Dauer 150–600 ms (Endlos-Loops nur Ringe/Orb/Puls, langsam), alles aus bei `prefers-reduced-motion: reduce`.

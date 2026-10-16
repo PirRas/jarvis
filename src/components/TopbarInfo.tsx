@@ -3,7 +3,9 @@
 import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { useRemoteRefresh } from "@/components/SyncBadge";
+import { SplitFlap } from "@/components/SplitFlap";
 import { listItems, onLocalChange } from "@/lib/db";
+import { fmtTime } from "@/lib/planner";
 import { readProfile } from "@/lib/profile";
 
 /** Datum und Uhrzeit für die Mitte der Kopfzeile (erst nach dem Laden, wegen Hydration). */
@@ -18,7 +20,7 @@ export function TopbarClock() {
   const d = new Date(now);
   return (
     <div className="topbar-clock">
-      <span className="topbar-time">{d.toLocaleTimeString("de-CH", { hour: "2-digit", minute: "2-digit" })}</span>
+      <span className="topbar-time"><SplitFlap value={fmtTime(now)} /></span>
       <span className="topbar-date">{d.toLocaleDateString("de-CH", { weekday: "short", day: "numeric", month: "short" })}</span>
     </div>
   );

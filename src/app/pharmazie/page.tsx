@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Wireframe } from "@/components/Wireframe";
 import { Calculators } from "@/components/pharma/Calculators";
 import { CompoundLookup } from "@/components/pharma/CompoundLookup";
 import { PlantGallery } from "@/components/pharma/PlantGallery";
@@ -34,6 +35,7 @@ export default function PharmaPage() {
           <h1 className="page-title">Pharmazie</h1>
           <p className="lede">Wirkstoffe nachschlagen, im Labor rechnen und Arzneipflanzen lernen.</p>
         </div>
+        <Wireframe className="ph-wire" />
       </div>
 
       <div className="tabs" role="tablist">

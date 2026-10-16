@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Wireframe } from "@/components/Wireframe";
 import { loadSettings, saveTimer } from "@/lib/focus";
 import { getGeminiKey, setGeminiKey } from "@/lib/gemini";
 import { briefing, userName } from "@/lib/briefing";
@@ -246,11 +247,11 @@ export default function JarvisPage() {
 
   return (
     <div className="jarvis-screen" data-state={state}>
-      <Link className="jv-home" href="/">
+      <Link className="jv-home" href="/" aria-label="Zum Cockpit">
         <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round">
           <path d="M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10" />
         </svg>
-        Zur Übersicht
+        Cockpit
       </Link>
       <div className="jv-toggles">
         <label>
@@ -264,13 +265,19 @@ export default function JarvisPage() {
         </label>
       </div>
 
-      <button className="jv-orb" onClick={onOrb} aria-label={state === "listening" ? "Zuhören beenden" : "Mit Jarvis sprechen"} disabled={!mic && state !== "speaking"}>
-        <svg viewBox="0 0 24 24" width="40%" height="40%" aria-hidden fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
-          <rect x="9" y="3" width="6" height="12" rx="3" />
-          <path d="M5 11a7 7 0 0014 0M12 18v3" />
-        </svg>
-      </button>
-      <h1 className="jv-title">Jarvis</h1>
+      <div className="jv-orbwrap">
+        <Wireframe className="jv-wire" />
+        <button className="jv-orb" onClick={onOrb} aria-label={state === "listening" ? "Zuhören beenden" : "Mit Jarvis sprechen"} disabled={!mic && state !== "speaking"}>
+          <Orb />
+        </button>
+      </div>
+      <h1 className="jv-title" aria-label="J.A.R.V.I.S.">
+        {[..."J.A.R.V.I.S."].map((c, i) => (
+          <span key={i} aria-hidden style={{ "--i": i } as React.CSSProperties}>
+            {c}
+          </span>
+        ))}
+      </h1>
       {log.length === 0 && <p className="jv-greet">{greeting()}. Womit kann ich dienen?</p>}
       <p className="jv-state" aria-live="polite">
         {STATE_LABEL[state]}
@@ -318,8 +325,8 @@ export default function JarvisPage() {
         ))}
         {!log.some((m) => m.role === "user") && (
           <div className="jv-chips">
-            {SUGGESTIONS.map((s) => (
-              <button key={s} className="jv-chip" onClick={() => void ask(s)}>
+            {SUGGESTIONS.map((s, i) => (
+              <button key={s} className="jv-chip" style={{ "--i": i } as React.CSSProperties} onClick={() => void ask(s)}>
                 {s}
               </button>
             ))}
@@ -346,5 +353,83 @@ export default function JarvisPage() {
         </div>
       </form>
     </div>
+  );
+}
+
+const C = "#46d5f5";
+const AMBER = "#f2b13d";
+// Partikel: [Radius, Bahnradius, Umlaufzeit in s, Startwinkel]
+const PARTICLES: [number, number, number, number][] = [
+  [2, 64, 7, 0],
+  [1.5, 78, 11, 120],
+  [2.5, 92, 9, 240],
+  [1.5, 110, 15, 60],
+  [2, 132, 12, 200],
+  [2, 70, 13, 300],
+  [1.5, 120, 8, 150],
+  [2.5, 86, 17, 20],
+];
+const circ = (r: number) => 2 * Math.PI * r;
+
+/** Reaktor-Orb: Ringe drehen je nach Zustand (data-state am Elternelement, siehe jarvis.css). */
+function Orb() {
+  return (
+    <svg className="jv-svg" viewBox="0 0 320 320" aria-hidden focusable="false">
+      <defs>
+        <radialGradient id="jv-core" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stopColor="#d8fbff" />
+          <stop offset="35%" stopColor={C} />
+          <stop offset="100%" stopColor="#071a2a" />
+        </radialGradient>
+        <filter id="jv-glow" x="-30%" y="-30%" width="160%" height="160%">
+          <feGaussianBlur stdDeviation="3" result="b" />
+          <feMerge>
+            <feMergeNode in="b" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
+        </filter>
+      </defs>
+      <circle className="jv-ripple" cx="160" cy="160" r="100" fill="none" stroke={C} strokeWidth="2" />
+      <circle className="jv-ripple jv-ripple2" cx="160" cy="160" r="100" fill="none" stroke={C} strokeWidth="2" />
+      <circle cx="160" cy="160" r="154" fill="none" stroke={C} strokeOpacity="0.22" />
+      <g className="jv-boot" style={{ "--n": 0 } as React.CSSProperties}>
+        <g className="jv-r1">
+          <circle cx="160" cy="160" r="144" fill="none" stroke={C} strokeOpacity="0.6" strokeWidth="8" strokeDasharray={`1.4 ${circ(144) / 90 - 1.4}`} />
+          <circle cx="160" cy="160" r="144" fill="none" stroke={C} strokeWidth="12" strokeDasharray={`2.2 ${(circ(144) / 90) * 6 - 2.2}`} />
+        </g>
+      </g>
+      <g className="jv-boot" style={{ "--n": 1 } as React.CSSProperties}>
+        <g className="jv-r2" filter="url(#jv-glow)">
+          <circle cx="160" cy="160" r="122" fill="none" stroke={C} strokeOpacity="0.8" strokeWidth="14" strokeDasharray={`${circ(122) / 24 - 4} 4`} />
+        </g>
+      </g>
+      <g className="jv-boot" style={{ "--n": 2 } as React.CSSProperties}>
+        <g className="jv-r3">
+          <circle cx="160" cy="160" r="102" fill="none" stroke={AMBER} strokeWidth="3" strokeLinecap="round" strokeDasharray={`${circ(102) * 0.28} ${circ(102)}`} />
+          <circle cx="160" cy="160" r="102" fill="none" stroke={AMBER} strokeOpacity="0.5" strokeWidth="3" strokeLinecap="round" strokeDasharray={`${circ(102) * 0.08} ${circ(102)}`} transform="rotate(180 160 160)" />
+        </g>
+      </g>
+      <g className="jv-scan">
+        <circle cx="160" cy="160" r="84" fill="none" stroke={C} strokeWidth="4" strokeLinecap="round" strokeDasharray={`${circ(84) * 0.22} ${circ(84)}`} />
+      </g>
+      <g className="jv-arc">
+        <path d="M160 68A92 92 0 1 1 128.5 246.5" fill="none" stroke={AMBER} strokeWidth="2" strokeLinecap="round" strokeDasharray="6 6" />
+      </g>
+      <g className="jv-boot" style={{ "--n": 3 } as React.CSSProperties}>
+        <g className="jv-r4">
+          <circle cx="160" cy="160" r="72" fill="none" stroke={C} strokeOpacity="0.35" strokeDasharray="3 6" />
+        </g>
+      </g>
+      {PARTICLES.map(([r, rad, dur, deg], i) => (
+        <g key={i} className="jv-p" style={{ "--d": `${dur}s`, animationDelay: `${-(dur * deg) / 360}s` } as React.CSSProperties}>
+          <circle cx={160 + rad} cy="160" r={r} fill="#d8fbff" />
+        </g>
+      ))}
+      <circle className="jv-core" cx="160" cy="160" r="52" fill="url(#jv-core)" filter="url(#jv-glow)" />
+      <circle cx="160" cy="160" r="52" fill="none" stroke={C} strokeWidth="1.5" />
+      {[0, 1, 2, 3, 4, 5, 6].map((i) => (
+        <rect key={i} className="jv-bar" style={{ "--i": i } as React.CSSProperties} x={160 + (i - 3) * 10 - 2} y="142" width="4" height="36" rx="2" fill="#071a2a" />
+      ))}
+    </svg>
   );
 }

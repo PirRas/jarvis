@@ -12,7 +12,7 @@
 }
 .ph-mono,
 .ph-formula {
-  font-family: var(--font-mono);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
 }
 .ph-break {
   overflow-wrap: anywhere;
@@ -37,9 +37,10 @@
   }
 }
 .ph-structure {
-  background: white; /* Strukturbilder von PubChem haben weissen Hintergrund, auch im Dunkelmodus */
-  border-radius: var(--radius-s);
-  padding: var(--space-2);
+  background: #fff; /* Strukturbilder von PubChem haben weissen Hintergrund */
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-m);
+  padding: 8px;
   display: grid;
   place-items: center;
 }
@@ -167,7 +168,7 @@
   aspect-ratio: 4 / 3;
   object-fit: cover;
   display: block;
-  background: var(--sheet-raised);
+  background: var(--grid);
 }
 .ph-plant-body {
   padding: 12px 16px 16px;
@@ -195,11 +196,25 @@
   font-style: normal;
   font-weight: 700;
   padding: 1px 8px;
-  border-radius: var(--radius-s);
+  border-radius: 99px;
   background: var(--red-wash);
   color: var(--red);
 }
 .ph-source {
   color: var(--ink-faint);
   margin-top: 4px;
+}
+
+/* Drahtgitter-Molekül im Seitenkopf */
+.ph-wire {
+  flex: none;
+  width: 180px;
+  height: 180px;
+  pointer-events: none;
+}
+@media (max-width: 640px) {
+  .ph-wire {
+    width: 96px;
+    height: 96px;
+  }
 }

@@ -14,8 +14,16 @@ keine
 - Design (DESIGN.md §10) bewusst weggelassen: Sidebar-Icons, Mission-Timeline, Werkzeug-Kacheln, Desktop-Sprachleiste unten, Glocke/Suche in der Kopfzeile, Feed-Stil für Prüfungen/Raumwarnungen/Uni-Mail. Tablet-Breite 641–760 px mit Sidebar ist eng; alte `.topnav`-Regel für diese Breite ist wirkungslos.
 - OpenRouter-Weg (Folientext via pdf.js) unter Node nicht testbar (`readPdf` lädt den Worker fest von `/pdf.worker.min.mjs`).
 - Mobile Push für Claude-Benachrichtigungen ist in `/config` aus.
+- Animationen (DESIGN.md §11) nur bei 390 px und 1440 px geprüft, nicht auf Tablet und nicht auf schwachen Handys (Partikel-Canvas, Wireframe, Hologramm-Schimmer). Bekannt: Checkbox-Ring läuft beim Laden auch bei schon erledigten Aufgaben; verschachtelte `.sheet` blenden doppelt ein.
 
 ## Letzte Sitzungen
+
+### 2026-10-16 – PiravinLap2 (/firma: Design, Animationen, Vorlesungs-Fix)
+- Ruhiges helles «Laborjournal»-Design gebaut (`19f8b1b`), Nutzer wollte aber Jarvis/HUD/Futuristisch zurück: alte Design-Dateien wiederhergestellt, Verbesserungen behalten (Atkinson Hyperlegible Next für Fliesstext, 4/8-px-Raster `--space-*`, Skip-Link, `role=status/alert` im Konto, Texte ohne Gedankenstriche, de-CH). Regeln in DESIGN.md §11.
+- Viele Animationen: driftendes Raster + Partikel-Netz (`Particles.tsx`), Hologramm-Panels, Scan-Linie, gestaffeltes Einrasten, Seitentitel-Decode (`PageTitleDecode.tsx`), Split-flap-Uhr (`SplitFlap.tsx`), Zahlen hochzählen (`CountUp.tsx`), Sekundenzeiger im HudRing, Orb mit Partikeln/Equalizer/Hochfahren, drehendes Paracetamol-Drahtgitter (`Wireframe.tsx`, /jarvis + /pharmazie). Alles aus bei reduced-motion.
+- Vorlesung: «Titel und Fach ändern» springt zum Formular und fokussiert den Titel (`61cfcd4`).
+- Stolperfalle: `.next` im OneDrive-Ordner → `EINVAL readlink`; Abhilfe `rm -rf .next`. Atkinson braucht `adjustFontFallback: false` (sonst Build-Warnung).
+- Tests: tsc, lint, build, voice-check; Produktions-Build 17 Seiten ohne Konsolen-/CSP-Fehler, Screenshots in `.shots/` (ignoriert).
 
 ### 2026-10-16 – Cloud-Sitzung (vm, Sicherheit + Datenschutz aus zwei Reels)
 - Reel 1 (Login-Sicherheit): CSP + Sicherheits-Header in `next.config.ts` (connect-src streng, neue externe Hosts dort eintragen), In-Memory-Rate-Limit `src/middleware.ts`, Passwortregeln + HIBP-Leak-Prüfung (`src/lib/password.ts`), „Passwort vergessen“, TOTP-2FA (`src/components/TwoFactor.tsx`) mit restriktiver RLS-Regel „2FA erzwingen“, `nachbereitung-save.ts --code=`.
@@ -42,10 +50,3 @@ keine
 - Gemini Function Calling: `chatTurn` in `gemini.ts` (gleiche Modellkette), Schleife `jarvisAgent.ts`, 18 Werkzeuge in `voiceTools.ts` (Termine, Aufgaben, Überblick, Lernstand, Lernzeit, Noten, Vorlesungen, Fokus, Seiten, Links). Spracherkennung/Stimme: `speech.ts` (Web Speech API, de-CH).
 - Tests: `scripts/voice-check.ts` (Werkzeuge + simulierte Gesprächsrunde), Browser-Test mit simuliertem Mikrofon und Gemini (Handy + Desktop): Termin per Sprache landet im Kalender. Nutzer hat mit echtem Schlüssel getestet: „läuft alles“.
 - Gebaut auf Branch `claude/voice-interface-r35y46`, PR #1, in `main` übernommen. Commits: `c5e7b4d` chatTurn, `9be3e46` Werkzeuge, `a8ce7ca` Sprachbildschirm, `dd8b717` Feinschliff.
-
-### 2026-10-15 – PiravinLap2
-- Plugins `ponytail` + `superpowers` im Projekt aktiviert (`.claude/settings.json`), graphify-Graph gebaut (`graphify-out/` ignoriert, pdf.js-Worker per `.graphifyignore` ausgeschlossen).
-- Browser-Test aller 16 Seiten (Desktop + Handy) ohne Fehler; Fix: „Termine aus Text“ – mehrere Daten in einem Absatz bekommen eigene Uhrzeit/Titel/Art (`scripts/textdates-check.ts`).
-- Neu: Folien automatisch aufbereiten ohne Claude-API (`src/lib/gemini.ts`): Kette Gemini 3.5 Flash → Flash-Lite → Flash (neuestes, langsam) → OpenRouter-Gratis (Nemotron, nur Folientext); Zeitlimit 3 Min.; Videos über YouTube-Data-API. Schlüssel (Gemini/OpenRouter/YouTube) pro Gerät im localStorage, eingetragen im Importer. Selbsttest `scripts/gemini-check.ts`.
-- Echte Läufe: `gemini-flash-latest` (= 3.8) hängt im Gratis-Kontingent oft minutenlang, Gemini-Google-Suche ist im Gratis-Kontingent gesperrt (429) → deshalb YouTube-API. Komplettlauf zuletzt ~2 Min.
-- Commits: `185ca36` Plugins, `86eac9e` graphify-Ignore, `397814b` Termine aus Text, `4ae2a25` Gemini-Automatik, `7495914` Ausweichkette + YouTube.

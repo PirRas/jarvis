@@ -2,14 +2,18 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { Decode, shouldBoot } from "@/components/Decode";
+import { CountUp } from "@/components/CountUp";
 import { CopyButton } from "@/components/CopyButton";
+import { HudRing } from "@/components/HudRing";
 import { LearnMonitor } from "@/components/RingGauge";
 import { SystemStatus } from "@/components/SystemStatus";
 import { LessonPreview } from "@/components/LessonPreview";
 import { OccurrenceRow } from "@/components/OccurrenceRow";
 import { RoomBadge } from "@/components/RoomBadge";
 import { TemplateSetup } from "@/components/TemplateSetup";
+import { SplitFlap } from "@/components/SplitFlap";
 import { TimetableFeed, timetableFeed } from "@/components/TimetableFeed";
 import { hasUpcomingLessons } from "@/lib/timetable";
 import { askJarvisPrompt, greeting, latestLecture, readiness, tips } from "@/lib/jarvis";
@@ -38,6 +42,7 @@ import { usePlanner } from "@/lib/usePlanner";
 
 export default function Today() {
   const p = usePlanner();
+  const [boot] = useState(shouldBoot);
   const router = useRouter();
   const { now } = p;
 
@@ -48,7 +53,7 @@ export default function Today() {
     router.replace("/jarvis");
   }, [router]);
 
-  if (!p.loaded) return <p className="muted">Lädt …</p>;
+  if (!p.loaded) return <p className="muted">Jarvis startet …</p>;
 
   const courses = knownCourses(p.data, p.lectures.map((l) => l.course));
   const list = occurrences(p.data, addDays(dayStart(now), -4), addDays(now, 120), courses);
@@ -108,24 +113,25 @@ export default function Today() {
 
       <div className="home-grid">
         <div className="home-main">
-          <header className="jarvis-head">
-            <p className="head-clock">
-              <span className="head-time">{fmtTime(now)}</span>
-              <span className="head-date">
-                {new Date(now).toLocaleDateString("de-CH", { weekday: "long", day: "numeric", month: "long", year: "numeric" })}
+          <header className={`jarvis-head${boot ? " is-boot" : ""}`}>
+            <HudRing boot={boot}>
+              <span className="hud-time">
+                <SplitFlap value={fmtTime(now)} />
               </span>
-            </p>
+              <span className="hud-day">{new Date(now).toLocaleDateString("de-CH", { weekday: "short", day: "numeric", month: "short" })}</span>
+            </HudRing>
             <div className="jarvis-head-text">
-              <h1 className="page-title">{`${greeting(now)}${profile?.name ? `, ${profile.name}` : ""}.`}</h1>
-              <p className="head-meta">
-                {[profile && levelLabel(studyLevel(profile, now)), profile?.program, semesterLabel(semesterAt(now))]
-                  .filter(Boolean)
-                  .join(" · ")}
+              <h1 className="page-title">
+                <Decode text={`${greeting(now)}${profile?.name ? `, ${profile.name}` : ""}.`} active={boot} />
+              </h1>
+              <p className="hud-tags">
+                {profile && <span className="hud-tag is-level">{levelLabel(studyLevel(profile, now))}</span>}
+                {profile?.program && <span className="hud-tag">{profile.program}</span>}
+                <span className="hud-tag">{semesterLabel(semesterAt(now))}</span>
                 {!profile && (
-                  <>
-                    {" · "}
-                    <Link href="/konto#profil">Name und Studiengang eintragen</Link>
-                  </>
+                  <Link className="hud-tag is-action" href="/konto#profil">
+                    Name und Studiengang eintragen
+                  </Link>
                 )}
               </p>
               <p className="lede">{status}</p>
@@ -192,7 +198,7 @@ export default function Today() {
               {pending.length > 0 && (
                 <li>
                   <Link href="/lernplan#waechter">
-                    {pending.length} {pending.length === 1 ? "Lektion" : "Lektionen"} nachbereiten
+                    <CountUp value={pending.length} /> {pending.length === 1 ? "Lektion" : "Lektionen"} nachbereiten
                   </Link>
                   <span className="small muted"> · {[...new Set(pending.map((o) => o.course))].slice(0, 3).join(", ")}</span>
                 </li>
@@ -200,13 +206,13 @@ export default function Today() {
               {newToday + reviewsToday > 0 && (
                 <li>
                   <Link href="/lernen">
-                    {newToday} neue Karten, {reviewsToday} Wiederholungen
+                    <CountUp value={newToday} /> neue Karten, <CountUp value={reviewsToday} /> Wiederholungen
                   </Link>
                 </li>
               )}
               {plans[0] && (
                 <li>
-                  Nächste Prüfung: <strong>{plans[0].course}</strong> in {plans[0].daysLeft} Tagen, {plans[0].readiness} % bereit
+                  Nächste Prüfung: <strong>{plans[0].course}</strong> in <CountUp value={plans[0].daysLeft} /> Tagen, <CountUp value={plans[0].readiness} /> % bereit
                 </li>
               )}
               {!pending.length && newToday + reviewsToday === 0 && !plans[0] && <li className="muted">Nichts offen.</li>}
@@ -270,7 +276,9 @@ export default function Today() {
                   return (
                     <li key={o.key} className={`exam kind-${o.kind}`}>
                       <span className="countdown">
-                        <strong>{days}</strong>
+                        <strong>
+                          <CountUp value={days} />
+                        </strong>
                         <span>{days === 1 ? "Tag" : "Tage"}</span>
                       </span>
                       <span className="exam-body">

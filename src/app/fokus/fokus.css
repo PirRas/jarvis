@@ -2,22 +2,24 @@
 
 .fx-timer {
   display: grid;
-  gap: 12px;
+  gap: 16px;
   margin-bottom: 32px;
 }
 .fx-timer.is-focus {
-  background: var(--royal-wash);
+  border-top: 4px solid var(--royal);
 }
 .fx-timer.is-break {
-  background: var(--green-wash);
+  border-top: 4px solid var(--green);
 }
 .fx-phase {
   margin: 0;
   font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
   font-size: var(--step--1);
 }
 .fx-clock {
-  font-family: var(--font-ui), sans-serif;
+  font-family: var(--font-hud), var(--font-ui), sans-serif;
   font-size: clamp(3.5rem, 16vw, 6.5rem);
   font-weight: 600;
   line-height: 1;
@@ -50,15 +52,17 @@
   font: inherit;
   font-weight: 600;
   padding: 8px 16px;
-  border-radius: var(--radius-s);
-  background: var(--sheet-raised);
+  border-radius: 99px;
+  border: 1.5px solid var(--rule);
+  background: var(--sheet);
   color: var(--ink-soft);
   cursor: pointer;
 }
 .fx-chip:hover {
-  background: color-mix(in srgb, var(--sheet-raised), var(--ink) 8%);
+  border-color: var(--royal);
 }
 .fx-chip.is-on {
+  border-color: var(--royal);
   background: var(--royal-wash);
   color: var(--ink);
 }
@@ -66,14 +70,14 @@
   font: inherit;
   width: 6.5rem;
   padding: 8px 12px;
-  border-radius: var(--radius-s);
-  border: 1px solid var(--rule);
+  border-radius: 99px;
+  border: 1.5px solid var(--rule);
   background: var(--sheet);
   color: var(--ink);
 }
 
 .fx-heading {
-  margin: 8px 0 12px;
+  margin: 8px 0 16px;
 }
 .fx-stats {
   display: grid;
@@ -91,7 +95,7 @@
 }
 
 .fx-goal-bar {
-  margin-top: 12px;
+  margin-top: 16px;
 }
 .fx-goal {
   display: flex;
@@ -103,7 +107,7 @@
   font: inherit;
   width: 4.5rem;
   padding: 2px 8px;
-  border: 1px solid var(--rule);
+  border: 1.5px solid var(--rule);
   border-radius: var(--radius-s);
   background: var(--sheet);
   color: var(--ink);
@@ -114,7 +118,7 @@
   grid-template-columns: repeat(7, 1fr);
   gap: 8px;
   align-items: end;
-  margin-top: 12px;
+  margin-top: 16px;
 }
 .fx-week-col {
   display: grid;
