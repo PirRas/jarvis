@@ -4,12 +4,12 @@ Wird von `/close` gepflegt. Am Anfang jeder Sitzung lesen (siehe CLAUDE.md).
 
 ## Nächste Aufgabe
 
-keine
+Android-Signierschlüssel einrichten (nur am Laptop möglich): `git pull`, dann `scripts/android-keystore.sh` ausführen (Passwort mind. 12 Zeichen, im Passwortmanager sichern). Das Skript setzt die vier Secrets `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD` per `gh` (vorher `gh auth login`), sonst von Hand in GitHub → Settings → Secrets → Actions. Danach Workflow «Android-App» auf `main` von Hand starten, prüfen, dass der Lauf ohne Test-Schlüssel-Warnung signiert, alte App einmal deinstallieren und die neue `jarvis.apk` aus dem Release `android-latest` installieren. Ab dann gehen Updates ohne Deinstallation. Details: `ANDROID.md` → «Signierschlüssel einrichten».
 
 ## Offen
 
-- Android-App (PR #6, `ANDROID.md`): noch nicht auf einem echten Handy getestet (nur Gradle-Build in Actions + Playwright mit nachgebildeter Brücke). Prüfen: Zuhören/Vorlesen, Erinnerungen bei geschlossener App, Fokus-Meldung, .ics teilen, YouTube-Videos, «Öffne X» per Sprache (externe Links → Browser), Zurück-Taste, Statusleiste/Ränder.
-- Android-Signierschlüssel fehlt: einmal `scripts/android-keystore.sh` auf dem Laptop, vier `ANDROID_*`-Secrets in GitHub. Bis dahin hat jede APK einen anderen Test-Schlüssel (Update nur nach Deinstallation).
+- Android-App (PR #6, `ANDROID.md`): 2026-10-16 vom Nutzer auf dem Handy getestet, «funktioniert soweit alles». Nicht einzeln bestätigt: Erinnerungen bei geschlossener App, Fokus-Meldung, .ics teilen.
+- Android-Signierschlüssel fehlt (siehe Nächste Aufgabe). Bis dahin hat jede APK einen anderen Test-Schlüssel (Update nur nach Deinstallation).
 - Vor Launch der App: eigene Domain statt `nachbereitung.vercel.app` (App vertraut der Adresse vollständig), Vercel-Projekt nie umbenennen/löschen.
 
 - Nachbereitungsplan (PR #5) nur mit Beispiel-Stundenplan getestet, nicht mit dem echten Abo und nicht mit echtem Supabase-Abgleich (Store `chats`, Markierungen). Hochladen einer alten PDF deckt die jüngste offene Lektion des Fachs ab, nicht zwingend die gemeinte (Zählung stimmt).
