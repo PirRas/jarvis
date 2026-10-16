@@ -58,7 +58,8 @@ export default function DatenschutzPage() {
         </p>
         <p>
           Push-Benachrichtigungen sind optional. Das Geräte-Abo und der Erinnerungsplan werden bei Supabase gespeichert.
-          Der Versand läuft über den Push-Dienst des jeweiligen Browsers.
+          Der Versand läuft über den Push-Dienst des jeweiligen Browsers. In der Android-App plant das Handy die
+          Erinnerungen selbst; dafür wird nichts an einen Server geschickt.
         </p>
       </section>
 
@@ -95,7 +96,8 @@ export default function DatenschutzPage() {
           </li>
           <li>
             <strong>Spracherkennung des Browsers:</strong> Je nach Browser läuft sie über Server des Herstellers, bei Chrome
-            zum Beispiel über Google.
+            zum Beispiel über Google. In der Android-App übernimmt das die Spracherkennung des Handys (meist Google);
+            das Vorlesen läuft über die Sprachausgabe des Handys.
           </li>
         </ul>
       </section>

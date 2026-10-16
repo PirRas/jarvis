@@ -77,6 +77,7 @@ normalen App, der Mikrofon-Knopf unten rechts wieder zurück.
   - `POST /api/ics` holt Kalender-Abos ab (Browser dürfen fremde Kalender nicht direkt laden).
 - Alle Daten liegen im Browser (IndexedDB) und werden über Supabase zwischen Handy und PC abgeglichen,
   sobald du unter „Konto“ angemeldet bist. Tabelle: `supabase/schema.sql`.
+- Android-App: Capacitor-Hülle in `android/`, lädt die Vercel-Seite und ergänzt native Sprache, Erinnerungen und Teilen (`src/lib/native.ts`). Details in `ANDROID.md`.
 
 ```
 npm install
@@ -87,7 +88,8 @@ Dann http://localhost:3000 öffnen.
 
 ## Installieren
 
-- **Android:** Seite in Chrome öffnen, Menü → „Zum Startbildschirm hinzufügen“.
+- **Android-App (empfohlen):** eigenständige App, Anleitung zum Installieren und Bauen in [`ANDROID.md`](ANDROID.md). Neueste APK: GitHub → Releases → „Jarvis Android (neueste)“.
+- **Android im Browser:** Seite in Chrome öffnen, Menü → „Zum Startbildschirm hinzufügen“.
 - **Windows:** Seite in Edge oder Chrome öffnen, in der Adressleiste „App installieren“.
 
 ## Tastenkürzel beim Lernen
@@ -109,3 +111,4 @@ Dann http://localhost:3000 öffnen.
 - **SQL-Editor:** `supabase/schema.sql` und `supabase/push.sql` erneut ausführen (neue 2FA-Regel).
 - **Vercel → Firewall:** Rate-Limit-Regel für `/api/*` anlegen. Das eingebaute Limit in `src/middleware.ts` gilt nur pro Server-Instanz.
 - Supabase-Region in `NEXT_PUBLIC_DATA_REGION` eintragen, damit die Datenschutzerklärung stimmt.
+- **Android-App:** einmal `scripts/android-keystore.sh` ausführen und die vier `ANDROID_*`-Secrets in GitHub setzen (siehe `ANDROID.md`), sonst baut GitHub nur Debug-APKs. Für den Play Store bräuchte es zusätzlich ein AAB, einen Store-Eintrag und eine Datenschutz-URL (`/datenschutz`).

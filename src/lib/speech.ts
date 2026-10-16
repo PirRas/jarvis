@@ -123,7 +123,6 @@ export async function speak(text: string): Promise<void> {
   const parts = clean(text).match(/[^.!?:;\n]+[.!?:;]?/g)?.map((x) => x.trim()).filter(Boolean) ?? [];
   if (isNativeApp() && parts.length) {
     const mine = ++gen;
-    appStopSpeaking();
     return appSpeak(parts, () => mine === gen);
   }
   if (!s || !parts.length) return;

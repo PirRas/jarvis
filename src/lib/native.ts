@@ -63,6 +63,8 @@ export function appListen(): { result: Promise<string>; stop(): void } {
 // ---------- Vorlesen ----------
 
 let ttsLang: Promise<string> | null = null;
+// Beendet die laufende Äusserung auf JS-Seite: Android meldet bei stop() oder einer neuen Äusserung weder Ende noch Fehler
+let interrupt: (() => void) | null = null;
 
 /** Liest Satz für Satz vor; `alive()` false bricht ab (neuer Text oder stopSpeaking). */
 export async function appSpeak(parts: string[], alive: () => boolean): Promise<void> {
@@ -73,12 +75,25 @@ export async function appSpeak(parts: string[], alive: () => boolean): Promise<v
   const lang = await ttsLang;
   for (const text of parts) {
     if (!alive()) return;
-    // Etwas tiefer, damit es mehr nach Jarvis klingt (wie im Browser ohne männliche Stimme)
-    await TextToSpeech.speak({ text, lang, rate: 1.0, pitch: 0.8, volume: 1.0 }).catch(() => {});
+    await new Promise<void>((resolve) => {
+      const done = () => {
+        clearTimeout(safety);
+        if (interrupt === done) interrupt = null;
+        resolve();
+      };
+      // Sicherheitsnetz wie im Browser, falls ein Ende nie gemeldet wird
+      const safety = setTimeout(done, 4000 + text.length * 120);
+      interrupt?.();
+      interrupt = done;
+      // Etwas tiefer, damit es mehr nach Jarvis klingt (wie im Browser ohne männliche Stimme)
+      TextToSpeech.speak({ text, lang, rate: 1.0, pitch: 0.8, volume: 1.0 }).then(done, done);
+    });
   }
 }
 
 export function appStopSpeaking() {
+  interrupt?.();
+  interrupt = null;
   import("@capacitor-community/text-to-speech").then((m) => m.TextToSpeech.stop()).catch(() => {});
 }
 
