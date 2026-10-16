@@ -111,4 +111,4 @@ Dann http://localhost:3000 öffnen.
 - **SQL-Editor:** `supabase/schema.sql` und `supabase/push.sql` erneut ausführen (neue 2FA-Regel).
 - **Vercel → Firewall:** Rate-Limit-Regel für `/api/*` anlegen. Das eingebaute Limit in `src/middleware.ts` gilt nur pro Server-Instanz.
 - Supabase-Region in `NEXT_PUBLIC_DATA_REGION` eintragen, damit die Datenschutzerklärung stimmt.
-- **Android-App:** einmal `scripts/android-keystore.sh` ausführen und die vier `ANDROID_*`-Secrets in GitHub setzen (siehe `ANDROID.md`), sonst baut GitHub nur Debug-APKs. Für den Play Store bräuchte es zusätzlich ein AAB, einen Store-Eintrag und eine Datenschutz-URL (`/datenschutz`).
+- **Android-App:** einmal `scripts/android-keystore.sh` ausführen und die vier `ANDROID_*`-Secrets in GitHub setzen (siehe `ANDROID.md`), sonst signiert GitHub jede APK mit einem anderen Test-Schlüssel (Updates nur nach Deinstallation). Für den Play Store bräuchte es zusätzlich ein AAB, einen Store-Eintrag und eine Datenschutz-URL (`/datenschutz`).

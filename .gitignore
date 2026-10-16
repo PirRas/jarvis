@@ -15,3 +15,7 @@ graphify-out/
 .shots/
 .taste-skill/
 .playwright-cli/
+
+# Android-Signierschlüssel gehören nie ins Repo (siehe ANDROID.md)
+*.jks
+*.keystore

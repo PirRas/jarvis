@@ -30,9 +30,9 @@ android {
     }
     buildTypes {
         release {
-            if (jarvisSigning) {
-                signingConfig signingConfigs.release
-            }
+            // Ohne eigenen Schlüssel mit dem Debug-Schlüssel signieren: installierbar, aber nicht debugbar.
+            // Solche APKs lassen sich nicht als Update über eine mit dem echten Schlüssel signierte installieren.
+            signingConfig = jarvisSigning ? signingConfigs.release : signingConfigs.debug
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }

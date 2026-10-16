@@ -21,6 +21,8 @@ const config: CapacitorConfig = {
     allowMixedContent: false,
     webContentsDebuggingEnabled: false,
     appendUserAgent: "JarvisAndroid",
+    // Ältere WebViews spritzen die Brücke anders ein (auch in fremde iframes, ohne CSP-Header): dann Hinweisseite statt App.
+    minWebViewVersion: 100,
   },
   plugins: {
     SystemBars: { style: "DARK", insetsHandling: "css", initialViewportFitValueHint: "cover" },

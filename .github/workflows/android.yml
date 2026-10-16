@@ -27,7 +27,8 @@ permissions:
 
 concurrency:
   group: android-${{ github.ref }}
-  cancel-in-progress: true
+  # Auf main nicht abbrechen, sonst bleibt das Release halb aktualisiert
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   build:
@@ -69,10 +70,13 @@ jobs:
           KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
           KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
           EVENT_NAME: ${{ github.event_name }}
+          GIT_REF: ${{ github.ref }}
         run: |
           set -euo pipefail
           cd android
-          if [ -n "$KEYSTORE_B64" ] && [ "$EVENT_NAME" != "pull_request" ]; then
+          # Mit dem echten Schlüssel nur auf main signieren, nie Code aus anderen Branches oder PRs
+          if [ -n "$KEYSTORE_B64" ] && [ "$GIT_REF" = "refs/heads/main" ] && [ "$EVENT_NAME" != "pull_request" ]; then
+            umask 077
             echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/jarvis.jks"
             export JARVIS_KEYSTORE_FILE="$RUNNER_TEMP/jarvis.jks"
             export JARVIS_KEYSTORE_PASSWORD="$KEYSTORE_PASSWORD"
@@ -82,10 +86,10 @@ jobs:
             echo "variant=signiert" >> "$GITHUB_OUTPUT"
             echo "apk=android/app/build/outputs/apk/release/app-release.apk" >> "$GITHUB_OUTPUT"
           else
-            echo "::warning::Ohne Signierschlüssel: Debug-APK wird gebaut. Sie lässt sich nicht als Update über eine signierte Version installieren."
-            ./gradlew assembleDebug
-            echo "variant=debug" >> "$GITHUB_OUTPUT"
-            echo "apk=android/app/build/outputs/apk/debug/app-debug.apk" >> "$GITHUB_OUTPUT"
+            echo "::warning::Ohne Signierschlüssel (Secrets ANDROID_*): Release-APK mit Test-Schlüssel. Updates darüber gehen nur nach Deinstallation, siehe ANDROID.md."
+            ./gradlew assembleRelease
+            echo "variant=Test-Schlüssel" >> "$GITHUB_OUTPUT"
+            echo "apk=android/app/build/outputs/apk/release/app-release.apk" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Signierschlüssel löschen
@@ -108,6 +112,7 @@ jobs:
             echo "- Version: $VERSION_NAME"
             echo "- SHA-256: \`$(cut -d' ' -f1 jarvis.apk.sha256)\`"
           } >> "$GITHUB_STEP_SUMMARY"
+          echo "$VARIANT" > jarvis.variant
 
       - uses: actions/upload-artifact@v5
         with:
@@ -115,6 +120,7 @@ jobs:
           path: |
             jarvis.apk
             jarvis.apk.sha256
+            jarvis.variant
           retention-days: 30
           if-no-files-found: error
 
@@ -139,7 +145,8 @@ jobs:
         run: |
           set -euo pipefail
           TITLE="Jarvis Android (neueste)"
-          NOTES="Version: $VERSION_NAME
+          VARIANT="$(cat jarvis.variant)"
+          NOTES="Version: $VERSION_NAME ($VARIANT)
           Commit: $SHA
 
           APK auf dem Handy öffnen und installieren (Installation aus unbekannten Quellen für den Browser erlauben)."

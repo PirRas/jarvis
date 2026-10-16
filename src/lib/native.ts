@@ -3,6 +3,7 @@
 // Auf der Website ist isNativeApp() false; die Plugins werden dort nie geladen (nur dynamische Importe).
 
 import type { Reminder } from "./reminders";
+import { REMOTE_CHANGE_EVENT } from "./sync";
 
 type CapGlobal = { isNativePlatform?: () => boolean };
 
@@ -34,23 +35,37 @@ const LISTEN_ERRORS: Record<string, string> = {
 export function appListen(): { result: Promise<string>; stop(): void } {
   let stopped = false;
   const plugin = import("@capacitor-community/speech-recognition").then((m) => m.SpeechRecognition);
-  const result = (async () => {
+  const run = async () => {
     const sr = await plugin;
     if (!(await sr.available()).available) throw new Error("Auf diesem Handy ist keine Spracherkennung verfügbar.");
     let perm = await sr.checkPermissions();
     if (perm.speechRecognition !== "granted") perm = await sr.requestPermissions();
     if (perm.speechRecognition !== "granted") throw new Error(LISTEN_ERRORS["Insufficient permissions"]);
-    if (stopped) return "";
-    try {
-      const r = await sr.start({ language: "de-CH", maxResults: 1, partialResults: false, popup: false });
-      return (r.matches?.[0] ?? "").trim();
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      // Stille oder nichts verstanden: wie im Browser einfach leerer Satz
-      if (/No match|No speech input|Didn't understand|Client side error/i.test(msg)) return "";
-      throw new Error(LISTEN_ERRORS[msg] ?? `Spracherkennung fehlgeschlagen (${msg}).`);
+    for (const language of ["de-CH", "de-DE"]) {
+      if (stopped) return "";
+      try {
+        const r = await sr.start({ language, maxResults: 1, partialResults: false, popup: false });
+        return (r.matches?.[0] ?? "").trim();
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        // Stille oder abgebrochen: wie im Browser einfach leerer Satz
+        if (/No match|No speech input|Client side error/i.test(msg)) return "";
+        // Sammelfehler des Plugins (u. a. Sprache nicht unterstützt): einmal mit Hochdeutsch versuchen
+        if (/Didn't understand/i.test(msg) && language === "de-CH") continue;
+        throw new Error(LISTEN_ERRORS[msg] ?? "Spracherkennung fehlgeschlagen. Versuch es nochmal.");
+      }
     }
-  })();
+    return "";
+  };
+  // Sicherheitsnetz: meldet die Erkennung nie ein Ende, nicht ewig im Zustand "Hört zu" bleiben
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<string>((_, reject) => {
+    timer = setTimeout(() => {
+      plugin.then((sr) => sr.stop()).catch(() => {});
+      reject(new Error("Die Spracherkennung antwortet nicht. Versuch es nochmal."));
+    }, 30_000);
+  });
+  const result = Promise.race([run(), timeout]).finally(() => clearTimeout(timer));
   return {
     result,
     stop: () => {
@@ -110,6 +125,14 @@ const MAX_SCHEDULED = 60;
 
 const notifications = () => import("@capacitor/local-notifications").then((m) => m.LocalNotifications);
 
+// Planen, Löschen und Ausschalten nacheinander, damit sich zwei Läufe nicht gegenseitig Meldungen löschen
+let queue: Promise<unknown> = Promise.resolve();
+function serial<T>(fn: () => Promise<T>): Promise<T> {
+  const next = queue.then(fn, fn);
+  queue = next.catch(() => {});
+  return next;
+}
+
 function flagOn() {
   try {
     return localStorage.getItem(NOTIFY_FLAG) === "1";
@@ -146,16 +169,30 @@ export async function appEnableNotify() {
   if (p.display !== "granted") p = await ln.requestPermissions();
   if (p.display !== "granted") throw new Error("Benachrichtigungen wurden nicht erlaubt. Du kannst sie in den App-Einstellungen von Jarvis einschalten.");
   await ensureChannel();
-  localStorage.setItem(NOTIFY_FLAG, "1");
+  try {
+    localStorage.setItem(NOTIFY_FLAG, "1");
+  } catch {
+    throw new Error("Jarvis kann auf diesem Gerät nichts speichern; Erinnerungen bleiben aus.");
+  }
   lastNativeHash = "";
+  // Planer neu laden lassen, damit die Erinnerungen sofort geplant werden (nicht erst beim nächsten Öffnen)
+  window.dispatchEvent(new Event(REMOTE_CHANGE_EVENT));
 }
 
-export async function appDisableNotify() {
-  localStorage.removeItem(NOTIFY_FLAG);
-  const ln = await notifications();
-  const { notifications: pending } = await ln.getPending();
-  if (pending.length) await ln.cancel({ notifications: pending.map((n) => ({ id: n.id })) });
-  lastNativeHash = "";
+export function appDisableNotify() {
+  try {
+    localStorage.removeItem(NOTIFY_FLAG);
+  } catch {
+    // ohne Speicher gilt ohnehin "aus"
+  }
+  return serial(async () => {
+    const ln = await notifications();
+    const { notifications: pending } = await ln.getPending();
+    // Fokus- und Pausenmeldungen bleiben
+    const old = pending.filter((n) => n.id > BREAK_ID);
+    if (old.length) await ln.cancel({ notifications: old.map((n) => ({ id: n.id })) });
+    lastNativeHash = "";
+  });
 }
 
 /** Pünktliche Alarme (Android 12+: «Wecker und Erinnerungen»). Ohne sie kommen Erinnerungen evtl. ein paar Minuten später. */
@@ -195,7 +232,11 @@ export type FocusAlert = { kind: "focus" | "break"; at: number; title: string; b
  * Plant das Ende der Fokus-Einheit und der Pause im Voraus, damit die Meldung auch bei geschlossener App kommt.
  * [] löscht beides (Timer gestoppt oder pausiert).
  */
-export async function appScheduleFocus(alerts: FocusAlert[], now = Date.now()) {
+export function appScheduleFocus(alerts: FocusAlert[], now = Date.now()) {
+  return serial(() => scheduleFocus(alerts, now));
+}
+
+async function scheduleFocus(alerts: FocusAlert[], now: number) {
   const ln = await notifications();
   // Nur noch geplante löschen; eine gerade angezeigte Meldung bleibt stehen
   const { notifications: pending } = await ln.getPending();
@@ -231,7 +272,11 @@ export async function appRequestNotifyPermission(): Promise<"granted" | "denied"
 let lastNativeHash = "";
 
 /** Plant die kommenden Erinnerungen als lokale Benachrichtigungen (ersetzt die bisher geplanten). */
-export async function appScheduleReminders(reminders: Reminder[], now = Date.now()) {
+export function appScheduleReminders(reminders: Reminder[], now = Date.now()) {
+  return serial(() => scheduleReminders(reminders, now));
+}
+
+async function scheduleReminders(reminders: Reminder[], now: number) {
   if (!flagOn()) return;
   const ln = await notifications();
   if ((await ln.checkPermissions()).display !== "granted") return;
@@ -274,11 +319,16 @@ export async function appShareUrl(title: string, url: string): Promise<boolean> 
   }
 }
 
-/** Downloads gibt es in der WebView nicht: Datei im App-Cache ablegen und über das Teilen-Menü speichern/senden. */
+/**
+ * Downloads gibt es in der WebView nicht: Datei im App-Cache unter share/ ablegen (nur dieser Ordner ist für das
+ * Teilen freigegeben, siehe res/xml/file_paths.xml) und über das Teilen-Menü speichern oder senden.
+ */
 export async function appShareFile(fileName: string, text: string, title: string): Promise<boolean> {
   const [{ Filesystem, Directory, Encoding }, { Share }] = await Promise.all([import("@capacitor/filesystem"), import("@capacitor/share")]);
-  const path = fileName.replace(/[^\w.\-äöüÄÖÜ ]/g, "_");
-  const { uri } = await Filesystem.writeFile({ path, data: text, directory: Directory.Cache, encoding: Encoding.UTF8 });
+  // Alte geteilte Dateien wegräumen
+  await Filesystem.rmdir({ path: "share", directory: Directory.Cache, recursive: true }).catch(() => {});
+  const path = `share/${fileName.replace(/[^\w.\-äöüÄÖÜ ]/g, "_")}`;
+  const { uri } = await Filesystem.writeFile({ path, data: text, directory: Directory.Cache, encoding: Encoding.UTF8, recursive: true });
   try {
     await Share.share({ title, files: [uri], dialogTitle: title });
     return true;

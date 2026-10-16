@@ -35,6 +35,14 @@ Die Website für Laptop und PC bleibt unverändert.
   `data_extraction_rules.xml`), kein unverschlüsselter Verkehr, Dateifreigabe nur aus dem Cache-Ordner.
 - Berechtigungen: Internet, Mikrofon (erst beim ersten Zuhören gefragt), Benachrichtigungen (erst beim
   Einschalten gefragt), «Wecker und Erinnerungen» (optional, für minutengenaue Erinnerungen).
+- Die App vertraut der Adresse in `server.url` vollständig: Wer dort Code ausliefert, kann Mikrofon,
+  Benachrichtigungen und Teilen nutzen. Deshalb das Vercel-Projekt `nachbereitung` nie löschen oder umbenennen
+  (sonst könnte jemand anderes die `*.vercel.app`-Adresse belegen). Vor einem Launch besser eine eigene Domain
+  nehmen und `server.url` + `android-shell/offline.html` umstellen. Jede XSS-Lücke auf der Website wäre in der
+  App gefährlicher als im Browser: kein `dangerouslySetInnerHTML` mit fremden Inhalten.
+- Mit dem echten Schlüssel signiert der Workflow nur Builds von `main`, nie von anderen Branches oder PRs.
+- WebView älter als Version 100: Hinweisseite statt App (`minWebViewVersion`), weil alte WebViews die Brücke
+  weniger streng einbinden.
 - Die CSP aus `next.config.ts` gilt auch in der App. Sie muss `'unsafe-inline'` für Skripte behalten, sonst
   blockiert sie auf alten WebViews die eingespritzte Capacitor-Brücke.
 
@@ -47,8 +55,8 @@ Die Website für Laptop und PC bleibt unverändert.
    (gelten pro Gerät).
 
 Updates: neue APK genauso installieren, die Daten bleiben. Das klappt nur, wenn beide APKs mit demselben
-Schlüssel signiert sind (siehe unten). Wechsel von einer Debug-APK zu einer signierten: alte App einmal
-deinstallieren (Daten danach per Anmeldung zurückholen).
+Schlüssel signiert sind (siehe unten). Solange in GitHub kein eigener Schlüssel hinterlegt ist, bekommt jede APK
+einen anderen Test-Schlüssel: dann alte App erst deinstallieren (Daten danach per Anmeldung zurückholen).
 
 ## Bauen in GitHub (Standard)
 
@@ -57,8 +65,8 @@ Workflow `.github/workflows/android.yml` («Android-App») baut bei Änderungen 
 
 - Mit Signierschlüssel (Secrets gesetzt): signierte Release-APK. Auf `main` wird das Release `android-latest`
   aktualisiert (`jarvis.apk` + SHA-256).
-- Ohne Schlüssel: Debug-APK mit Warnung. Debug-APKs aus verschiedenen Läufen lassen sich nicht übereinander
-  installieren.
+- Ohne Schlüssel: Release-APK mit Test-Schlüssel (Warnung im Lauf). Installierbar, aber APKs aus verschiedenen
+  Läufen lassen sich nicht übereinander installieren.
 - Jeder Lauf legt die APK zusätzlich als Artefakt `jarvis-android` ab (30 Tage).
 - `versionCode` = Laufnummer, damit jede neue APK als Update gilt.
 
@@ -89,8 +97,9 @@ npm run android:open      # oder in Android Studio öffnen und auf ein Handy/Emu
 Gegen eine Vercel-Vorschau statt der Hauptseite testen:
 `JARVIS_APP_URL=https://<vorschau>.vercel.app npm run android:sync` (danach wieder ohne Variable syncen).
 
-Signierte Release-APK lokal: `JARVIS_KEYSTORE_FILE`, `JARVIS_KEYSTORE_PASSWORD`, `JARVIS_KEY_ALIAS`,
-`JARVIS_KEY_PASSWORD` setzen, dann `cd android && ./gradlew assembleRelease`.
+Release-APK lokal: `cd android && ./gradlew assembleRelease` (ohne Variablen mit dem Debug-Schlüssel signiert).
+Mit dem echten Schlüssel: `JARVIS_KEYSTORE_FILE`, `JARVIS_KEYSTORE_PASSWORD`, `JARVIS_KEY_ALIAS`,
+`JARVIS_KEY_PASSWORD` setzen, dann `./gradlew assembleRelease`.
 
 ## Ändern
 

@@ -4,7 +4,7 @@
 Aufruf: python3 scripts/android-icons.py
 """
 from pathlib import Path
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFilter
 
 ROOT = Path(__file__).resolve().parent.parent
 RES = ROOT / "android/app/src/main/res"
@@ -17,6 +17,18 @@ DENSITIES = {"mdpi": 48, "hdpi": 72, "xhdpi": 96, "xxhdpi": 144, "xxxhdpi": 192}
 
 def resized(size):
     return src.resize((size, size), Image.LANCZOS)
+
+
+def soft_round(size):
+    """Nur der Ring mit weich auslaufendem Rand, damit kein Quadrat auf dem dunklen Hintergrund sichtbar ist."""
+    img = resized(size)
+    n = size * 4
+    mask = Image.new("L", (n, n), 0)
+    pad = round(n * 0.04)
+    ImageDraw.Draw(mask).ellipse((pad, pad, n - pad, n - pad), fill=255)
+    mask = mask.filter(ImageFilter.GaussianBlur(n * 0.015)).resize((size, size), Image.LANCZOS)
+    img.putalpha(mask)
+    return img
 
 
 def round_mask(img):
@@ -35,11 +47,12 @@ for name, px in DENSITIES.items():
     icon = resized(px)
     icon.save(d / "ic_launcher.png")
     round_mask(icon).save(d / "ic_launcher_round.png")
-    # Adaptive Icon: 108 dp Fläche, Motiv ca. 61 % (Sicherheitszone 66 dp)
+    # Adaptive Icon: 108 dp Fläche
     full = round(px * 108 / 48)
-    inner = round(full * 0.61)
+    inner = round(full * 0.72)  # Ring (84 % des Bildes) füllt so die 66-dp-Sicherheitszone
     fg = Image.new("RGBA", (full, full), (0, 0, 0, 0))
-    fg.paste(resized(inner), ((full - inner) // 2, (full - inner) // 2))
+    ring = soft_round(inner)
+    fg.paste(ring, ((full - inner) // 2, (full - inner) // 2), ring)
     fg.save(d / "ic_launcher_foreground.png")
 
 # Startbilder: Grössen der vorhandenen Dateien beibehalten
@@ -47,6 +60,7 @@ for f in sorted(RES.glob("drawable*/splash.png")):
     w, h = Image.open(f).size
     img = Image.new("RGBA", (w, h), BG)
     s = round(min(w, h) * 0.28)
-    img.paste(resized(s), ((w - s) // 2, (h - s) // 2))
+    ring = soft_round(s)
+    img.paste(ring, ((w - s) // 2, (h - s) // 2), ring)
     img.convert("RGB").save(f)
     print(f.relative_to(RES), w, h)

@@ -27,8 +27,9 @@ if [ "${#PASS}" -lt 12 ]; then
 fi
 
 DIR="$(dirname "$FILE")"
-mkdir -p "$DIR"
-chmod 700 "$DIR"
+# Nur einen neu angelegten Ordner abschliessen, nie einen bestehenden (z. B. ~/Documents) verändern
+[ -d "$DIR" ] || { mkdir -p "$DIR"; chmod 700 "$DIR"; }
+umask 077
 
 # Passwort über Umgebungsvariable statt Argument (nicht in der Prozessliste sichtbar)
 export KS_PASS="$PASS"
