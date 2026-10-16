@@ -2,9 +2,11 @@
 
 // Push-Benachrichtigungen im Browser: Gerät anmelden und den Erinnerungsplan in Supabase aktuell halten.
 // Verschickt wird serverseitig (/api/push/tick), damit Erinnerungen auch bei geschlossener App ankommen.
+// In der Android-App gibt es kein Web Push: dort plant das Handy dieselben Erinnerungen lokal (native.ts).
 
 import type { Mark, Todo } from "./assistant";
 import { putItems } from "./db";
+import { appDisableNotify, appEnableNotify, appNotifyState, appScheduleReminders, appTestNotify, isNativeApp } from "./native";
 import type { Occurrence, PlannerData } from "./planner";
 import { buildReminders, enabledKinds, PUSH_ENABLED_MARK } from "./reminders";
 import { supabase } from "./supabase";
@@ -28,6 +30,7 @@ async function registration() {
 }
 
 export async function pushState(): Promise<PushState> {
+  if (isNativeApp()) return appNotifyState().catch(() => "unsupported" as const);
   if (!supported()) return "unsupported";
   if (!VAPID_PUBLIC_KEY) return "unconfigured";
   const sb = supabase();
@@ -79,6 +82,7 @@ async function refreshSubscription(sb: NonNullable<ReturnType<typeof supabase>>,
 
 /** Fragt die Erlaubnis an, meldet dieses Gerät an und speichert das Abo in Supabase. */
 export async function enablePush() {
+  if (isNativeApp()) return appEnableNotify();
   const sb = supabase();
   if (!sb) throw new Error("Abgleich ist nicht eingerichtet.");
   const { data } = await sb.auth.getSession();
@@ -99,6 +103,7 @@ export async function enablePush() {
 
 /** Meldet dieses Gerät ab. Die anderen Geräte bekommen weiterhin Nachrichten. */
 export async function disablePush() {
+  if (isNativeApp()) return appDisableNotify();
   const reg = await navigator.serviceWorker.getRegistration("/");
   const sub = await reg?.pushManager.getSubscription();
   if (!sub) return;
@@ -108,6 +113,10 @@ export async function disablePush() {
 
 /** Schickt sofort eine Testnachricht an alle angemeldeten Geräte. */
 export async function sendTestPush() {
+  if (isNativeApp()) {
+    await appTestNotify();
+    return { sent: 1, devices: 1 };
+  }
   const session = (await supabase()?.auth.getSession())?.data.session;
   if (!session) throw new Error("Nicht angemeldet.");
   const res = await fetch("/api/push/test", { method: "POST", headers: { authorization: `Bearer ${session.access_token}` } });
@@ -120,9 +129,17 @@ export async function sendTestPush() {
 
 let lastHash = "";
 let timer: ReturnType<typeof setTimeout> | null = null;
+let nativeTimer: ReturnType<typeof setTimeout> | null = null;
 
 /** Nach Änderungen (gebündelt) den Erinnerungsplan in Supabase aktualisieren. */
 export function scheduleReminderSync(data: PlannerData, todos: Todo[], marks: Mark[], prep: Occurrence[] = []) {
+  if (isNativeApp()) {
+    if (nativeTimer) clearTimeout(nativeTimer);
+    nativeTimer = setTimeout(() => {
+      appScheduleReminders(buildReminders(data, todos, enabledKinds(marks), Date.now(), prep)).catch(() => {});
+    }, 2000);
+    return;
+  }
   if (!marks.some((m) => m.id === PUSH_ENABLED_MARK) || !VAPID_PUBLIC_KEY) return;
   if (timer) clearTimeout(timer);
   timer = setTimeout(() => {

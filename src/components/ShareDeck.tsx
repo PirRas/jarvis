@@ -3,6 +3,7 @@
 import { useState } from "react";
 import "@/app/teilen/teilen.css";
 import type { Lecture } from "@/lib/db";
+import { appShareFile, appShareUrl, isNativeApp } from "@/lib/native";
 import { deckFileName, deckFromLecture, encodeDeck, SHARE_LINK_LIMIT, shareUrl } from "@/lib/share";
 
 /** Stapel einer Vorlesung (ohne Lernfortschritt) per Link oder Datei weitergeben. */
@@ -19,6 +20,10 @@ export function ShareDeck({ lecture }: { lecture: Lecture }) {
       const url = shareUrl(window.location.origin, await encodeDeck(deck));
       if (url.length > SHARE_LINK_LIMIT) {
         setStatus({ ok: false, text: "Dieser Stapel ist zu gross für einen Link. Speichere ihn als Datei und schicke die Datei." });
+        return;
+      }
+      if (isNativeApp()) {
+        if (await appShareUrl(`Jarvis-Stapel: ${lecture.title}`, url)) setStatus({ ok: true, text: "Geteilt." });
         return;
       }
       if (navigator.share && matchMedia("(pointer: coarse)").matches) {
@@ -39,7 +44,16 @@ export function ShareDeck({ lecture }: { lecture: Lecture }) {
     }
   }
 
-  function saveFile() {
+  async function saveFile() {
+    if (isNativeApp()) {
+      try {
+        if (await appShareFile(deckFileName(lecture.title), JSON.stringify(deck), `Jarvis-Stapel: ${lecture.title}`))
+          setStatus({ ok: true, text: "Datei geteilt. Öffnen lässt sie sich in Jarvis unter /teilen." });
+      } catch {
+        setStatus({ ok: false, text: "Die Datei konnte nicht erstellt werden." });
+      }
+      return;
+    }
     const blob = new Blob([JSON.stringify(deck)], { type: "application/json" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);

@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Benachrichtigungs-Symbol: Kreisring mit J, weiss auf transparent. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- Ring: aussen r=10.5, innen r=8.5 (even-odd) -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M12,1.5A10.5,10.5 0 1,0 12,22.5A10.5,10.5 0 1,0 12,1.5ZM12,3.5A8.5,8.5 0 1,1 12,20.5A8.5,8.5 0 1,1 12,3.5Z" />
+    <!-- J: Balken oben, Stamm, Haken nach links unten -->
+    <path
+        android:fillColor="#FFFFFFFF"
+        android:pathData="M9.5,7H15.5V8.8H13.4V13.5C13.4,15.5 12.2,16.8 10.4,16.8C9.6,16.8 8.9,16.6 8.4,16.2L9.1,14.7C9.4,14.9 9.7,15 10,15C10.8,15 11.2,14.5 11.2,13.5V8.8H9.5Z" />
+</vector>

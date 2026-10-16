@@ -1,0 +1,42 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Jarvis · Nicht erreichbar</title>
+<style>
+  :root { --paper:#050f1b; --sheet:#0b1d2e; --ink:#dcf3ff; --ink-soft:#98bbd0; --royal:#46d5f5; }
+  * { box-sizing:border-box; }
+  html,body { height:100%; margin:0; }
+  body {
+    display:grid; place-items:center; padding:24px;
+    background:radial-gradient(circle at 50% 0%, #0c2a40, var(--paper) 70%);
+    color:var(--ink); font:16px/1.5 system-ui, sans-serif; text-align:center;
+  }
+  .orb { width:96px; height:96px; margin:0 auto 24px; border-radius:50%;
+    border:2px solid var(--royal); box-shadow:0 0 18px rgba(70,213,245,.35), inset 0 0 24px rgba(70,213,245,.25);
+    animation:pulse 2.4s ease-in-out infinite; }
+  @keyframes pulse { 50% { box-shadow:0 0 32px rgba(70,213,245,.55), inset 0 0 32px rgba(70,213,245,.4); } }
+  @media (prefers-reduced-motion: reduce) { .orb { animation:none; } }
+  h1 { margin:0 0 8px; font-size:20px; letter-spacing:.08em; text-transform:uppercase; }
+  p { margin:0 0 24px; color:var(--ink-soft); max-width:30ch; }
+  button { min-height:48px; padding:0 24px; border-radius:12px; border:1px solid var(--royal);
+    background:var(--sheet); color:var(--ink); font:inherit; font-weight:600; }
+  button:focus-visible { outline:2px solid var(--royal); outline-offset:3px; }
+</style>
+</head>
+<body>
+  <main>
+    <div class="orb" aria-hidden="true"></div>
+    <h1>Nicht erreichbar</h1>
+    <p>Jarvis ist gerade nicht erreichbar. Prüfe die Internetverbindung. Hilft das nicht, «Android System WebView» im Play Store aktualisieren.</p>
+    <button type="button" id="retry">Erneut versuchen</button>
+  </main>
+  <script>
+    // shortcut: feste Adresse; bei Builds gegen eine Vorschau (JARVIS_APP_URL) führt der Knopf zur Hauptseite.
+    document.getElementById("retry").addEventListener("click", function () {
+      location.href = "https://nachbereitung.vercel.app/";
+    });
+  </script>
+</body>
+</html>

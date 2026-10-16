@@ -6,6 +6,7 @@ import { PrepMoves } from "@/components/PrepPlan";
 import { deleteFeedCache, deleteItems, putItem, putItems } from "@/lib/db";
 import { fetchFeed, refreshFeeds } from "@/lib/feeds";
 import { toIcs } from "@/lib/ics";
+import { appShareFile, isNativeApp } from "@/lib/native";
 import {
   addDays,
   dayStart,
@@ -44,6 +45,8 @@ export default function CalendarPage() {
 
   function exportIcs() {
     const all = [...occurrences(p.data, addDays(Date.now(), -30), addDays(Date.now(), 240), courses), ...p.prep.sessions];
+    // App: kein Download möglich, deshalb über das Teilen-Menü (z. B. in den Google-Kalender oder Dateien)
+    if (isNativeApp()) return void appShareFile("jarvis-kalender.ics", toIcs(all), "Kalender exportieren").catch(() => {});
     const blob = new Blob([toIcs(all)], { type: "text/calendar" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);

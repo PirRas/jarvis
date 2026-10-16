@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { GEMINI_MODELS, getGeminiKey, getOpenRouterKey, getYouTubeKey, OPENROUTER_MODELS } from "@/lib/gemini";
 import { pushState, type PushState } from "@/lib/push";
-import { canListen } from "@/lib/speech";
+import { canListen, canSpeak } from "@/lib/speech";
 import { syncConfigured } from "@/lib/supabase";
 import { getSyncStatus, onSyncStatus, type SyncStatus } from "@/lib/sync";
 
@@ -47,7 +47,7 @@ export function SystemStatus() {
     setSync(getSyncStatus());
     pushState().then(setPush);
     setAi({ gemini: !!getGeminiKey(), openrouter: !!getOpenRouterKey(), youtube: !!getYouTubeKey() });
-    setVoice({ listen: canListen(), speak: "speechSynthesis" in window });
+    setVoice({ listen: canListen(), speak: canSpeak() });
     return onSyncStatus(setSync);
   }, []);
 

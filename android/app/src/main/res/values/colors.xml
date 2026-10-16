@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="jarvis_dark">#050f1b</color>
+    <color name="colorPrimary">#050f1b</color>
+    <color name="colorPrimaryDark">#050f1b</color>
+    <color name="colorAccent">#22d3ee</color>
+</resources>

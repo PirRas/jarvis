@@ -8,6 +8,10 @@ keine
 
 ## Offen
 
+- Android-App (PR #6, `ANDROID.md`): noch nicht auf einem echten Handy getestet (nur Gradle-Build in Actions + Playwright mit nachgebildeter Brücke). Prüfen: Zuhören/Vorlesen, Erinnerungen bei geschlossener App, Fokus-Meldung, .ics teilen, YouTube-Videos, «Öffne X» per Sprache (externe Links → Browser), Zurück-Taste, Statusleiste/Ränder.
+- Android-Signierschlüssel fehlt: einmal `scripts/android-keystore.sh` auf dem Laptop, vier `ANDROID_*`-Secrets in GitHub. Bis dahin hat jede APK einen anderen Test-Schlüssel (Update nur nach Deinstallation).
+- Vor Launch der App: eigene Domain statt `nachbereitung.vercel.app` (App vertraut der Adresse vollständig), Vercel-Projekt nie umbenennen/löschen.
+
 - Nachbereitungsplan (PR #5) nur mit Beispiel-Stundenplan getestet, nicht mit dem echten Abo und nicht mit echtem Supabase-Abgleich (Store `chats`, Markierungen). Hochladen einer alten PDF deckt die jüngste offene Lektion des Fachs ab, nicht zwingend die gemeinte (Zählung stimmt).
 - Launch-Vorbereitung (nur Nutzer, README „Launch-Checkliste“): `supabase/schema.sql` + `supabase/push.sql` im SQL-Editor erneut ausführen (2FA-Regel, sonst schützt 2FA die Daten nicht); in Vercel `NEXT_PUBLIC_OPERATOR_NAME`, `NEXT_PUBLIC_CONTACT_EMAIL`, `NEXT_PUBLIC_DATA_REGION` setzen; Supabase-Auth-Einstellungen (Passwortlänge 10, MFA, CAPTCHA, Redirect URLs); Vercel-Firewall-Rate-Limit für `/api/*`.
 - 2FA-Ablauf und „Konto löschen“ sind nicht gegen echtes Supabase getestet (kein Schlüssel in der Cloud).
@@ -18,6 +22,12 @@ keine
 - Animationen (DESIGN.md §11) nur bei 390 px und 1440 px geprüft, nicht auf Tablet und nicht auf schwachen Handys (Partikel-Canvas, Wireframe, Hologramm-Schimmer). Bekannt: Checkbox-Ring läuft beim Laden auch bei schon erledigten Aufgaben; verschachtelte `.sheet` blenden doppelt ein.
 
 ## Letzte Sitzungen
+
+### 2026-10-16 – Cloud-Sitzung (/firma: Android-App)
+- Capacitor 8 (`android/`, `capacitor.config.ts`, App-ID `ch.jarvis.app`) lädt die Vercel-Seite; native Teile in `src/lib/native.ts` (Spracherkennung, TTS, lokale Erinnerungen aus `buildReminders`, Fokus-Ende vorausgeplant, Teilen über `cache/share`, Zurück-Taste in `NativeShell.tsx`). Website lädt keinen Capacitor-Code (nur dynamische Imports hinter `isNativeApp()`).
+- Stolperfalle: Capacitor-Plugin-Objekte nie aus `await`/`.then` zurückgeben (Proxy wirkt wie ein Promise, hängt ewig); immer Modul laden und Plugin daraus nehmen.
+- Kein Android-SDK im Cloud-Container (dl.google.com gesperrt): APK baut `.github/workflows/android.yml`, Release `android-latest` auf `main`.
+- Tests: tsc, lint, build, voice-check, Gradle in Actions, Playwright mit nachgebildeter Brücke (Skript lag im Scratchpad), Sicherheitsprüfung durch Mitarbeiter, Befunde behoben.
 
 ### 2026-10-16 – Cloud-Sitzung (Nachbereitungsplan, Gedächtnis, Verlauf)
 - Nachbereitungsplan `src/lib/prepPlan.ts`: alle nicht nachbereiteten Vorlesungen seit Semesterbeginn (frühester `slot.from`), Einheiten in freien Fenstern (werktags 13–20, Wochenende 10–17, 60 Min., Tagesmaximum), frische Vorlesungen am selben Tag zuerst. Wird nie gespeichert, immer neu gerechnet; Markierungen `prep-settings`, `prep-pin:<lektion>`, `prep-seen`, `nachbereitet:<lektion>`.
