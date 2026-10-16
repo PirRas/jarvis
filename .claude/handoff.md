@@ -4,11 +4,7 @@ Wird von `/close` gepflegt. Am Anfang jeder Sitzung lesen (siehe CLAUDE.md).
 
 ## Nächste Aufgabe
 
-**Nachbereitungsplan auf der Vercel-Vorschau von PR #5 testen, dann mergen.**
-- Ziel: Prüfen, ob der Plan zu deinem echten Stundenplan passt (Rückstand der letzten 5 Wochen, Einheiten an freien Nachmittagen/Wochenende), dann PR #5 nach deinem OK in `main` übernehmen.
-- Testen: `/lernplan` (Abschnitt „Nachbereitungsplan“, „Lernzeiten“, „Andere Zeit“, Abhaken pro Woche), `/kalender` (grüne Einheiten), Jarvis: „Wie viel muss ich noch nachbereiten?“, „Heute Nachmittag habe ich keine Zeit“, „Anatomie vom Montag ist erledigt“, Termin über eine Einheit legen → Hinweis „verschoben“ mit Vorschlägen; „Verlauf“ im Sprachbildschirm.
-- Abnahme: Zahlen stimmen mit deinem Stundenplan, Lernzeiten passen (sonst unter „Lernzeiten“ ändern, z. B. Arbeit an festen Tagen als Serientermin eintragen), Verlauf bleibt nach Neuladen.
-- Kein `/firma` nötig. Merge über das GitHub-Werkzeug mit ausdrücklichem OK (Direkt-Push auf main ist in der Cloud gesperrt).
+keine
 
 ## Offen
 
@@ -28,7 +24,7 @@ Wird von `/close` gepflegt. Am Anfang jeder Sitzung lesen (siehe CLAUDE.md).
 - Verschiebungen nach hinten (Termin oder verpasst) zeigt `PrepMoves` mit Grund + 3 Alternativen; ohne Verschiebung wird `prep-seen` still aktualisiert. Einheiten im Kalender, Startseite, .ics, Push (`prep`, 10 Min. vorher), Briefing.
 - Sprache: `nachbereitung_plan/_erledigt/_verschieben`, `keine_zeit` (trägt Sperrtermin „Keine Zeit“ ein), `lernzeiten_einstellen`, `merken`/`vergessen` (Mark `jarvis-memory`, geht in den Systemtext); `termin_anlegen/_aendern` melden `ueberschneidungen` und `nachbereitung_verschoben`.
 - Gespräche: neuer Store `chats` (IndexedDB v5, abgeglichen), „Verlauf“ im Sprachbildschirm, Fortsetzen unter 3 h, max. 50. Datenschutz ergänzt.
-- Tests: tsc, lint, build, voice-check, neues `prep-check.ts`, Playwright 390/1440 ohne Fehler, Chat mit simuliertem Gemini. PR #5 (Branch `claude/nachbereitung-lernplan-9kmbv8`), Commit `14659f7`.
+- Tests: tsc, lint, build, voice-check, neues `prep-check.ts`, Playwright 390/1440 ohne Fehler, Chat mit simuliertem Gemini. PR #5 (Branch `claude/nachbereitung-lernplan-9kmbv8`), Commit `14659f7`, Vorschau geprüft und in `main` übernommen.
 
 ### 2026-10-16 – PiravinLap2 (/firma: Design, Animationen, Vorlesungs-Fix)
 - Ruhiges helles «Laborjournal»-Design gebaut (`19f8b1b`), Nutzer wollte aber Jarvis/HUD/Futuristisch zurück: alte Design-Dateien wiederhergestellt, Verbesserungen behalten (Atkinson Hyperlegible Next für Fliesstext, 4/8-px-Raster `--space-*`, Skip-Link, `role=status/alert` im Konto, Texte ohne Gedankenstriche, de-CH). Regeln in DESIGN.md §11.
