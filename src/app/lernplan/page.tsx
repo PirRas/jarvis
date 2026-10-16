@@ -2,9 +2,10 @@
 
 import Link from "next/link";
 import { useMemo } from "react";
+import { PrepPlanPanel } from "@/components/PrepPlan";
 import { putItems } from "@/lib/db";
 import { examPlans, pendingPrep, PHASE_LABEL, weekReview, type ExamPlan } from "@/lib/lernplan";
-import { fmtShortDay, fmtTime, relDay, type Occurrence } from "@/lib/planner";
+import { dayStart, DAYMS, fmtShortDay, fmtTime, relDay, type Occurrence } from "@/lib/planner";
 import { usePlanner } from "@/lib/usePlanner";
 
 export default function LernplanPage() {
@@ -38,6 +39,14 @@ export default function LernplanPage() {
       <section className="sheet panel lp-today">
         <h2 className="panel-title">Heute</h2>
         <ul className="lp-today-list">
+          {p.prep.sessions
+            .filter((x) => x.start < dayStart(p.now) + DAYMS)
+            .map((x) => (
+              <li key={x.key}>
+                {fmtTime(x.start)}: <strong>{x.title.replace("Nachbereitung: ", "")}</strong> nachbereiten (Vorlesung vom {fmtShortDay(x.lesson.start)}){" "}
+                <a href="#nachbereitung">Plan</a>
+              </li>
+            ))}
           {pending.length > 0 && (
             <li>
               <strong>{pending.length}</strong> {pending.length === 1 ? "Lektion" : "Lektionen"} nachbereiten{" "}
@@ -61,6 +70,8 @@ export default function LernplanPage() {
           {pending.length === 0 && newToday + reviewsToday === 0 && <li className="muted">Für heute ist nichts offen.</li>}
         </ul>
       </section>
+
+      <PrepPlanPanel p={p} />
 
       <h2 className="course-title" style={{ marginTop: 32 }}>
         Prüfungen

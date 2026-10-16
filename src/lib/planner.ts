@@ -115,7 +115,8 @@ export type Occurrence = {
     | { kind: "slot"; id: string }
     | { kind: "event"; id: string }
     | { kind: "feed"; id: string; name: string }
-    | { kind: "todo"; id: string };
+    | { kind: "todo"; id: string }
+    | { kind: "prep"; id: string }; // geplante Nachbereitung, id = Schlüssel der Lektion
 };
 
 // ---------- Datum und Zeit ----------

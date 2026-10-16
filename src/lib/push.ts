@@ -5,7 +5,7 @@
 
 import type { Mark, Todo } from "./assistant";
 import { putItems } from "./db";
-import type { PlannerData } from "./planner";
+import type { Occurrence, PlannerData } from "./planner";
 import { buildReminders, enabledKinds, PUSH_ENABLED_MARK } from "./reminders";
 import { supabase } from "./supabase";
 
@@ -122,24 +122,24 @@ let lastHash = "";
 let timer: ReturnType<typeof setTimeout> | null = null;
 
 /** Nach Änderungen (gebündelt) den Erinnerungsplan in Supabase aktualisieren. */
-export function scheduleReminderSync(data: PlannerData, todos: Todo[], marks: Mark[]) {
+export function scheduleReminderSync(data: PlannerData, todos: Todo[], marks: Mark[], prep: Occurrence[] = []) {
   if (!marks.some((m) => m.id === PUSH_ENABLED_MARK) || !VAPID_PUBLIC_KEY) return;
   if (timer) clearTimeout(timer);
   timer = setTimeout(() => {
-    syncReminders(data, todos, marks).catch(() => {
+    syncReminders(data, todos, marks, prep).catch(() => {
       // Netz weg oder Tabellen fehlen: beim nächsten Mal erneut versuchen
       lastHash = "";
     });
   }, 4000);
 }
 
-async function syncReminders(data: PlannerData, todos: Todo[], marks: Mark[]) {
+async function syncReminders(data: PlannerData, todos: Todo[], marks: Mark[], prep: Occurrence[]) {
   const sb = supabase();
   const session = (await sb?.auth.getSession())?.data.session;
   if (!sb || !session) return;
   await refreshSubscription(sb, session.user.id);
   const now = Date.now();
-  const reminders = buildReminders(data, todos, enabledKinds(marks), now);
+  const reminders = buildReminders(data, todos, enabledKinds(marks), now, prep);
   // Stundengenau vergleichen, damit nicht jedes Neuladen schreibt
   const hash = JSON.stringify([Math.floor(now / 3_600_000), reminders.map((r) => [r.key, r.dueAt, r.title, r.body])]);
   if (hash === lastHash) return;

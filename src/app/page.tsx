@@ -36,6 +36,8 @@ import {
 import { PushSetup } from "@/components/PushSetup";
 import { TodoItem } from "@/components/TodoItem";
 import { examPlans, pendingPrep } from "@/lib/lernplan";
+import { sessionsIn } from "@/lib/prepPlan";
+import { PrepMoves } from "@/components/PrepPlan";
 import { groupTodos } from "@/lib/todos";
 import { levelLabel, readProfile, semesterAt, semesterLabel, studyLevel } from "@/lib/profile";
 import { usePlanner } from "@/lib/usePlanner";
@@ -56,7 +58,9 @@ export default function Today() {
   if (!p.loaded) return <p className="muted">Jarvis startet …</p>;
 
   const courses = knownCourses(p.data, p.lectures.map((l) => l.course));
-  const list = occurrences(p.data, addDays(dayStart(now), -4), addDays(now, 120), courses);
+  const list = [...occurrences(p.data, addDays(dayStart(now), -4), addDays(now, 120), courses), ...sessionsIn(p.prep, addDays(dayStart(now), -4), addDays(now, 120))].sort(
+    (a, b) => a.start - b.start || Number(b.allDay) - Number(a.allDay),
+  );
   const { current, next } = nowAndNext(list, now);
   const advice = tips({ list, lectures: p.lectures, cards: p.cards, previews: p.previews, newLeft: p.newLeft, now });
 
@@ -110,6 +114,7 @@ export default function Today() {
       )}
 
       <TimetableNotice p={p} />
+      <PrepMoves p={p} compact />
 
       <div className="home-grid">
         <div className="home-main">
@@ -195,6 +200,14 @@ export default function Today() {
           <section className="sheet panel">
             <h2 className="panel-title">Lernplan heute</h2>
             <ul className="lp-today-list">
+              {p.prep.backlog.length > 0 && (
+                <li>
+                  <Link href="/lernplan#nachbereitung">
+                    Rückstand: <CountUp value={p.prep.backlog.length} /> Vorlesungen
+                  </Link>
+                  {p.prep.catchUp && <span className="small muted"> · aufgeholt bis {fmtShortDay(p.prep.catchUp)}</span>}
+                </li>
+              )}
               {pending.length > 0 && (
                 <li>
                   <Link href="/lernplan#waechter">

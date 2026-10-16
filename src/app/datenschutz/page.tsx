@@ -15,7 +15,7 @@ export default function DatenschutzPage() {
           <h1 className="page-title">Datenschutz</h1>
           <p className="lede">
             Jarvis ist ein kostenloses Uni-Cockpit für Studierende, ohne Werbung und ohne Tracking. Die Seite orientiert
-            sich am Schweizer Datenschutzgesetz (revDSG). Stand: 15. Oktober 2026.
+            sich am Schweizer Datenschutzgesetz (revDSG). Stand: 16. Oktober 2026.
           </p>
         </div>
       </div>
@@ -34,7 +34,9 @@ export default function DatenschutzPage() {
       <section className="sheet panel">
         <h2 className="panel-title">2. Was auf deinem Gerät bleibt</h2>
         <p>
-          Vorlesungen, Karteikarten, Termine, Aufgaben und Notizen liegen im Browser deines Geräts (IndexedDB). Die
+          Vorlesungen, Karteikarten, Termine, Aufgaben, Notizen, Gespräche mit Jarvis und was Jarvis sich über dich
+          merkt liegen im Browser deines Geräts (IndexedDB). Gespräche löschst du im Sprachbildschirm unter „Verlauf“,
+          gemerkte Punkte mit „Vergiss …“; Jarvis behält höchstens die 50 neuesten Gespräche. Die
           Schlüssel für KI-Dienste (Gemini, OpenRouter, YouTube) werden nur im localStorage dieses Geräts gespeichert.
           Ohne Anmeldung gleicht die App nichts mit einem Server ab.
         </p>
@@ -74,7 +76,8 @@ export default function DatenschutzPage() {
         <p>Diese Anfragen gehen direkt von deinem Browser an den Dienst. Dabei sieht der Dienst deine IP-Adresse.</p>
         <ul>
           <li>
-            <strong>Google Gemini:</strong> Folien und Fragen für den Sprachassistenten, mit deinem eigenen Schlüssel.
+            <strong>Google Gemini:</strong> Folien und Fragen für den Sprachassistenten, mit deinem eigenen Schlüssel. Bei
+            Fragen an Jarvis gehen auch der bisherige Gesprächsverlauf und die Punkte mit, die Jarvis sich gemerkt hat.
           </li>
           <li>
             <strong>OpenRouter:</strong> Ersatz, wenn Gemini nicht antwortet. Es wird nur der ausgelesene Folientext

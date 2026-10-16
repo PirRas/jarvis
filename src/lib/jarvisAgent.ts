@@ -4,7 +4,7 @@
 // (voiceTools.ts) und wiederholt das, bis eine gesprochene Antwort kommt.
 
 import { chatTurn, type ChatTurn } from "./gemini";
-import { runTool, systemPrompt, TOOL_DECLARATIONS, type ToolContext } from "./voiceTools";
+import { memoryFacts, runTool, systemPrompt, TOOL_DECLARATIONS, type ToolContext } from "./voiceTools";
 
 export type { ChatTurn };
 
@@ -16,8 +16,9 @@ export async function askJarvis(text: string, history: ChatTurn[], ctx: ToolCont
   const turns: ChatTurn[] = [...history, { role: "user", parts: [{ text }] }];
   const actions: string[] = [];
   let via = "";
+  const facts = await memoryFacts(ctx.store).catch(() => []);
   for (let round = 0; round < MAX_ROUNDS; round++) {
-    const res = await chatTurn(turns, { system: systemPrompt(ctx.now, ctx.name), tools: TOOL_DECLARATIONS });
+    const res = await chatTurn(turns, { system: systemPrompt(ctx.now, ctx.name, facts), tools: TOOL_DECLARATIONS });
     via = res.via;
     turns.push(res.content); // unverändert zurück, sonst fehlen Gemini die Gedanken-Signaturen
     const calls = res.content.parts.map((p) => p.functionCall as FunctionCall | undefined).filter((c): c is FunctionCall => !!c);
