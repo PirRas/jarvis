@@ -1,9 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { allCards, allFeedCaches, getSettings, listItems, listLectures, newCardsLeftToday, onLocalChange, seedItems, type Lecture } from "./db";
 import { FEEDS_EVENT, refreshFeeds } from "./feeds";
 import type { Mark, Todo } from "./assistant";
+import { liteLectures } from "./lernplan";
+import { prepPlan } from "./prepPlan";
 import { DEFAULT_LINKS, EMPTY_PLANNER, type LessonPreview, type PlannerData, type QuickLink } from "./planner";
 import { scheduleReminderSync } from "./push";
 import { presetTodos, PRESETS_MARK } from "./todos";
@@ -92,7 +94,8 @@ export function usePlanner() {
       todos,
       marks,
     });
-    scheduleReminderSync({ slots, events, feeds, caches }, todos, marks);
+    const data = { slots, events, feeds, caches };
+    scheduleReminderSync(data, todos, marks, prepPlan(data, liteLectures(lectures), marks).sessions);
   }, []);
 
   useEffect(() => {
@@ -117,5 +120,12 @@ export function usePlanner() {
     };
   }, [load]);
 
-  return { ...state, now, reload: load };
+  // Nachbereitungsplan: minutengenau neu rechnen reicht
+  const minute = Math.floor(now / 60_000);
+  const prep = useMemo(
+    () => prepPlan(state.data, liteLectures(state.lectures), state.marks, minute * 60_000),
+    [state.data, state.lectures, state.marks, minute],
+  );
+
+  return { ...state, now, prep, reload: load };
 }

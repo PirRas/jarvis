@@ -1,7 +1,7 @@
 "use client";
 
 import { openDB, type DBSchema, type IDBPDatabase } from "idb";
-import type { CourseRecord, Mark, NewsFeed, StudySession, Todo } from "./assistant";
+import type { ChatRecord, CourseRecord, Mark, NewsFeed, StudySession, Todo } from "./assistant";
 import type { CalEvent, Feed, FeedCache, LessonPreview, QuickLink, Slot } from "./planner";
 import type { Notes, Study, Video } from "./schema";
 import { lectureCards } from "./lectureRecords";
@@ -57,6 +57,7 @@ export const SYNC_STORES = [
   "grades",
   "marks",
   "news",
+  "chats",
 ] as const;
 export type SyncStore = (typeof SYNC_STORES)[number];
 
@@ -77,12 +78,13 @@ interface StudyDB extends DBSchema {
   grades: { key: string; value: CourseRecord };
   marks: { key: string; value: Mark };
   news: { key: string; value: NewsFeed };
+  chats: { key: string; value: ChatRecord };
 }
 
 let dbPromise: Promise<IDBPDatabase<StudyDB>> | null = null;
 
 function db() {
-  dbPromise ??= openDB<StudyDB>("vorlesungen", 4, {
+  dbPromise ??= openDB<StudyDB>("vorlesungen", 5, {
     upgrade(d, oldVersion) {
       if (oldVersion < 1) {
         d.createObjectStore("lectures", { keyPath: "id" });
@@ -109,6 +111,7 @@ function db() {
           d.createObjectStore(name, { keyPath: "id" });
         }
       }
+      if (oldVersion < 5) d.createObjectStore("chats", { keyPath: "id" }); // Gespräche mit Jarvis
     },
   });
   return dbPromise;
@@ -232,7 +235,7 @@ export async function saveQuizResult(result: QuizResult) {
 
 // ---------- Cockpit: Stundenplan, Termine, Abos, Links, Vorschauen ----------
 
-export type PlannerStore = "slots" | "events" | "feeds" | "links" | "previews" | "todos" | "sessions" | "grades" | "marks" | "news";
+export type PlannerStore = "slots" | "events" | "feeds" | "links" | "previews" | "todos" | "sessions" | "grades" | "marks" | "news" | "chats";
 export type PlannerValue<S extends PlannerStore> = StudyDB[S]["value"];
 
 export async function listItems<S extends PlannerStore>(store: S): Promise<PlannerValue<S>[]> {

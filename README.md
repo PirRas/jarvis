@@ -20,6 +20,12 @@ Persönliches Cockpit für das Studium der Pharmazeutischen Wissenschaften an de
 - **Links**: ADAM, Online-Services, Outlook, Vorlesungsverzeichnis, Departement, Fachgruppe, Compendium,
   Swissmedicinfo, Bibliothek und mehr. ADAM und services.unibas.ch verbieten das Einbetten in andere Seiten
   (`frame-ancestors 'self'`), daher öffnen sie sich in einem neuen Tab.
+- **Nachbereitungsplan** (Lernplan, `src/lib/prepPlan.ts`): Jede Vorlesung seit Semesterbeginn, die noch nicht
+  nachbereitet ist, bekommt eine Einheit in freier Zeit (werktags 13–20 Uhr, Wochenende 10–17 Uhr, einstellbar unter
+  „Lernzeiten“). Neue Vorlesungen kommen am selben Tag dran, der Rückstand der Reihe nach. Der Plan wird nie
+  gespeichert, sondern immer neu gerechnet: Neue Termine, „keine Zeit“ oder eine verpasste Einheit verschieben
+  automatisch. Was nach hinten gerutscht ist, zeigt Jarvis mit Grund und drei freien Alternativen. Abhaken pro Woche,
+  Erinnerung 10 Minuten vorher (Push), Einheiten im Kalender und im .ics-Export.
 - **Nachbereitung**: Vorlesungsfolien mit Claude nachbereiten, Karteikarten mit verteilter Wiederholung, Quiz und
   Klausuraufgaben (siehe unten).
 
@@ -37,6 +43,8 @@ normalen App, der Mikrofon-Knopf unten rechts wieder zurück.
 - Termine aus dem Stundenplan oder aus Abos ändert Jarvis nicht, nur eigene. Vor dem Löschen fragt Jarvis nach.
 - Beim Öffnen begrüsst Jarvis dich mit deinem Vornamen (aus „Konto“ → Profil), sagt, was heute noch ansteht und welche Aufgaben bald fällig sind. Browser lesen erst nach der ersten Berührung vor: einmal tippen, Jarvis begrüsst dich und hört danach zu.
 - Stimme: Jarvis nimmt die beste männliche deutsche Stimme des Geräts (am natürlichsten in Edge: „Jan“/„Conrad“ Online). Wo keine männliche Stimme erkennbar ist (z. B. Chrome), klingt die vorhandene etwas tiefer.
+- **Nachbereitung per Sprache:** „Wie viel muss ich noch nachbereiten?“, „Anatomie vom Montag ist erledigt“, „heute Nachmittag habe ich keine Zeit“ (trägt eine Sperre ein, die Einheiten rutschen), „leg Physik auf Samstag 15 Uhr“, „am Wochenende will ich nicht lernen“. Neue Termine meldet Jarvis mit Überschneidungen und verschobenen Einheiten samt Vorschlägen.
+- **Gedächtnis und Verlauf:** Gespräche werden gespeichert und abgeglichen („Verlauf“, höchstens 50; ein Gespräch der letzten 3 Stunden wird beim Öffnen fortgesetzt). Dauerhaftes („ich arbeite freitags bis 21 Uhr“) merkt sich Jarvis mit `merken` und gibt es jedem Gespräch mit; „vergiss …“ löscht es.
 - **Serientermine:** „Ich arbeite jeden Samstag von 12 bis 17 Uhr in der Zentralapotheke in Olten“ trägt einen wöchentlichen Termin ein; im Kalender geht das mit „Jede Woche wiederholen“ (optional mit Enddatum). Löschen entfernt die ganze Serie.
 
 ## Automatisch erstellen (kostenlos)

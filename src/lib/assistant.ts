@@ -56,3 +56,12 @@ export type NewsFeed = Synced & {
   url: string;
   createdAt: number;
 };
+
+/** Gespräch mit Jarvis: sichtbare Nachrichten und der gekürzte Verlauf für Gemini (zum Weiterführen). */
+export type ChatRecord = Synced & {
+  id: string;
+  title: string; // erste Frage, gekürzt
+  messages: { role: "user" | "jarvis" | "error"; text: string; actions?: string[]; link?: string }[];
+  history: unknown[]; // ChatTurn[] aus gemini.ts
+  createdAt: number;
+};

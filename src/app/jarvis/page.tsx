@@ -10,6 +10,9 @@ import { briefing, userName } from "@/lib/briefing";
 import { greeting } from "@/lib/jarvis";
 import { askJarvis, type ChatTurn } from "@/lib/jarvisAgent";
 import { canListen, listen, speak, stopSpeaking } from "@/lib/speech";
+import type { ChatRecord } from "@/lib/assistant";
+import { deleteItems, listItems, putItem } from "@/lib/db";
+import { fmtShortDay, fmtTime } from "@/lib/planner";
 import { dbStore, type ToolContext } from "@/lib/voiceTools";
 import "./jarvis.css";
 
@@ -30,8 +33,16 @@ const ACTION_LABEL: Record<string, string> = {
   fokus_starten: "Fokus gestartet",
   seite_oeffnen: "Seite geöffnet",
   link_oeffnen: "Link geöffnet",
+  nachbereitung_erledigt: "Nachbereitung abgehakt",
+  nachbereitung_verschieben: "Nachbereitung verschoben",
+  keine_zeit: "Zeit gesperrt",
+  lernzeiten_einstellen: "Lernzeiten geändert",
+  merken: "Gemerkt",
+  vergessen: "Vergessen",
 };
 const MAX_TURNS = 20;
+const MAX_CHATS = 50; // ältere Gespräche werden gelöscht
+const RESUME_MS = 3 * 60 * 60_000; // jüngeres Gespräch beim Öffnen fortsetzen
 
 /** Verlauf kürzen, ohne functionCall und functionResponse zu trennen: am Anfang einen Text-Beitrag des Nutzers behalten. */
 function trim(h: ChatTurn[]): ChatTurn[] {
@@ -58,7 +69,9 @@ export default function JarvisPage() {
   const [hasKey, setHasKey] = useState(true);
   const [keyInput, setKeyInput] = useState("");
   const [mic, setMic] = useState(true);
+  const [chats, setChats] = useState<ChatRecord[] | null>(null); // Verlauf offen, wenn gesetzt
   const history = useRef<ChatTurn[]>([]);
+  const chat = useRef<{ id: string; createdAt: number }>({ id: "", createdAt: 0 });
   const rec = useRef<{ stop(): void } | null>(null);
   const busy = useRef(false); // wartet gerade auf die KI
   const turn = useRef(0); // zählt Antworten, damit eine unterbrochene nicht weiterläuft
@@ -87,7 +100,19 @@ export default function JarvisPage() {
     // Begrüssung mit Namen, Tagesprogramm und offenen Aufgaben, ohne dass man etwas sagen muss
     let offTap = () => {};
     userName(dbStore).then((n) => (name.current = n), () => {});
-    briefing(dbStore)
+    chat.current = { id: crypto.randomUUID(), createdAt: Date.now() };
+    // Gespräch von vorhin fortsetzen; sonst neu mit Begrüssung
+    listItems("chats")
+      .then((all) => {
+        const sorted = all.sort((a, b) => (b.updatedAt ?? b.createdAt) - (a.updatedAt ?? a.createdAt));
+        if (sorted.length > MAX_CHATS) void deleteItems("chats", sorted.slice(MAX_CHATS).map((c) => c.id));
+        const last = sorted[0];
+        if (last && Date.now() - (last.updatedAt ?? last.createdAt) < RESUME_MS) {
+          open(last);
+          throw new Error("fortgesetzt");
+        }
+      }, () => {})
+      .then(() => briefing(dbStore))
       .then((text) => {
         setLog((l) => (l.length ? l : [{ role: "jarvis", text }]));
         if (!flags.current.voice) return;
@@ -123,6 +148,47 @@ export default function JarvisPage() {
   useEffect(() => {
     logEnd.current?.scrollIntoView({ block: "end" });
   }, [log, interim]);
+
+  // Gespräch speichern (wird abgeglichen), sobald etwas gefragt wurde
+  useEffect(() => {
+    const first = log.find((m) => m.role === "user");
+    if (!first || !chat.current.id) return;
+    void putItem("chats", {
+      id: chat.current.id,
+      title: first.text.slice(0, 80),
+      messages: log,
+      history: history.current,
+      createdAt: chat.current.createdAt,
+    });
+  }, [log]);
+
+  function open(c: ChatRecord) {
+    chat.current = { id: c.id, createdAt: c.createdAt };
+    history.current = c.history as ChatTurn[];
+    setLog(c.messages);
+    setChats(null);
+  }
+
+  function fresh() {
+    turn.current++;
+    stopSpeaking();
+    chat.current = { id: crypto.randomUUID(), createdAt: Date.now() };
+    history.current = [];
+    setLog([]);
+    setChats(null);
+  }
+
+  async function showChats() {
+    if (chats) return setChats(null);
+    const all = await listItems("chats");
+    setChats(all.sort((a, b) => (b.updatedAt ?? b.createdAt) - (a.updatedAt ?? a.createdAt)));
+  }
+
+  async function removeChat(id: string) {
+    await deleteItems("chats", [id]);
+    if (id === chat.current.id) fresh();
+    setChats((l) => l?.filter((c) => c.id !== id) ?? null);
+  }
 
   function toggle(key: string, on: boolean, set: (v: boolean) => void, name?: "voice" | "talk") {
     set(on);
@@ -263,7 +329,45 @@ export default function JarvisPage() {
         <label>
           <input type="checkbox" checked={startOn} onChange={(e) => toggle("jarvis-start", e.target.checked, setStartOn)} /> Beim Start
         </label>
+        <button type="button" className="jv-link" onClick={() => void showChats()} aria-expanded={!!chats}>
+          Verlauf
+        </button>
+        {log.some((m) => m.role === "user") && (
+          <button type="button" className="jv-link" onClick={fresh}>
+            Neues Gespräch
+          </button>
+        )}
       </div>
+
+      {chats && (
+        <div className="jv-chats" role="dialog" aria-label="Frühere Gespräche">
+          <div className="jv-row spread">
+            <strong>Frühere Gespräche</strong>
+            <button type="button" className="jv-link" onClick={() => setChats(null)}>
+              Schliessen
+            </button>
+          </div>
+          {chats.length === 0 ? (
+            <p className="jv-hint">Noch keine gespeicherten Gespräche.</p>
+          ) : (
+            <ul>
+              {chats.map((c) => (
+                <li key={c.id} className={c.id === chat.current.id ? "is-current" : ""}>
+                  <button type="button" className="jv-chat-open" onClick={() => open(c)}>
+                    <span>{c.title}</span>
+                    <small>
+                      {fmtShortDay(c.updatedAt ?? c.createdAt)}, {fmtTime(c.updatedAt ?? c.createdAt)} · {c.messages.length} Nachrichten
+                    </small>
+                  </button>
+                  <button type="button" className="jv-link" onClick={() => void removeChat(c.id)} aria-label={`Gespräch „${c.title}“ löschen`}>
+                    Löschen
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
 
       <div className="jv-orbwrap">
         <Wireframe className="jv-wire" />

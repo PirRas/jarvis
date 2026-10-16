@@ -1,7 +1,7 @@
 // Sprachassistent: die "Hände" von Jarvis. Gemini ruft diese Werkzeuge per Function Calling auf;
 // hier stehen die Deklarationen und die Ausführung. Die Datensätze entstehen genauso wie in der App.
 
-import type { CourseRecord, StudySession, Todo } from "./assistant";
+import type { CourseRecord, Mark, StudySession, Todo } from "./assistant";
 import { matchExistingCourse, sameCourse } from "./courses";
 import {
   allCards,
@@ -41,6 +41,20 @@ import {
   type Occurrence,
   type PlannerData,
 } from "./planner";
+import { liteLectures } from "./lernplan";
+import {
+  alternatives,
+  doneId,
+  DEFAULT_PREP,
+  pinMark,
+  postponed,
+  prepPlan,
+  prepSettingsMark,
+  readPrepSettings,
+  snapshot,
+  validWindow,
+  type PrepPlan,
+} from "./prepPlan";
 import { countDue, type CardState } from "./srs";
 import { PLAN, summarize, TOTAL_KP, validGrade, type PlanCourse, type Result } from "./studyPlan";
 import { dueLabel, groupTodos, TODO_CATEGORIES } from "./todos";
@@ -246,6 +260,72 @@ export const TOOL_DECLARATIONS: { name: string; description: string; parameters?
     }),
   },
   {
+    name: "nachbereitung_plan",
+    description:
+      "Nachbereitungsplan: wie viele Vorlesungen seit Semesterbeginn noch nachzubereiten sind (Rückstand, pro Woche), wann der Rückstand aufgeholt ist und die geplanten Einheiten der nächsten Tage. Die Einheiten liegen automatisch in freien Nachmittagen, Abenden und am Wochenende.",
+    parameters: obj({ tage: { type: "integer", description: "Wie viele Tage voraus die Einheiten zeigen, Standard 7" } }),
+  },
+  {
+    name: "nachbereitung_erledigt",
+    description:
+      "Hakt eine Vorlesung als nachbereitet ab. Ohne Angaben die laufende oder zuletzt geplante Einheit; mit fach (und datum der Vorlesung) eine bestimmte, sonst die älteste offene dieses Fachs.",
+    parameters: obj({ fach: S("Fach der Vorlesung"), datum: DATUM("Tag, an dem die Vorlesung stattfand"), alle_bis: DATUM("Alle offenen Vorlesungen des Fachs bis zu diesem Tag abhaken") }),
+  },
+  {
+    name: "nachbereitung_verschieben",
+    description:
+      "Legt die Einheit einer Vorlesung auf eine feste Zeit. Ohne neues_datum/beginn kommen nur Vorschläge für freie Zeiten zurück, die du dem Nutzer anbietest. Ohne fach die nächste geplante Einheit.",
+    parameters: obj({
+      fach: S("Fach der Vorlesung"),
+      datum: DATUM("Tag, an dem die Vorlesung stattfand"),
+      neues_datum: DATUM("Neuer Tag der Einheit"),
+      beginn: ZEIT("Neuer Beginn der Einheit"),
+      automatisch: { type: "boolean", description: "true = feste Zeit aufheben, Jarvis plant selbst" },
+    }),
+  },
+  {
+    name: "keine_zeit",
+    description:
+      "Der Nutzer hat keine Zeit (z. B. „heute Nachmittag kann ich nicht“, „am Wochenende bin ich weg“). Trägt eine Sperre in den Kalender ein; die Nachbereitung in dieser Zeit wird automatisch verschoben. Gibt zurück, was wohin verschoben wurde, mit Vorschlägen.",
+    parameters: obj(
+      {
+        datum: DATUM("Erster Tag"),
+        bis_datum: DATUM("Letzter Tag (inklusive), Standard = datum"),
+        von: ZEIT("Beginn, ohne Angabe ganztägig"),
+        bis: ZEIT("Ende"),
+        grund: S("Kurzer Grund, z. B. Arbeit"),
+      },
+      ["datum"],
+    ),
+  },
+  {
+    name: "lernzeiten_einstellen",
+    description:
+      "Ändert, wann Nachbereitung geplant werden darf: Zeitfenster werktags und am Wochenende, Höchstdauer pro Tag, Dauer pro Vorlesung, Plan an oder aus. Nur angegebene Felder werden geändert.",
+    parameters: obj({
+      an: { type: "boolean", description: "Plan an oder aus" },
+      dauer: { type: "integer", description: "Minuten pro Vorlesung (20 bis 180)" },
+      werktags_von: ZEIT("Werktags frühester Beginn"),
+      werktags_bis: ZEIT("Werktags spätestes Ende"),
+      werktags_max: { type: "integer", description: "Werktags höchstens so viele Minuten pro Tag" },
+      wochenende: { type: "boolean", description: "Auch am Wochenende planen" },
+      wochenende_von: ZEIT("Wochenende frühester Beginn"),
+      wochenende_bis: ZEIT("Wochenende spätestes Ende"),
+      wochenende_max: { type: "integer", description: "Am Wochenende höchstens so viele Minuten pro Tag" },
+    }),
+  },
+  {
+    name: "merken",
+    description:
+      "Merkt sich dauerhaft etwas über den Nutzer, das in späteren Gesprächen hilft (Vorlieben, Arbeitszeiten, Ziele, z. B. „arbeitet freitags bis 21 Uhr“). Nur auf Wunsch oder wenn es klar nützlich ist; keine Passwörter oder Gesundheitsdaten.",
+    parameters: obj({ fakt: S("Was du dir merkst, ein kurzer Satz") }, ["fakt"]),
+  },
+  {
+    name: "vergessen",
+    description: "Vergisst einen gemerkten Punkt (Teil des Textes genügt) oder mit alles = true alle.",
+    parameters: obj({ fakt: S("Text oder Teil davon"), alles: { type: "boolean", description: "Alles vergessen" } }),
+  },
+  {
     name: "seite_oeffnen",
     description: `Öffnet eine Seite der App. ${Object.entries(PAGES).map(([p, d]) => `${p}: ${d}`).join("; ")}.`,
     parameters: obj({ seite: S("Pfad der Seite", { enum: Object.keys(PAGES) }) }, ["seite"]),
@@ -345,10 +425,22 @@ async function ownEvent(a: Args, ctx: ToolContext) {
   const id = req(a, "id");
   const other = /^(slot|feed):/.exec(id);
   if (other) fail("Dieser Termin kommt aus dem Stundenplan oder einem Kalender-Abo und lässt sich per Sprache nicht ändern.");
+  if (id.startsWith("prep:")) fail("Das ist eine geplante Nachbereitung. Dafür gibt es nachbereitung_verschieben oder keine_zeit.");
   if (id.startsWith("todo:")) fail("Das ist eine Aufgabe mit Datum, kein Termin. Dafür gibt es aufgabe_aendern.");
   const bare = id.replace(/^event:/, "").replace(/:\d{4}-\d{2}-\d{2}$/, "");
   const e = (await ctx.store.list("events")).find((x) => x.id === bare);
   return e ?? fail(`Keinen eigenen Termin mit der ID „${id}“ gefunden.`);
+}
+
+/** Überschneidungen eines Termins (nächste 4 Vorkommen bei Serien) mit Stundenplan und anderen Terminen. */
+async function clashes(ctx: ToolContext, e: CalEvent) {
+  if (e.allDay) return {};
+  const data = await plannerData(ctx);
+  const mine = occurrences({ ...EMPTY_PLANNER, events: [e] }, ctx.now - DAYMS, addDays(ctx.now, 60)).slice(0, 4);
+  if (!mine.length) return {};
+  const others = occurrences({ ...data, todos: [], events: data.events.filter((x) => x.id !== e.id) }, mine[0].start, mine.at(-1)!.end).filter((o) => !o.allDay);
+  const hit = others.filter((o) => mine.some((m) => o.start < m.end && m.start < o.end));
+  return hit.length ? { ueberschneidungen: hit.slice(0, 6).map((o) => `${o.title} (${KIND_LABEL[o.kind]}), ${when(o.start)}–${fmtTime(o.end)}`) } : {};
 }
 
 async function todoById(a: Args, ctx: ToolContext) {
@@ -372,6 +464,64 @@ async function courseNames(ctx: ToolContext, data?: PlannerData) {
   return knownCourses(d, lectures.map((l) => l.course));
 }
 
+// ---------- Nachbereitung und Gedächtnis ----------
+
+export async function loadPrep(store: ToolStore, now: number, data?: PlannerData): Promise<{ plan: PrepPlan; data: PlannerData; marks: Mark[] }> {
+  const [d, lectures, marks] = await Promise.all([
+    data ?? Promise.all([store.list("slots"), store.list("events"), store.list("feeds"), store.feedCaches()]).then(([slots, events, feeds, caches]) => ({ slots, events, feeds, caches })),
+    store.lectures(),
+    store.list("marks"),
+  ]);
+  return { plan: prepPlan(d, liteLectures(lectures), marks, now), data: d, marks };
+}
+
+const when = (t: number) => `${fmtShortDay(t)}, ${fmtTime(t)}`;
+const lessonText = (o: Occurrence) => `${o.course} vom ${fmtShortDay(o.start)}`;
+
+/** Führt eine Änderung aus und meldet, welche Einheiten dadurch nach hinten gerutscht sind, mit Vorschlägen. */
+async function watchPrep<T extends Record<string, unknown>>(ctx: ToolContext, change: () => Promise<T>): Promise<T> {
+  const before = snapshot((await loadPrep(ctx.store, ctx.now)).plan, ctx.now);
+  const result = await change();
+  const { plan, data } = await loadPrep(ctx.store, ctx.now);
+  const moved = postponed(before, plan, data, ctx.now);
+  if (!moved.length) return result;
+  return {
+    ...result,
+    nachbereitung_verschoben: moved.map((m) => ({
+      vorlesung: lessonText(m.lesson),
+      vorher: when(m.from),
+      neu: m.session ? when(m.session.start) : "noch kein freier Platz",
+      vorschlaege: alternatives(data, plan, m.lesson, ctx.now).map(when),
+    })),
+  };
+}
+
+/** Lektion aus Rückstand oder Plan: nach Fach und Tag, sonst die laufende oder nächste Einheit. */
+function findLesson(plan: PrepPlan, a: Args, now: number) {
+  const fach = str(a, "fach");
+  const datum = date(a, "datum");
+  const all = [...plan.backlog, ...plan.sessions.map((x) => x.lesson).filter((o) => !plan.backlog.some((b) => b.key === o.key))].sort(
+    (x, y) => x.start - y.start,
+  );
+  if (!fach && !datum) {
+    const s = plan.sessions.find((x) => x.end > now - 6 * HOUR) ?? plan.sessions[0];
+    return s?.lesson ?? all[0] ?? fail("Es ist keine Vorlesung offen.");
+  }
+  const hits = all.filter(
+    (o) => (!fach || sameCourse(o.course, fach) || o.course.toLowerCase().includes(fach.toLowerCase())) && (!datum || isoDate(o.start) === datum),
+  );
+  if (!hits.length) fail(`Keine offene Vorlesung${fach ? ` in ${fach}` : ""}${datum ? ` am ${fmtShortDay(parseIsoDate(datum))}` : ""} gefunden.`);
+  return hits[0];
+}
+
+const MEMORY_ID = "jarvis-memory";
+type MemoryMark = Mark & { facts?: string[] };
+const MAX_FACTS = 40;
+
+export async function memoryFacts(store: ToolStore) {
+  return ((await store.list("marks")).find((m) => m.id === MEMORY_ID) as MemoryMark | undefined)?.facts ?? [];
+}
+
 // ---------- Werkzeuge ----------
 
 const TOOLS: Record<string, (a: Args, ctx: ToolContext) => Promise<Record<string, unknown>>> = {
@@ -381,9 +531,11 @@ const TOOLS: Record<string, (a: Args, ctx: ToolContext) => Promise<Record<string
     const art = kind(a);
     if (bis < von) fail("bis liegt vor von.");
     const data = await plannerData(ctx);
-    const all = occurrences(data, parseIsoDate(von), parseIsoDate(bis) + DAYMS, await courseNames(ctx, data)).filter(
-      (o) => !art || o.kind === art,
-    );
+    const { plan } = await loadPrep(ctx.store, ctx.now, data);
+    const [from, to] = [parseIsoDate(von), parseIsoDate(bis) + DAYMS];
+    const all = [...occurrences(data, from, to, await courseNames(ctx, data)), ...plan.sessions.filter((x) => x.end > from && x.start < to)]
+      .sort((x, y) => x.start - y.start)
+      .filter((o) => !art || o.kind === art);
     return { anzahl: all.length, termine: all.slice(0, MAX_LIST).map((o) => eventOccRow(o, o.origin.kind === "event" ? data.events.find((e) => e.id === o.origin.id) : undefined)), ...(all.length > MAX_LIST ? { gekuerzt: `Nur die ersten ${MAX_LIST} gezeigt.` } : {}) };
   },
 
@@ -414,8 +566,10 @@ const TOOLS: Record<string, (a: Args, ctx: ToolContext) => Promise<Record<string
       ...(a.woechentlich === true || (a.woechentlich !== false && bis) ? { repeat: { every: "week" as const, ...(bis ? { until: bis } : {}) } } : {}),
       createdAt: ctx.now,
     };
-    await ctx.store.put("events", e);
-    return { ok: true, termin: eventRow(e) };
+    return watchPrep(ctx, async () => {
+      await ctx.store.put("events", e);
+      return { ok: true, termin: eventRow(e), ...(await clashes(ctx, e)) };
+    });
   },
 
   async termin_aendern(a, ctx) {
@@ -449,8 +603,10 @@ const TOOLS: Record<string, (a: Args, ctx: ToolContext) => Promise<Record<string
       next.repeat = { every: "week", ...(until ? { until } : {}), ...(e.repeat?.skip ? { skip: e.repeat.skip } : {}) };
     }
     if (next.repeat?.until && next.repeat.until < isoDate(next.start)) fail("wiederholen_bis liegt vor dem Termin.");
-    await ctx.store.put("events", next);
-    return { ok: true, termin: eventRow(next) };
+    return watchPrep(ctx, async () => {
+      await ctx.store.put("events", next);
+      return { ok: true, termin: eventRow(next), ...(await clashes(ctx, next)) };
+    });
   },
 
   async termin_loeschen(a, ctx) {
@@ -523,7 +679,10 @@ const TOOLS: Record<string, (a: Args, ctx: ToolContext) => Promise<Record<string
       ctx.store.newLeft(),
       ctx.store.list("previews"),
     ]);
-    const list = occurrences(data, now - 4 * DAYMS, now + 60 * DAYMS, knownCourses(data, lectures.map((l) => l.course)));
+    const { plan } = await loadPrep(ctx.store, now, data);
+    const list = [...occurrences(data, now - 4 * DAYMS, now + 60 * DAYMS, knownCourses(data, lectures.map((l) => l.course))), ...plan.sessions].sort(
+      (x, y) => x.start - y.start,
+    );
     const { current, next } = nowAndNext(list, now);
     const heute = list.filter((o) => o.end > now && o.start < addDays(dayStart(now), 1));
     const due = countDue(cards, newLeft, now);
@@ -534,6 +693,7 @@ const TOOLS: Record<string, (a: Args, ctx: ToolContext) => Promise<Record<string
       heute: heute.slice(0, MAX_LIST).map(row),
       hinweise: tips({ list, lectures, cards, previews, newLeft, now }).slice(0, 5).map((t) => t.text),
       faellige_karten: { neu: due.new, lernen: due.learning, wiederholen: due.review },
+      nachbereitung: { rueckstand: plan.backlog.length, aufgeholt_bis: plan.catchUp ? fmtShortDay(plan.catchUp) : null },
     };
   },
 
@@ -660,6 +820,142 @@ const TOOLS: Record<string, (a: Args, ctx: ToolContext) => Promise<Record<string
     return { ok: true, fach, minuten: minuten || "Standarddauer" };
   },
 
+  async nachbereitung_plan(a, ctx) {
+    const tage = int(a, "tage", 1, 60) ?? 7;
+    const { plan } = await loadPrep(ctx.store, ctx.now);
+    const until = addDays(dayStart(ctx.now), tage);
+    const next = plan.sessions.filter((x) => x.start < until);
+    return {
+      an: plan.settings.on,
+      seit: fmtShortDay(plan.since),
+      rueckstand: plan.backlog.length,
+      rueckstand_pro_woche: plan.weeks
+        .map((w) => ({ woche_ab: fmtShortDay(w.start), offen: w.lessons.filter((l) => !l.done).length, total: w.lessons.length }))
+        .filter((w) => w.offen),
+      aufgeholt_bis: plan.catchUp ? fmtShortDay(plan.catchUp) : plan.backlog.length ? "nicht absehbar, zu wenig Lernzeit eingestellt" : "kein Rückstand",
+      ohne_platz: plan.unplanned.length,
+      einheiten: next.slice(0, MAX_LIST).map((x) => ({
+        id: x.key,
+        vorlesung: lessonText(x.lesson),
+        wann: `${when(x.start)}–${fmtTime(x.end)}`,
+        fest: x.pinned,
+      })),
+      lernzeiten: plan.settings,
+    };
+  },
+
+  async nachbereitung_erledigt(a, ctx) {
+    const { plan } = await loadPrep(ctx.store, ctx.now);
+    const bis = date(a, "alle_bis");
+    if (bis) {
+      const fach = str(a, "fach");
+      const list = plan.backlog.filter((o) => isoDate(o.start) <= bis && (!fach || sameCourse(o.course, fach) || o.course.toLowerCase().includes(fach.toLowerCase())));
+      if (!list.length) fail("Dazu ist nichts offen.");
+      for (const o of list) await ctx.store.put("marks", { id: doneId(o.key), createdAt: ctx.now });
+      return { ok: true, abgehakt: list.length, rueckstand: plan.backlog.length - list.length };
+    }
+    const o = findLesson(plan, a, ctx.now);
+    await ctx.store.put("marks", { id: doneId(o.key), createdAt: ctx.now });
+    const left = plan.backlog.filter((b) => b.key !== o.key).length;
+    return { ok: true, abgehakt: lessonText(o), rueckstand: left };
+  },
+
+  async nachbereitung_verschieben(a, ctx) {
+    const { plan, data } = await loadPrep(ctx.store, ctx.now);
+    const o = findLesson(plan, a, ctx.now);
+    if (a.automatisch === true) {
+      await ctx.store.remove("marks", [`prep-pin:${o.key}`]);
+      const after = (await loadPrep(ctx.store, ctx.now)).plan.sessions.find((x) => x.lesson.key === o.key);
+      return { ok: true, vorlesung: lessonText(o), neu: after ? when(after.start) : "noch kein freier Platz" };
+    }
+    const tag = date(a, "neues_datum");
+    const beginn = time(a, "beginn");
+    if (!tag || !beginn) return { vorlesung: lessonText(o), vorschlaege: alternatives(data, plan, o, ctx.now, 4).map(when) };
+    const start = atTime(parseIsoDate(tag), beginn);
+    if (start < ctx.now) fail("Diese Zeit liegt in der Vergangenheit.");
+    if (start < o.end) fail("Die Einheit kann erst nach der Vorlesung stattfinden.");
+    const len = plan.settings.minutes * MIN;
+    const busy = occurrences({ ...data, todos: [] }, start - DAYMS, start + len + DAYMS).find(
+      (x) => (!x.allDay || x.kind === "exam" || x.kind === "other") && x.start < start + len && start < x.end,
+    );
+    if (busy) fail(`Da ist schon etwas: ${busy.title}, ${when(busy.start)}. Freie Zeiten: ${alternatives(data, plan, o, ctx.now).map(when).join("; ")}`);
+    await ctx.store.put("marks", pinMark(o.key, start));
+    return { ok: true, vorlesung: lessonText(o), neu: `${when(start)}–${fmtTime(start + len)}` };
+  },
+
+  async keine_zeit(a, ctx) {
+    const datum = date(a, "datum") ?? fail("Es fehlt: datum.");
+    const bisDatum = date(a, "bis_datum") ?? datum;
+    if (bisDatum < datum) fail("bis_datum liegt vor datum.");
+    const von = time(a, "von");
+    const bis = time(a, "bis");
+    if (bis && !von) fail("Ein Ende braucht auch einen Beginn.");
+    const day = parseIsoDate(datum);
+    const lastDay = parseIsoDate(bisDatum);
+    if (addDays(lastDay, 0) - day > 60 * DAYMS) fail("Höchstens 60 Tage auf einmal.");
+    const start = von ? atTime(day, von) : day;
+    const end = von ? atTime(lastDay, bis ?? "23:59") : bisDatum === datum ? null : addDays(lastDay, 1);
+    if (end !== null && end <= start) fail("Das Ende muss nach dem Beginn liegen.");
+    const grund = str(a, "grund");
+    const e: CalEvent = {
+      id: crypto.randomUUID(),
+      title: grund ? `Keine Zeit: ${grund}` : "Keine Zeit",
+      course: "",
+      kind: "other",
+      start,
+      end,
+      allDay: !von,
+      location: "",
+      note: "Von Jarvis eingetragen; Nachbereitung wird in dieser Zeit nicht geplant.",
+      source: "manual",
+      createdAt: ctx.now,
+    };
+    return watchPrep(ctx, async () => {
+      await ctx.store.put("events", e);
+      return { ok: true, sperre: eventRow(e) };
+    });
+  },
+
+  async lernzeiten_einstellen(a, ctx) {
+    const s = readPrepSettings(await ctx.store.list("marks"));
+    const t = (k: string, d: string) => time(a, k) ?? d;
+    const n = (k: string, min: number, max: number, d: number) => int(a, k, min, max) ?? d;
+    const next = {
+      on: typeof a.an === "boolean" ? a.an : s.on,
+      minutes: n("dauer", 20, 180, s.minutes),
+      weekday: { from: t("werktags_von", s.weekday.from), to: t("werktags_bis", s.weekday.to), max: n("werktags_max", 0, 720, s.weekday.max) },
+      weekend: {
+        on: typeof a.wochenende === "boolean" ? a.wochenende : s.weekend.on,
+        from: t("wochenende_von", s.weekend.from),
+        to: t("wochenende_bis", s.weekend.to),
+        max: n("wochenende_max", 0, 720, s.weekend.max),
+      },
+    };
+    if (!validWindow(next.weekday.from, next.weekday.to) || !validWindow(next.weekend.from, next.weekend.to)) fail("Das Ende eines Zeitfensters muss nach dem Beginn liegen.");
+    return watchPrep(ctx, async () => {
+      await ctx.store.put("marks", prepSettingsMark(next));
+      return { ok: true, lernzeiten: next, standard: DEFAULT_PREP };
+    });
+  },
+
+  async merken(a, ctx) {
+    const fakt = req(a, "fakt").slice(0, 200);
+    const facts = (await memoryFacts(ctx.store)).filter((f) => f.toLowerCase() !== fakt.toLowerCase());
+    const next = [...facts, fakt].slice(-MAX_FACTS);
+    await ctx.store.put("marks", { id: MEMORY_ID, createdAt: ctx.now, facts: next } as MemoryMark);
+    return { ok: true, gemerkt: fakt, anzahl: next.length };
+  },
+
+  async vergessen(a, ctx) {
+    const facts = await memoryFacts(ctx.store);
+    const fakt = str(a, "fakt")?.toLowerCase();
+    if (!fakt && a.alles !== true) fail("Was soll ich vergessen?");
+    const next = a.alles === true ? [] : facts.filter((f) => !f.toLowerCase().includes(fakt!));
+    if (next.length === facts.length) fail(`Dazu habe ich mir nichts gemerkt. Gemerkt: ${facts.join("; ") || "nichts"}`);
+    await ctx.store.put("marks", { id: MEMORY_ID, createdAt: ctx.now, facts: next } as MemoryMark);
+    return { ok: true, vergessen: facts.length - next.length };
+  },
+
   async seite_oeffnen(a, ctx) {
     const seite = req(a, "seite");
     if (!(seite in PAGES)) fail(`Unbekannte Seite „${seite}“. Möglich: ${Object.keys(PAGES).join(", ")}`);
@@ -701,7 +997,7 @@ export async function runTool(name: string, args: Record<string, unknown>, ctx: 
   }
 }
 
-export function systemPrompt(now: number, name = ""): string {
+export function systemPrompt(now: number, name = "", facts: string[] = []): string {
   const long = new Date(now).toLocaleDateString("de-CH", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
   return `Du bist Jarvis, der persönliche Sprachassistent im Uni-Cockpit, ganz im Stil von J.A.R.V.I.S. aus Iron Man: höflich, souverän, knapp und mit einem Hauch trockenem Humor. Du duzt dein Gegenüber${name ? ` und sprichst es ab und zu mit seinem Namen ${name} an` : ""}. Es studiert im 1. Semester Pharmazeutische Wissenschaften an der Uni Basel.
 
@@ -715,7 +1011,15 @@ Regeln:
 - Nach dem Anlegen oder Ändern bestätigst du kurz, was gespeichert wurde, mit Tag und Uhrzeit.
 - Vor dem Löschen eines Termins oder einer Aufgabe fragst du nach, ausser genau dieses Element sollte eindeutig gelöscht werden.
 - Termine aus dem Stundenplan und aus Kalender-Abos kannst du nicht ändern; sag das ehrlich.
-- Meldet ein Werkzeug einen Fehler, erklär ihn kurz und schlag den nächsten Schritt vor.`;
+- Meldet ein Werkzeug einen Fehler, erklär ihn kurz und schlag den nächsten Schritt vor.
+- Denk mit: Meldet ein Werkzeug ueberschneidungen, sag es und frag, ob der Termin so bleiben soll. Meldet es nachbereitung_verschoben, sag kurz, welche Nachbereitung wohin gerutscht ist, und biete einen der vorschlaege an; wählt der Nutzer eine Zeit, nutze nachbereitung_verschieben.
+- Nachbereitung: Jede Vorlesung seit Semesterbeginn bekommt automatisch eine Einheit in freier Zeit (Nachmittag, Abend, Wochenende), neue Termine schieben sie automatisch weiter. Sagt der Nutzer, er habe keine Zeit, nutze keine_zeit. Sagt er, er habe etwas nachbereitet, nutze nachbereitung_erledigt. Fragen zum Rückstand beantwortest du mit nachbereitung_plan.
+- Erzählt der Nutzer etwas Dauerhaftes über sich (Arbeitszeiten, Vorlieben, Ziele), merk es dir mit merken und berücksichtige es später, zum Beispiel beim Planen.${
+    facts.length ? `
+
+Das weisst du schon über dein Gegenüber:
+${facts.map((f) => `- ${f}`).join("\n")}` : ""
+  }`;
 }
 
 // ---------- Zugriff auf die Datenbank ----------

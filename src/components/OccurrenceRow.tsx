@@ -8,7 +8,7 @@ export function OccurrenceRow({ o, now, onDelete }: { o: Occurrence; now: number
   const past = o.end < now;
   const live = o.start <= now && o.end > now && !o.allDay;
   return (
-    <li className={`occ kind-${o.kind} ${past ? "is-past" : ""} ${live ? "is-live" : ""}`}>
+    <li className={`occ kind-${o.kind} ${o.origin.kind === "prep" ? "is-prep" : ""} ${past ? "is-past" : ""} ${live ? "is-live" : ""}`}>
       <span className="occ-time">
         {o.allDay ? "ganztägig" : `${fmtTime(o.start)}–${fmtTime(o.end)}`}
       </span>

@@ -1714,3 +1714,44 @@ details.panel > summary {
     display: none;
   }
 }
+
+/* Nachbereitungsplan */
+.prep-moved {
+  margin: 16px 0 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--rule);
+  border-left: 3px solid var(--red);
+  border-radius: var(--radius-s);
+}
+.prep-moved .lp-pending li:first-child {
+  border-top: 0;
+}
+.prep-weeks {
+  display: grid;
+  gap: 4px;
+}
+.prep-week summary {
+  cursor: pointer;
+  padding: 8px 0;
+  font-weight: 600;
+}
+.prep-checks {
+  list-style: none;
+  margin: 0 0 8px;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 260px), 1fr));
+}
+.prep-checks .check {
+  padding: 4px 0;
+  font-weight: 400;
+}
+.prep-settings {
+  margin: 8px 0 16px;
+  padding: 12px;
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-s);
+}
+.occ.is-prep .occ-time {
+  color: var(--green);
+}

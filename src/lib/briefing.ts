@@ -2,11 +2,11 @@
 // Ohne KI-Aufruf gebaut (sofort da, kostet kein Kontingent) und so formuliert, dass es sich gut vorlesen lässt.
 
 import { greeting } from "./jarvis";
-import { addDays, dayStart, knownCourses, occurrences, type Occurrence } from "./planner";
+import { addDays, dayStart, fmtShortDay, knownCourses, occurrences, relDay, type Occurrence } from "./planner";
 import { readProfile } from "./profile";
 import { countDue } from "./srs";
 import { dueLabel, groupTodos } from "./todos";
-import type { ToolStore } from "./voiceTools";
+import { loadPrep, type ToolStore } from "./voiceTools";
 
 /** "14:15" → "14 Uhr 15", "09:00" → "9 Uhr" (klingt vorgelesen natürlicher). */
 export function spokenTime(t: number) {
@@ -41,7 +41,10 @@ export async function briefing(store: ToolStore, now = Date.now()) {
   ]);
   const data = { slots, events, feeds, caches, todos };
   const tomorrow = dayStart(addDays(now, 1));
-  const list = occurrences(data, now, addDays(tomorrow, 1), knownCourses(data, lectures.map((l) => l.course)));
+  const { plan } = await loadPrep(store, now, data);
+  const list = [...occurrences(data, now, addDays(tomorrow, 1), knownCourses(data, lectures.map((l) => l.course))), ...plan.sessions.filter((x) => x.start < addDays(tomorrow, 1) && x.end > now)].sort(
+    (a, b) => a.start - b.start,
+  );
   const today = list.filter((o) => o.start < tomorrow && o.end > now && o.origin.kind !== "todo");
   const next = list.find((o) => o.start >= tomorrow && !o.allDay && o.origin.kind !== "todo");
 
@@ -58,6 +61,11 @@ export async function briefing(store: ToolStore, now = Date.now()) {
       `${urgent.length === 1 ? "Eine Aufgabe steht" : `${urgent.length} Aufgaben stehen`} an: ${joinDe(urgent.slice(0, 3).map((t) => `${t.title}, fällig ${dueLabel(t.due!, now)}`))}.`,
     );
   else if (open) parts.push(`Du hast ${open === 1 ? "eine offene Aufgabe" : `${open} offene Aufgaben`}, nichts davon drängt.`);
+
+  if (plan.backlog.length)
+    parts.push(
+      `Zum Nachbereiten sind noch ${plan.backlog.length === 1 ? "eine Vorlesung" : `${plan.backlog.length} Vorlesungen`} offen${plan.catchUp ? `, nach Plan bist du ${relDay(plan.catchUp, now) === "heute" ? "heute" : `bis ${fmtShortDay(plan.catchUp)}`} durch` : ""}.`,
+    );
 
   const due = countDue(cards, newLeft, now);
   if (due.learning + due.review >= 10) parts.push(`Ausserdem warten ${due.learning + due.review} Karteikarten auf dich.`);

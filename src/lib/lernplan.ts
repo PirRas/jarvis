@@ -7,7 +7,10 @@ import { sameCourse } from "./courses";
 import { addDays, DAYMS, dayStart, occurrences, type Occurrence, type PlannerData } from "./planner";
 import { isMastered, type CardState } from "./srs";
 
-type LectureLite = { id: string; course: string; title: string; createdAt: number; examTasks: number };
+export type LectureLite = { id: string; course: string; title: string; createdAt: number; examTasks: number };
+
+export const liteLectures = (list: { id: string; course: string; title: string; createdAt: number; study: { exam_tasks: unknown[] } }[]): LectureLite[] =>
+  list.map((l) => ({ id: l.id, course: l.course, title: l.title, createdAt: l.createdAt, examTasks: l.study.exam_tasks.length }));
 
 export type Phase = "aufbau" | "vertiefen" | "endspurt" | "pruefungstag";
 export const PHASE_LABEL: Record<Phase, string> = {
@@ -33,14 +36,18 @@ export type ExamPlan = {
   todo: string[]; // konkrete Vorschläge für heute
 };
 
-const isLectureType = (o: Occurrence) => o.kind === "lecture" && /vorlesung|haupt/i.test(o.type);
+export const isLectureType = (o: Occurrence) => o.kind === "lecture" && /vorlesung|haupt/i.test(o.type);
 
 /**
  * Nachbereitungs-Wächter: vergangene Vorlesungen, für die noch keine Nachbereitung gespeichert ist.
  * Jede gespeicherte Vorlesung deckt die jüngste noch offene Lektion desselben Fachs vor ihrem Speicherzeitpunkt ab.
  */
 export function pendingPrep(data: PlannerData, lectures: LectureLite[], marks: Mark[], now = Date.now(), days = 7) {
-  const from = addDays(dayStart(now), -days);
+  return pendingSince(data, lectures, marks, addDays(dayStart(now), -days), now);
+}
+
+/** Wie pendingPrep, aber ab einem festen Zeitpunkt (z. B. Semesterbeginn). */
+export function pendingSince(data: PlannerData, lectures: LectureLite[], marks: Mark[], from: number, now = Date.now()) {
   const past = occurrences({ ...data, todos: [] }, addDays(from, -120), now).filter((o) => isLectureType(o) && o.end <= now);
   const done = new Set(marks.filter((m) => m.id.startsWith("nachbereitet:")).map((m) => m.id.slice("nachbereitet:".length)));
   const covered = new Set<string>();

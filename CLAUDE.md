@@ -22,6 +22,7 @@ Persönliches Uni-Cockpit (Pharmazeutische Wissenschaften, Uni Basel). Details z
 - Bei Änderungen an `src/lib/textDates.ts`: `npx tsx scripts/textdates-check.ts`.
 - Bei Änderungen an `src/lib/gemini.ts` (KI-Ausweichkette): `npx tsx scripts/gemini-check.ts`.
 - Bei Änderungen am Sprachassistenten (`src/lib/voiceTools.ts`, `src/lib/jarvisAgent.ts`): `npx tsx scripts/voice-check.ts`.
+- Bei Änderungen am Nachbereitungsplan (`src/lib/prepPlan.ts`, `src/lib/lernplan.ts`) oder seinen Sprachwerkzeugen: `TZ=Europe/Zurich npx tsx scripts/prep-check.ts`.
 - `next dev`/`build` bricht mit `EINVAL readlink … .next` ab (OneDrive-Ordner): `rm -rf .next`, dann neu starten.
 - Design: Das futuristische Jarvis-HUD (Orb, Ring, Glow, Animationen) ist gewollt, nicht wegdesignen. Regeln in `DESIGN.md` §11.
 

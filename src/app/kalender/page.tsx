@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { OccurrenceRow } from "@/components/OccurrenceRow";
+import { PrepMoves } from "@/components/PrepPlan";
 import { deleteFeedCache, deleteItems, putItem, putItems } from "@/lib/db";
 import { fetchFeed, refreshFeeds } from "@/lib/feeds";
 import { toIcs } from "@/lib/ics";
@@ -23,6 +24,7 @@ import {
   type EventKind,
   type Feed,
 } from "@/lib/planner";
+import { sessionsIn } from "@/lib/prepPlan";
 import { findDates, type FoundDate } from "@/lib/textDates";
 import { isTimetableUrl, TIMETABLE_FEED_ID, TIMETABLE_FEED_NAME } from "@/lib/timetable";
 import { usePlanner } from "@/lib/usePlanner";
@@ -37,11 +39,11 @@ export default function CalendarPage() {
   if (!p.loaded) return <p className="muted">Lade …</p>;
   const courses = knownCourses(p.data, p.lectures.map((l) => l.course));
   const to = addDays(from, 14);
-  const list = occurrences(p.data, from, to, courses);
+  const list = [...occurrences(p.data, from, to, courses), ...sessionsIn(p.prep, from, to)].sort((a, b) => a.start - b.start || Number(b.allDay) - Number(a.allDay));
   const days = Array.from({ length: 14 }, (_, i) => addDays(from, i));
 
   function exportIcs() {
-    const all = occurrences(p.data, addDays(Date.now(), -30), addDays(Date.now(), 240), courses);
+    const all = [...occurrences(p.data, addDays(Date.now(), -30), addDays(Date.now(), 240), courses), ...p.prep.sessions];
     const blob = new Blob([toIcs(all)], { type: "text/calendar" });
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
@@ -75,6 +77,7 @@ export default function CalendarPage() {
         </div>
       </div>
 
+      <PrepMoves p={p} compact />
       {panel === "event" && <EventEditor courses={courses} onDone={() => setPanel(null)} />}
       {panel === "text" && <TextImport courses={courses} onDone={() => setPanel(null)} />}
       {panel === "feeds" && <Feeds p={p} />}

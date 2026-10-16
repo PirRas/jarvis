@@ -24,6 +24,7 @@ export const REMINDER_KINDS = [
   { id: "todos", label: "Aufgaben und Fristen", hint: "1 Woche vorher, 1 Tag vorher und am Tag selbst" },
   { id: "exams", label: "Prüfungen", hint: "1 Woche vorher, am Vorabend und 2 Stunden vorher" },
   { id: "lectures", label: "Lektionen", hint: "20 Minuten vorher, mit Raum" },
+  { id: "prep", label: "Nachbereitung", hint: "10 Minuten vor jeder geplanten Einheit" },
   { id: "weekly", label: "Wochenrückblick", hint: "sonntags um 18 Uhr" },
 ] as const;
 export type ReminderKind = (typeof REMINDER_KINDS)[number]["id"];
@@ -105,7 +106,7 @@ function lectureReminder(o: Occurrence, now: number): Reminder | null {
 }
 
 /** Alle Erinnerungen der nächsten Wochen (Lektionen nur 14 Tage, damit der Plan klein bleibt). */
-export function buildReminders(data: PlannerData, todos: Todo[], kinds: Set<ReminderKind>, now = Date.now()): Reminder[] {
+export function buildReminders(data: PlannerData, todos: Todo[], kinds: Set<ReminderKind>, now = Date.now(), prep: Occurrence[] = []): Reminder[] {
   const out: Reminder[] = [];
   const horizon = addDays(dayStart(now), 60);
   const list = occurrences({ ...data, todos: [] }, now - HOUR, addDays(horizon, 7));
@@ -123,6 +124,21 @@ export function buildReminders(data: PlannerData, todos: Todo[], kinds: Set<Remi
       if (o.kind !== "lecture" || o.allDay || o.start > until) continue;
       const r = lectureReminder(o, now);
       if (r) out.push(r);
+    }
+  }
+  if (kinds.has("prep")) {
+    // Einheiten aus dem Nachbereitungsplan; verschiebt sich eine, ändert sich der Schlüssel und die alte fällt weg
+    const until = addDays(dayStart(now), 14);
+    for (const o of prep) {
+      const dueAt = o.start - 10 * MIN;
+      if (dueAt <= now || o.start > until) continue;
+      out.push({
+        key: `prep:${o.origin.id}:${o.start}`,
+        dueAt,
+        title: clip(`In 10 Min.: ${o.title}`, 80),
+        body: clip(`${fmtTime(o.start)}–${fmtTime(o.end)} · ${o.type.replace(/^Nachbereitung · /, "")}`),
+        url: "/lernplan",
+      });
     }
   }
   if (kinds.has("weekly")) {
