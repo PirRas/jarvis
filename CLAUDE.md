@@ -13,6 +13,7 @@ Persönliches Uni-Cockpit (Pharmazeutische Wissenschaften, Uni Basel). Details z
 - Next.js 15 (App Router), React 19, TypeScript, auf Vercel. Import-Alias `@/` = `src/`.
 - Daten im Browser (IndexedDB über `idb`, `src/lib/db.ts`), Abgleich über Supabase (`src/lib/sync.ts`, `supabase/schema.sql`).
 - Push über `web-push` (`src/lib/pushServer.ts`, `public/sw.js`), Zod-Schemas in `src/lib/schema.ts`.
+- Content-Security-Policy in `next.config.ts`: neue externe Hosts (fetch, Bilder, iframes) dort freigeben, sonst blockiert der Browser sie. App soll launch-tauglich bleiben (evtl. für Kommilitonen): Datenschutzseite `/datenschutz` aktuell halten, Launch-Checkliste im README.
 - `.env` enthält nur öffentliche Supabase-Werte und ist absichtlich eingecheckt. Geheimnisse nur in `.env*.local` oder Vercel.
 - `scripts/check.ts`, `scripts/rooms-check.ts` und `scripts/lecture-check.ts` (Echttest Aufbereitung mit echter PDF, `GEMINI_API_KEY` als Umgebungsvariable) sind manuelle Testwerkzeuge, kein toter Code.
 

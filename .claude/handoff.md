@@ -8,12 +8,21 @@ keine
 
 ## Offen
 
+- Launch-Vorbereitung (nur Nutzer, README „Launch-Checkliste“): `supabase/schema.sql` + `supabase/push.sql` im SQL-Editor erneut ausführen (2FA-Regel, sonst schützt 2FA die Daten nicht); in Vercel `NEXT_PUBLIC_OPERATOR_NAME`, `NEXT_PUBLIC_CONTACT_EMAIL`, `NEXT_PUBLIC_DATA_REGION` setzen; Supabase-Auth-Einstellungen (Passwortlänge 10, MFA, CAPTCHA, Redirect URLs); Vercel-Firewall-Rate-Limit für `/api/*`.
+- 2FA-Ablauf und „Konto löschen“ sind nicht gegen echtes Supabase getestet (kein Schlüssel in der Cloud).
 - `/nachbereitung` einmal echt ausprobieren: dafür `JARVIS_EMAIL`/`JARVIS_PASSWORD` in `.env.local` eintragen (Login und Schreiben nach Supabase sind ungetestet, nur `--dry-run` geprüft).
 - Design (DESIGN.md §10) bewusst weggelassen: Sidebar-Icons, Mission-Timeline, Werkzeug-Kacheln, Desktop-Sprachleiste unten, Glocke/Suche in der Kopfzeile, Feed-Stil für Prüfungen/Raumwarnungen/Uni-Mail. Tablet-Breite 641–760 px mit Sidebar ist eng; alte `.topnav`-Regel für diese Breite ist wirkungslos.
 - OpenRouter-Weg (Folientext via pdf.js) unter Node nicht testbar (`readPdf` lädt den Worker fest von `/pdf.worker.min.mjs`).
 - Mobile Push für Claude-Benachrichtigungen ist in `/config` aus.
 
 ## Letzte Sitzungen
+
+### 2026-10-16 – Cloud-Sitzung (vm, Sicherheit + Datenschutz aus zwei Reels)
+- Reel 1 (Login-Sicherheit): CSP + Sicherheits-Header in `next.config.ts` (connect-src streng, neue externe Hosts dort eintragen), In-Memory-Rate-Limit `src/middleware.ts`, Passwortregeln + HIBP-Leak-Prüfung (`src/lib/password.ts`), „Passwort vergessen“, TOTP-2FA (`src/components/TwoFactor.tsx`) mit restriktiver RLS-Regel „2FA erzwingen“, `nachbereitung-save.ts --code=`.
+- Reel 2 (Rechtliches): `/datenschutz` mit Betreiberangaben aus Vercel-Variablen, „Konto endgültig löschen“ (`/api/konto/loeschen`, braucht `SUPABASE_SECRET_KEY`), Launch-Checkliste im README. Kein Cookie-Banner nötig (kein Tracking).
+- Nutzer will die App evtl. für Kommilitonen öffnen: nicht mehr als privat behandeln. env-Dateien + Git-Historie geprüft: nur öffentliche Werte.
+- Design-Fix Handy: Empfehlungen (`.tip`) umbrechen statt die Seite zu verbreitern; Kopfzeile mit `safe-area-inset-top`.
+- Tests: tsc, lint, build, voice-check, Playwright 18 Seiten × Handy/Laptop ohne Konsolen-/CSP-Fehler. PR #3, Commits `7d550b2`, `9445074`, `08cd5ab`.
 
 ### 2026-10-15 – PiravinLap2 (/firma: Echttest, /nachbereitung, Design)
 - Echttest mit langer PDF (Anatomie ZNS I, 12 MB) über `scripts/lecture-check.ts` (Modell erzwingen, Dauer, Schema, finishReason): 3.5 Flash Notizen 67 s / 6 Abschnitte, danach 429 beim Lernmaterial (Kontingent; App fällt auf Flash-Lite zurück); Flash-Lite Notizen+Lernmaterial je ~28 s, 15 Karten/15 Fragen. Kein abgeschnittenes JSON (finishReason STOP). YouTube-Videosuche echt getestet: 3 passende Videos.
@@ -40,11 +49,3 @@ keine
 - Neu: Folien automatisch aufbereiten ohne Claude-API (`src/lib/gemini.ts`): Kette Gemini 3.5 Flash → Flash-Lite → Flash (neuestes, langsam) → OpenRouter-Gratis (Nemotron, nur Folientext); Zeitlimit 3 Min.; Videos über YouTube-Data-API. Schlüssel (Gemini/OpenRouter/YouTube) pro Gerät im localStorage, eingetragen im Importer. Selbsttest `scripts/gemini-check.ts`.
 - Echte Läufe: `gemini-flash-latest` (= 3.8) hängt im Gratis-Kontingent oft minutenlang, Gemini-Google-Suche ist im Gratis-Kontingent gesperrt (429) → deshalb YouTube-API. Komplettlauf zuletzt ~2 Min.
 - Commits: `185ca36` Plugins, `86eac9e` graphify-Ignore, `397814b` Termine aus Text, `4ae2a25` Gemini-Automatik, `7495914` Ausweichkette + YouTube.
-
-### 2026-10-15 – PiravinsLap
-- Skill `/firma` gebaut: Opus plant und prüft, Haiku/Sonnet-Mitarbeiter (`.claude/agents/`) arbeiten.
-- Erster Firma-Lauf: Aufräumen von ungenutztem Code (4 tote Funktionen/Typen gelöscht, 22 interne Exporte privat, `public/icon.svg` entfernt). tsc, lint, build grün.
-- Skill `/close` gebaut (dieser Ablauf), `CLAUDE.md` und diese Übergabe angelegt.
-- Gedächtnis eingerichtet: Projektwissen im Repo (diese Datei + `CLAUDE.md`), Vorlieben in der lokalen Memory.
-- `/close` korrigiert: Die Sitzung läuft im Hintergrund beim Claude-Daemon, das Git-Bash-Fenster zeigt sie nur an. Das Skript findet das Fenster jetzt über den Sitzungstitel und schliesst es zusammen mit der Sitzung.
-- Commits: `961280a` Firma-Skill, `7641727` Aufräumen, `e8e8768` Gedächtnis + `/close`, `ef811cd` Übergabe, `536ee5e` Fenster-Fix.

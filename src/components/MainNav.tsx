@@ -27,6 +27,7 @@ const MORE = [
   { href: "/karten", label: "Karten" },
   { href: "/statistik", label: "Statistik" },
   { href: "/konto", label: "Konto", mobileOnly: true },
+  { href: "/datenschutz", label: "Datenschutz" },
 ];
 
 const isActive = (path: string, href: string) => (href === "/" ? path === "/" : path === href || path.startsWith(`${href}/`));

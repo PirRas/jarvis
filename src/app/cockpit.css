@@ -586,9 +586,14 @@
   color: var(--royal);
 }
 
+.tip {
+  flex-wrap: wrap; /* schmale Spalte/Handy: Aktion und Badge rutschen in eine zweite Zeile statt aus dem Rahmen */
+}
+
 .tip > span:first-child {
-  flex: 1;
+  flex: 1 1 calc(100% - 40px); /* Text eigene Zeile, Aktion + Badge gemeinsam darunter */
   min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .tip::after {
@@ -636,6 +641,7 @@
 
 .tip-action {
   flex: none;
+  margin-left: auto;
   font-weight: 700;
   font-size: var(--step--1);
   text-decoration: none;
