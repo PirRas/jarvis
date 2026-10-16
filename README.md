@@ -33,6 +33,7 @@ normalen App, der Mikrofon-Knopf unten rechts wieder zurück.
 - Braucht denselben kostenlosen Gemini-Schlüssel wie die Nachbereitung (Funktionsaufrufe, `src/lib/jarvisAgent.ts`,
   Werkzeuge in `src/lib/voiceTools.ts`). Spracherkennung und Stimme kommen vom Browser (Chrome/Edge am besten;
   wo es keine Spracherkennung gibt, z. B. Firefox, tippt man).
+- Eigene Stimme: Unter „Stimme“ auf `/jarvis` einen ElevenLabs-Schlüssel eintragen (elevenlabs.io → API Keys, Recht „Text to Speech“ genügt). Dann liest Jarvis mit der ElevenLabs-Stimme `2HRQZj4BjKZ0bVgy6Ikf` vor (Modell Flash v2.5, über `/api/tts`, andere Stimme per Vercel-Variable `ELEVENLABS_VOICE_ID`). Bei Fehlern oder leerem Kontingent übernimmt die Browser-Stimme.
 - Schalter: „Stimme“ (vorlesen), „Gespräch“ (nach der Antwort gleich wieder zuhören), „Beim Start“ (Sprachbildschirm beim Öffnen).
 - Termine aus dem Stundenplan oder aus Abos ändert Jarvis nicht, nur eigene. Vor dem Löschen fragt Jarvis nach.
 - Beim Öffnen begrüsst Jarvis dich mit deinem Vornamen (aus „Konto“ → Profil), sagt, was heute noch ansteht und welche Aufgaben bald fällig sind. Browser lesen erst nach der ersten Berührung vor: einmal tippen, Jarvis begrüsst dich und hört danach zu.

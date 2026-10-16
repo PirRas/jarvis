@@ -277,6 +277,15 @@ body:has(.jarvis-screen) .page {
 .jv-key p {
   margin: 0 0 8px;
 }
+.jv-eleven {
+  border-color: var(--card-line);
+}
+.jv-eleven summary {
+  cursor: pointer;
+}
+.jv-eleven[open] summary {
+  margin-bottom: 8px;
+}
 
 @media (prefers-reduced-motion: reduce) {
   .jarvis-screen * {

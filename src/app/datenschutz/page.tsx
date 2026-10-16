@@ -81,6 +81,11 @@ export default function DatenschutzPage() {
             übermittelt.
           </li>
           <li>
+            <strong>ElevenLabs:</strong> Nur wenn du einen eigenen Schlüssel einträgst: Die Antworten von Jarvis werden
+            zum Vorlesen an ElevenLabs (USA) übermittelt. Die Anfrage läuft über den Server dieser App, der weder Text
+            noch Schlüssel speichert.
+          </li>
+          <li>
             <strong>YouTube Data API:</strong> Suche nach Lernvideos.
           </li>
           <li>

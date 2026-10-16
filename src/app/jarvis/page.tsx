@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { loadSettings, saveTimer } from "@/lib/focus";
-import { getGeminiKey, setGeminiKey } from "@/lib/gemini";
+import { getElevenLabsKey, getGeminiKey, setElevenLabsKey, setGeminiKey } from "@/lib/gemini";
 import { briefing, userName } from "@/lib/briefing";
 import { greeting } from "@/lib/jarvis";
 import { askJarvis, type ChatTurn } from "@/lib/jarvisAgent";
@@ -55,6 +55,8 @@ export default function JarvisPage() {
   const [startOn, setStartOn] = useState(true);
   const [hasKey, setHasKey] = useState(true);
   const [keyInput, setKeyInput] = useState("");
+  const [elevenOn, setElevenOn] = useState(false);
+  const [elevenInput, setElevenInput] = useState("");
   const [mic, setMic] = useState(true);
   const history = useRef<ChatTurn[]>([]);
   const rec = useRef<{ stop(): void } | null>(null);
@@ -81,6 +83,7 @@ export default function JarvisPage() {
     setTalk(t);
     setStartOn(flag("jarvis-start", true));
     setHasKey(Boolean(getGeminiKey()));
+    setElevenOn(Boolean(getElevenLabsKey()));
     setMic(canListen());
     // Begrüssung mit Namen, Tagesprogramm und offenen Aufgaben, ohne dass man etwas sagen muss
     let offTap = () => {};
@@ -236,6 +239,12 @@ export default function JarvisPage() {
     setKeyInput("");
   }
 
+  function saveElevenKey(k: string) {
+    setElevenLabsKey(k);
+    setElevenOn(Boolean(k));
+    setElevenInput("");
+  }
+
   function submit(e: React.FormEvent) {
     e.preventDefault();
     const t = text;
@@ -290,6 +299,29 @@ export default function JarvisPage() {
           </div>
         </div>
       )}
+
+      <details className="jv-key jv-eleven">
+        <summary>Stimme: {elevenOn ? "ElevenLabs" : "Browser"}</summary>
+        <p>
+          Mit einem eigenen Schlüssel von{" "}
+          <a href="https://elevenlabs.io/app/settings/api-keys" target="_blank" rel="noreferrer">
+            elevenlabs.io
+          </a>{" "}
+          spricht Jarvis mit einer natürlicheren Stimme. Der Schlüssel bleibt in diesem Browser, der Text geht zum Vorlesen an
+          ElevenLabs. Klappt das nicht, liest die Browser-Stimme vor.
+        </p>
+        <div className="jv-row">
+          <input type="password" value={elevenInput} onChange={(e) => setElevenInput(e.target.value)} autoComplete="off" aria-label="ElevenLabs-Schlüssel" />
+          <button className="btn" onClick={() => saveElevenKey(elevenInput.trim())} disabled={!elevenInput.trim()}>
+            Speichern
+          </button>
+          {elevenOn && (
+            <button className="btn" onClick={() => saveElevenKey("")}>
+              Entfernen
+            </button>
+          )}
+        </div>
+      </details>
 
       <div className="jv-log" role="log">
         {log.map((m, i) => (

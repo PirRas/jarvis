@@ -49,6 +49,7 @@ const openRouterKey = stored("openrouter-key");
 export const { get: getGeminiKey, set: setGeminiKey } = geminiKey;
 export const { get: getOpenRouterKey, set: setOpenRouterKey } = openRouterKey;
 export const { get: getYouTubeKey, set: setYouTubeKey } = stored("youtube-key");
+export const { get: getElevenLabsKey, set: setElevenLabsKey } = stored("elevenlabs-key");
 
 /** Ein Chat-Schritt. pdf ist die Datei für Gemini; OpenRouter bekommt stattdessen den ausgelesenen Folientext. */
 type Msg = { role: "user" | "model"; text: string; pdf?: { base64: string; slides: () => Promise<SlideText[]> } };

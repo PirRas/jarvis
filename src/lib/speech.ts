@@ -1,4 +1,6 @@
-// Sprache im Browser: Spracherkennung (Web Speech API) und Vorlesen (speechSynthesis). Nur im Client nutzbar.
+// Sprache im Browser: Spracherkennung (Web Speech API) und Vorlesen (ElevenLabs mit eigenem Schlüssel, sonst speechSynthesis). Nur im Client nutzbar.
+
+import { getElevenLabsKey } from "@/lib/gemini";
 
 type Alt = { transcript: string };
 type Res = { isFinal: boolean; 0: Alt };
@@ -111,13 +113,53 @@ let gen = 0;
 // Chrome verliert sonst Äusserungen an die Speicherbereinigung, und onend kommt nie
 let alive: SpeechSynthesisUtterance[] = [];
 
+let audio: HTMLAudioElement | null = null;
+
+/** Liest mit der ElevenLabs-Stimme vor. false = nicht möglich (kein Schlüssel, Fehler), dann übernimmt die Browser-Stimme. */
+async function speakElevenLabs(text: string, mine: number): Promise<boolean> {
+  const key = getElevenLabsKey();
+  if (!key) return false;
+  try {
+    const res = await fetch("/api/tts", {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-elevenlabs-key": key },
+      body: JSON.stringify({ text }),
+    });
+    if (mine !== gen) return true; // inzwischen abgebrochen oder überholt
+    if (!res.ok) {
+      console.warn("ElevenLabs:", ((await res.json().catch(() => null)) as { error?: string } | null)?.error ?? res.status);
+      return false;
+    }
+    const url = URL.createObjectURL(await res.blob());
+    if (mine !== gen) return (URL.revokeObjectURL(url), true);
+    const a = new Audio(url);
+    audio = a;
+    try {
+      await a.play();
+    } catch {
+      URL.revokeObjectURL(url);
+      return false;
+    }
+    // pause kommt von stopSpeaking (ins Wort fallen)
+    await new Promise<void>((resolve) => (a.onended = a.onerror = a.onpause = () => resolve()));
+    URL.revokeObjectURL(url);
+    if (audio === a) audio = null;
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 /** Liest den Text laut vor. Lange Texte werden in Sätze geteilt (Chrome bricht lange Äusserungen ab). */
 export async function speak(text: string): Promise<void> {
-  const s = synth();
-  const parts = clean(text).match(/[^.!?:;\n]+[.!?:;]?/g)?.map((x) => x.trim()).filter(Boolean) ?? [];
-  if (!s || !parts.length) return;
   const mine = ++gen;
-  s.cancel();
+  audio?.pause();
+  synth()?.cancel();
+  const plain = clean(text);
+  if (!plain || (await speakElevenLabs(plain, mine)) || mine !== gen) return;
+  const s = synth();
+  const parts = plain.match(/[^.!?:;\n]+[.!?:;]?/g)?.map((x) => x.trim()).filter(Boolean) ?? [];
+  if (!s || !parts.length) return;
   await voicesReady();
   if (mine !== gen) return;
   const voice = pickVoice();
@@ -144,5 +186,6 @@ export async function speak(text: string): Promise<void> {
 
 export function stopSpeaking() {
   gen++;
+  audio?.pause();
   synth()?.cancel();
 }
