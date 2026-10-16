@@ -52,6 +52,14 @@ function LectureInner() {
   }, [load]);
   useRemoteRefresh(load);
 
+  // Formular steht oben, der Knopf unten: hinspringen und Titel fokussieren.
+  useEffect(() => {
+    if (!editing) return;
+    const form = document.getElementById("lecture-edit");
+    form?.scrollIntoView({ block: "start" });
+    form?.querySelector("input")?.focus({ preventScroll: true });
+  }, [editing]);
+
   if (lecture === undefined) return <p className="muted">Lade …</p>;
   if (lecture === null)
     return (
@@ -89,8 +97,9 @@ function LectureInner() {
 
       {editing ? (
         <form
+          id="lecture-edit"
           className="sheet"
-          style={{ padding: 20, display: "grid", gap: 12, maxWidth: 640 }}
+          style={{ padding: 20, display: "grid", gap: 12, maxWidth: 640, scrollMarginTop: 80 }}
           onSubmit={async (e) => {
             e.preventDefault();
             const f = new FormData(e.currentTarget);
