@@ -34,9 +34,9 @@ const LISTEN_ERRORS: Record<string, string> = {
  */
 export function appListen(): { result: Promise<string>; stop(): void } {
   let stopped = false;
-  const plugin = import("@capacitor-community/speech-recognition").then((m) => m.SpeechRecognition);
+  const plugin = import("@capacitor-community/speech-recognition"); // Modul, nicht Plugin (siehe notifications)
   const run = async () => {
-    const sr = await plugin;
+    const sr = (await plugin).SpeechRecognition;
     if (!(await sr.available()).available) throw new Error("Auf diesem Handy ist keine Spracherkennung verfügbar.");
     let perm = await sr.checkPermissions();
     if (perm.speechRecognition !== "granted") perm = await sr.requestPermissions();
@@ -61,7 +61,7 @@ export function appListen(): { result: Promise<string>; stop(): void } {
   let timer: ReturnType<typeof setTimeout> | undefined;
   const timeout = new Promise<string>((_, reject) => {
     timer = setTimeout(() => {
-      plugin.then((sr) => sr.stop()).catch(() => {});
+      plugin.then((m) => m.SpeechRecognition.stop()).catch(() => {});
       reject(new Error("Die Spracherkennung antwortet nicht. Versuch es nochmal."));
     }, 30_000);
   });
@@ -70,7 +70,7 @@ export function appListen(): { result: Promise<string>; stop(): void } {
     result,
     stop: () => {
       stopped = true;
-      plugin.then((sr) => sr.stop()).catch(() => {});
+      plugin.then((m) => m.SpeechRecognition.stop()).catch(() => {});
     },
   };
 }
@@ -123,7 +123,9 @@ const BREAK_ID = 3;
 // Android erlaubt nur eine begrenzte Zahl geplanter Alarme pro App; die nächsten reichen, beim Öffnen wird nachgeplant.
 const MAX_SCHEDULED = 60;
 
-const notifications = () => import("@capacitor/local-notifications").then((m) => m.LocalNotifications);
+// Achtung: Plugin-Objekte nie aus einem Promise zurückgeben (await/then). Der Capacitor-Proxy hat scheinbar eine
+// then-Methode, das Promise würde nie fertig. Deshalb immer das Modul laden und das Plugin daraus nehmen.
+const notifications = () => import("@capacitor/local-notifications");
 
 // Planen, Löschen und Ausschalten nacheinander, damit sich zwei Läufe nicht gegenseitig Meldungen löschen
 let queue: Promise<unknown> = Promise.resolve();
@@ -153,18 +155,18 @@ export function notificationId(key: string): number {
 }
 
 async function ensureChannel() {
-  const ln = await notifications();
+  const { LocalNotifications: ln } = await notifications();
   await ln.createChannel({ id: CHANNEL, name: "Erinnerungen", description: "Aufgaben, Prüfungen, Lektionen und Nachbereitung", importance: 4, visibility: 1 });
 }
 
 export async function appNotifyState(): Promise<"denied" | "off" | "on"> {
-  const p = await (await notifications()).checkPermissions();
+  const p = await (await notifications()).LocalNotifications.checkPermissions();
   if (p.display === "denied") return "denied";
   return p.display === "granted" && flagOn() ? "on" : "off";
 }
 
 export async function appEnableNotify() {
-  const ln = await notifications();
+  const { LocalNotifications: ln } = await notifications();
   let p = await ln.checkPermissions();
   if (p.display !== "granted") p = await ln.requestPermissions();
   if (p.display !== "granted") throw new Error("Benachrichtigungen wurden nicht erlaubt. Du kannst sie in den App-Einstellungen von Jarvis einschalten.");
@@ -186,7 +188,7 @@ export function appDisableNotify() {
     // ohne Speicher gilt ohnehin "aus"
   }
   return serial(async () => {
-    const ln = await notifications();
+    const { LocalNotifications: ln } = await notifications();
     const { notifications: pending } = await ln.getPending();
     // Fokus- und Pausenmeldungen bleiben
     const old = pending.filter((n) => n.id > BREAK_ID);
@@ -198,20 +200,20 @@ export function appDisableNotify() {
 /** Pünktliche Alarme (Android 12+: «Wecker und Erinnerungen»). Ohne sie kommen Erinnerungen evtl. ein paar Minuten später. */
 export async function appExactAllowed(): Promise<boolean> {
   try {
-    return (await (await notifications()).checkExactNotificationSetting()).exact_alarm === "granted";
+    return (await (await notifications()).LocalNotifications.checkExactNotificationSetting()).exact_alarm === "granted";
   } catch {
     return false;
   }
 }
 
 export async function appAllowExact() {
-  await (await notifications()).changeExactNotificationSetting();
+  await (await notifications()).LocalNotifications.changeExactNotificationSetting();
   lastNativeHash = ""; // beim nächsten Abgleich pünktlich neu planen
 }
 
 export async function appTestNotify() {
   await ensureChannel();
-  await (await notifications()).schedule({
+  await (await notifications()).LocalNotifications.schedule({
     notifications: [
       {
         id: TEST_ID,
@@ -237,7 +239,7 @@ export function appScheduleFocus(alerts: FocusAlert[], now = Date.now()) {
 }
 
 async function scheduleFocus(alerts: FocusAlert[], now: number) {
-  const ln = await notifications();
+  const { LocalNotifications: ln } = await notifications();
   // Nur noch geplante löschen; eine gerade angezeigte Meldung bleibt stehen
   const { notifications: pending } = await ln.getPending();
   const old = pending.filter((n) => n.id === FOCUS_ID || n.id === BREAK_ID);
@@ -260,12 +262,12 @@ async function scheduleFocus(alerts: FocusAlert[], now: number) {
 }
 
 export async function appNotifyPermission(): Promise<"granted" | "denied" | "default"> {
-  const p = (await (await notifications()).checkPermissions()).display;
+  const p = (await (await notifications()).LocalNotifications.checkPermissions()).display;
   return p === "granted" ? "granted" : p === "denied" ? "denied" : "default";
 }
 
 export async function appRequestNotifyPermission(): Promise<"granted" | "denied" | "default"> {
-  const p = (await (await notifications()).requestPermissions()).display;
+  const p = (await (await notifications()).LocalNotifications.requestPermissions()).display;
   return p === "granted" ? "granted" : p === "denied" ? "denied" : "default";
 }
 
@@ -278,7 +280,7 @@ export function appScheduleReminders(reminders: Reminder[], now = Date.now()) {
 
 async function scheduleReminders(reminders: Reminder[], now: number) {
   if (!flagOn()) return;
-  const ln = await notifications();
+  const { LocalNotifications: ln } = await notifications();
   if ((await ln.checkPermissions()).display !== "granted") return;
   const next = reminders.filter((r) => r.dueAt > now + 5000).slice(0, MAX_SCHEDULED);
   const hash = JSON.stringify(next.map((r) => [r.key, r.dueAt, r.title, r.body, r.url]));
