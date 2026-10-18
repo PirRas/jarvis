@@ -2,7 +2,7 @@
 // PubChem kennt vor allem englische Namen und INN; einige deutsche Namen werden vorher übersetzt.
 
 const BASE = "https://pubchem.ncbi.nlm.nih.gov/rest/pug";
-const PROPS = "MolecularFormula,MolecularWeight,IUPACName,SMILES,ConnectivitySMILES,XLogP,HBondDonorCount,HBondAcceptorCount,TPSA";
+const PROPS = "MolecularFormula,MolecularWeight,IUPACName,SMILES,ConnectivitySMILES,XLogP,HBondDonorCount,HBondAcceptorCount,TPSA,RotatableBondCount";
 
 export type Compound = {
   cid: number;
@@ -15,6 +15,7 @@ export type Compound = {
   hbd: number;
   hba: number;
   tpsa: number | null;
+  rotb: number | null;
   synonyms: string[];
   image: string;
   url: string;
@@ -77,6 +78,7 @@ type PropRow = {
   HBondDonorCount?: number;
   HBondAcceptorCount?: number;
   TPSA?: number;
+  RotatableBondCount?: number;
 };
 
 export async function lookupCompound(name: string): Promise<Compound | null> {
@@ -103,6 +105,7 @@ export async function lookupCompound(name: string): Promise<Compound | null> {
       hbd: p.HBondDonorCount ?? 0,
       hba: p.HBondAcceptorCount ?? 0,
       tpsa: typeof p.TPSA === "number" ? p.TPSA : null,
+      rotb: typeof p.RotatableBondCount === "number" ? p.RotatableBondCount : null,
       synonyms,
       image: `${BASE}/compound/cid/${p.CID}/PNG?image_size=300x300`,
       url: `https://pubchem.ncbi.nlm.nih.gov/compound/${p.CID}`,
@@ -123,6 +126,16 @@ export function lipinski(c: Compound) {
   ];
   const violations = rules.filter((r) => !r.ok).length;
   return { rules, violations, passes: violations <= 1 };
+}
+
+/** Veber-Regeln (wie im Skill medchem): Flexibilität und polare Oberfläche, ergänzt Lipinski. */
+export function veber(c: Compound) {
+  const rules: LipinskiRule[] = [
+    { label: "Drehbare Bindungen ≤ 10", value: c.rotb === null ? "unbekannt" : String(c.rotb), ok: c.rotb === null || c.rotb <= 10 },
+    { label: "Polare Oberfläche (TPSA) ≤ 140 Å²", value: c.tpsa === null ? "unbekannt" : `${c.tpsa} Å²`, ok: c.tpsa === null || c.tpsa <= 140 },
+  ];
+  // TPSA bis etwa 90 Å² gilt als Hinweis auf ZNS-Gängigkeit (Blut-Hirn-Schranke)
+  return { rules, passes: rules.every((r) => r.ok), cns: c.tpsa === null ? null : c.tpsa <= 90 };
 }
 
 /** Links zu Schweizer Arzneimittel-Informationen. */

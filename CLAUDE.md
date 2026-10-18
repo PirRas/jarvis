@@ -24,6 +24,7 @@ Persönliches Uni-Cockpit (Pharmazeutische Wissenschaften, Uni Basel). Details z
 - Bei Änderungen an `src/lib/gemini.ts` (KI-Ausweichkette): `npx tsx scripts/gemini-check.ts`.
 - Bei Änderungen am Sprachassistenten (`src/lib/voiceTools.ts`, `src/lib/jarvisAgent.ts`): `npx tsx scripts/voice-check.ts`.
 - Bei Änderungen am Nachbereitungsplan (`src/lib/prepPlan.ts`, `src/lib/lernplan.ts`) oder seinen Sprachwerkzeugen: `TZ=Europe/Zurich npx tsx scripts/prep-check.ts`.
+- Bei Änderungen an `src/lib/pharma/pk.ts` oder `literature.ts`: `npx tsx scripts/pk-check.ts`.
 - `next dev`/`build` bricht mit `EINVAL readlink … .next` ab (OneDrive-Ordner): `rm -rf .next`, dann neu starten.
 - Design: Das futuristische Jarvis-HUD (Orb, Ring, Glow, Animationen) ist gewollt, nicht wegdesignen. Regeln in `DESIGN.md` §11.
 
@@ -39,6 +40,11 @@ Persönliches Uni-Cockpit (Pharmazeutische Wissenschaften, Uni Basel). Details z
 
 - Agenten aus `.claude/agents/` gibt es nur, wenn Claude im Ordner `jarvis` gestartet wurde; sonst `general-purpose` mit `model: haiku/sonnet`.
 - KI-Aufbereitung kostenlos halten: keine bezahlten APIs (auch keine Claude-API). Gratis-Kette steht in `src/lib/gemini.ts`.
+
+## Wissenschafts-Skills (K-Dense Scientific Agent Skills)
+- Installiert in `.agents/skills` (Links in `.claude/skills`, nicht im Git). Neuer Laptop: `npx skills experimental_install` liest `skills-lock.json`.
+- Python-Werkzeuge für Claude, nicht für den Browser. In die App übernommen (TypeScript, `/pharmazie`): PK-Rechner aus `pkpd-modeling` (`src/lib/pharma/pk.ts`), Veber/ZNS-Regel aus `medchem` (`pubchem.ts`), Literatursuche + Vancouver-Zitat aus `paper-lookup`/`citation-management` (`literature.ts`, Europe PMC).
+- Fürs Studium zuerst diese nehmen: `pkpd-modeling` (PK/PD, NCA, Dosierung), `medchem` + `rdkit` (Struktur, Wirkstoffähnlichkeit), `database-lookup` (PubChem, ChEMBL, DrugBank-artige Abfragen), `paper-lookup` / `literature-review` / `citation-management` (Literatur, Zitate), `analytical-method-validation` + `uncertainty-and-units` (Analytik-Praktikum, Messunsicherheit), `statistical-analysis` (Laborauswertung), `scientific-writing` / `scientific-schematics` (Berichte, Abbildungen), `pathway-enrichment` / `bioservices` (Biochemie, Pathways). Die übrigen (Astronomie, Quanten, Genomik usw.) braucht das Studium kaum.
 
 ## Skills
 - `/firma <aufgabe>`: Opus als Chef, Mitarbeiter-Agenten in `.claude/agents/` (Haiku/Sonnet).

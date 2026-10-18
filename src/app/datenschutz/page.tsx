@@ -91,6 +91,9 @@ export default function DatenschutzPage() {
             <strong>PubChem:</strong> Stoffsuche. Der gesuchte Stoff wird übermittelt.
           </li>
           <li>
+            <strong>Europe PMC (EMBL-EBI):</strong> Literatursuche. Die Suchbegriffe werden übermittelt.
+          </li>
+          <li>
             <strong>Have I Been Pwned:</strong> Beim Wählen eines neuen Passworts wird geprüft, ob es in bekannten
             Datenlecks vorkommt. Übermittelt werden nur die ersten 5{" "}Zeichen seines Hashwerts, nie das Passwort selbst.
           </li>

@@ -16,6 +16,13 @@ graphify-out/
 .taste-skill/
 .playwright-cli/
 
+# Scientific Agent Skills (K-Dense): lokal installiert, wiederherstellen mit `npx skills experimental_install` (liest skills-lock.json)
+/.agents/
+/.claude/skills/*
+!/.claude/skills/close/
+!/.claude/skills/firma/
+!/.claude/skills/nachbereitung/
+
 # Android-Signierschlüssel gehören nie ins Repo (siehe ANDROID.md)
 *.jks
 *.keystore

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { infoLinks, lipinski, lookupCompound, type Compound } from "@/lib/pharma/pubchem";
+import { infoLinks, lipinski, lookupCompound, veber, type Compound } from "@/lib/pharma/pubchem";
 
 const EXAMPLES = ["Paracetamol", "Ibuprofen", "Acetylsalicylsäure", "Coffein", "Metformin"];
 
@@ -32,6 +32,7 @@ export function CompoundLookup() {
 
   const c = result?.compound;
   const lip = c ? lipinski(c) : null;
+  const veb = c ? veber(c) : null;
 
   return (
     <div className="ph-stack">
@@ -107,6 +108,24 @@ export function CompoundLookup() {
                 ? `${lip.violations === 0 ? "Kein Verstoss" : "Ein Verstoss"}: Eine orale Bioverfügbarkeit ist nach dieser Faustregel plausibel.`
                 : `${lip.violations} Verstösse: Nach der Faustregel ist eine orale Aufnahme erschwert (Ausnahmen z. B. Ciclosporin oder Substrate von Transportern).`}
             </p>
+
+            {veb && (
+              <>
+                <h3 className="ph-sub">Veber-Regeln</h3>
+                <ul className="ph-rules">
+                  {veb.rules.map((r) => (
+                    <li key={r.label} className={r.ok ? "is-ok" : "is-bad"}>
+                      <span>{r.ok ? "ja" : "nein"}</span> · {r.label}: <strong>{r.value}</strong>
+                    </li>
+                  ))}
+                </ul>
+                <p className="small muted">
+                  {veb.passes ? "Erfüllt: gute orale Bioverfügbarkeit wahrscheinlich." : "Nicht erfüllt: eher zu flexibel oder zu polar für eine gute Resorption."}
+                  {veb.cns === true && " TPSA bis 90 Å²: kann die Blut-Hirn-Schranke eher passieren."}
+                  {veb.cns === false && " TPSA über 90 Å²: gelangt eher schlecht ins ZNS."}
+                </p>
+              </>
+            )}
 
             {c.synonyms.length > 0 && (
               <>

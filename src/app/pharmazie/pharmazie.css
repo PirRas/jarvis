@@ -97,6 +97,7 @@
 }
 .ph-calc-grid .panel {
   display: grid;
+  grid-template-columns: minmax(0, 1fr); /* sonst macht breiter Inhalt (SVG) die Spalte breiter als das Handy */
   gap: 12px;
 }
 .ph-calc-grid .panel > p {
@@ -115,6 +116,7 @@
 .ph-unit input {
   flex: 1 1 auto;
   min-width: 0;
+  width: 0; /* Eigenbreite der Eingabe (≈ 20 Zeichen) soll das Feld auf dem Handy nicht verbreitern */
 }
 .ph-unit select {
   flex: none;
@@ -129,6 +131,52 @@
 .ph-result-list strong {
   color: var(--royal);
 }
+.ph-wide {
+  grid-column: 1 / -1;
+}
+.ph-chart {
+  width: 100%;
+  max-width: 640px;
+  height: auto;
+}
+.ph-chart-line {
+  fill: none;
+  stroke: var(--royal);
+  stroke-width: 2;
+}
+.ph-chart-avg {
+  stroke: var(--ink-soft);
+  stroke-dasharray: 4 4;
+}
+.ph-chart-band {
+  fill: var(--green);
+  opacity: 0.15;
+}
+.ph-chart-axis {
+  stroke: var(--rule);
+}
+.ph-chart-text {
+  fill: var(--ink-soft);
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Literatur */
+.ph-papers {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 16px;
+}
+.ph-papers h3 {
+  margin: 0 0 4px;
+  font-size: var(--step-0);
+}
+.ph-papers p {
+  margin: 0 0 8px;
+}
+
 .ph-table {
   border-collapse: collapse;
   width: 100%;

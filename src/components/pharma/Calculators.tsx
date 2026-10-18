@@ -18,6 +18,7 @@ import {
   type VolumeUnit,
 } from "@/lib/pharma/calculators";
 import { molarMass } from "@/lib/pharma/formula";
+import { pkCurve, pkSteadyState } from "@/lib/pharma/pk";
 
 /** "0,5" und "0.5" akzeptieren; leer → null. */
 function num(s: string): number | null {
@@ -43,7 +44,122 @@ export function Calculators() {
       <DilutionCalc />
       <ConcentrationCalc />
       <PhCalc />
+      <PkCalc />
     </div>
+  );
+}
+
+// ---------- Pharmakokinetik ----------
+
+function PkCalc() {
+  const [v, setV] = useState({ dose: "500", tau: "8", tHalf: "6", vd: "50", f: "90", lo: "", hi: "" });
+  const set = (k: keyof typeof v) => (e: React.ChangeEvent<HTMLInputElement>) => setV({ ...v, [k]: e.target.value });
+  const input = { dose: num(v.dose), tau: num(v.tau), tHalf: num(v.tHalf), vd: num(v.vd), f: (num(v.f) ?? NaN) / 100 };
+  const res = attempt(() => {
+    if (Object.values(input).some((x) => x === null || Number.isNaN(x))) throw new Error("Bitte alle Felder mit Zahlen ausfüllen.");
+    const p = input as { dose: number; tau: number; tHalf: number; vd: number; f: number };
+    const s = pkSteadyState(p);
+    // bis knapp über den Steady State (5 t½), höchstens 30 Gaben
+    const doses = Math.min(30, Math.max(3, Math.ceil((5 * p.tHalf) / p.tau) + 1));
+    return { s, curve: pkCurve(p, doses) };
+  });
+  const lo = num(v.lo);
+  const hi = num(v.hi);
+  const fields: [keyof typeof v, string][] = [
+    ["dose", "Dosis (mg)"],
+    ["tau", "Dosierintervall τ (h)"],
+    ["tHalf", "Halbwertszeit t½ (h)"],
+    ["vd", "Verteilungsvolumen Vd (L)"],
+    ["f", "Bioverfügbarkeit F (%)"],
+  ];
+  return (
+    <section className="sheet panel ph-wide">
+      <h2 className="panel-title">Pharmakokinetik</h2>
+      <p className="muted small">
+        Mehrfachgabe im Ein-Kompartiment-Modell, Aufnahme sofort, Elimination 1. Ordnung. Zum Verstehen von Kumulation und Steady State,
+        nicht zum Dosieren.
+      </p>
+      <div className="form-grid ph-two">
+        {fields.map(([k, label]) => (
+          <label key={k} className="field">
+            <span>{label}</span>
+            <input inputMode="decimal" value={v[k]} onChange={set(k)} />
+          </label>
+        ))}
+        <label className="field">
+          <span>Therapeutischer Bereich (mg/L, optional)</span>
+          <div className="ph-unit">
+            <input inputMode="decimal" value={v.lo} onChange={set("lo")} placeholder="von" aria-label="Untergrenze" />
+            <input inputMode="decimal" value={v.hi} onChange={set("hi")} placeholder="bis" aria-label="Obergrenze" />
+          </div>
+        </label>
+      </div>
+      {res && !res.ok && <p className="error small">{res.error}</p>}
+      {res?.ok && (
+        <>
+          <dl className="ph-dl ph-result-list">
+            <dt>Eliminationskonstante k</dt>
+            <dd>{fmtNum(res.value.s.k)} h⁻¹</dd>
+            <dt>Clearance CL = k · Vd</dt>
+            <dd>
+              {fmtNum(res.value.s.cl)} L/h = {fmtNum((res.value.s.cl * 1000) / 60)} mL/min
+            </dd>
+            <dt>Css, mittel = F · D / (CL · τ)</dt>
+            <dd>
+              <strong>{fmtNum(res.value.s.cAvg)} mg/L</strong>
+            </dd>
+            <dt>Css, max / min</dt>
+            <dd>
+              {fmtNum(res.value.s.cMax)} / {fmtNum(res.value.s.cMin)} mg/L
+            </dd>
+            <dt>Kumulationsfaktor R</dt>
+            <dd>{fmtNum(res.value.s.r, 3)}</dd>
+            <dt>90 % Steady State nach</dt>
+            <dd>
+              {fmtNum(res.value.s.t90, 3)} h (≈ 3.3 · t½)
+            </dd>
+            <dt>Initialdosis für sofort Css, max</dt>
+            <dd>{fmtNum(res.value.s.loadingDose)} mg</dd>
+          </dl>
+          <PkChart curve={res.value.curve} cAvg={res.value.s.cAvg} lo={lo} hi={hi} />
+        </>
+      )}
+    </section>
+  );
+}
+
+function PkChart({ curve, cAvg, lo, hi }: { curve: { t: number; c: number }[]; cAvg: number; lo: number | null; hi: number | null }) {
+  const W = 480;
+  const H = 200;
+  const pad = { l: 48, r: 8, t: 8, b: 30 };
+  const tMax = curve.at(-1)!.t;
+  const range = [lo, hi].filter((x): x is number => x !== null && x > 0);
+  const cMax = Math.max(...curve.map((p) => p.c), ...range) * 1.1;
+  const x = (t: number) => pad.l + (t / tMax) * (W - pad.l - pad.r);
+  const y = (c: number) => H - pad.b - (c / cMax) * (H - pad.t - pad.b);
+  const path = curve.map((p, i) => `${i ? "L" : "M"}${x(p.t).toFixed(1)},${y(p.c).toFixed(1)}`).join("");
+  const ticks = [0, 0.25, 0.5, 0.75, 1].map((f) => f * tMax);
+  return (
+    <svg className="ph-chart" viewBox={`0 0 ${W} ${H}`} role="img" aria-label="Konzentrations-Zeit-Verlauf bei Mehrfachgabe">
+      {lo !== null && hi !== null && lo < hi && (
+        <rect x={pad.l} width={W - pad.l - pad.r} y={y(hi)} height={y(lo) - y(hi)} className="ph-chart-band" />
+      )}
+      <line x1={pad.l} x2={W - pad.r} y1={y(cAvg)} y2={y(cAvg)} className="ph-chart-avg" />
+      <path d={path} className="ph-chart-line" />
+      <line x1={pad.l} x2={pad.l} y1={pad.t} y2={H - pad.b} className="ph-chart-axis" />
+      <line x1={pad.l} x2={W - pad.r} y1={H - pad.b} y2={H - pad.b} className="ph-chart-axis" />
+      {ticks.map((t, i) => (
+        <text key={t} x={x(t)} y={H - 8} textAnchor={i === 0 ? "start" : i === ticks.length - 1 ? "end" : "middle"} className="ph-chart-text">
+          {fmtNum(t, 3)} h
+        </text>
+      ))}
+      <text x={pad.l - 6} y={y(cAvg) + 4} textAnchor="end" className="ph-chart-text">
+        {fmtNum(cAvg, 3)}
+      </text>
+      <text x={pad.l - 6} y={pad.t + 10} textAnchor="end" className="ph-chart-text">
+        mg/L
+      </text>
+    </svg>
   );
 }
 
