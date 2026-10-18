@@ -21,7 +21,16 @@ Android-Signierschlüssel einrichten (nur am Laptop möglich): `git pull`, dann 
 - Mobile Push für Claude-Benachrichtigungen ist in `/config` aus.
 - Animationen (DESIGN.md §11) nur bei 390 px und 1440 px geprüft, nicht auf Tablet und nicht auf schwachen Handys (Partikel-Canvas, Wireframe, Hologramm-Schimmer). Bekannt: Checkbox-Ring läuft beim Laden auch bei schon erledigten Aufgaben; verschachtelte `.sheet` blenden doppelt ein.
 
+- Scientific Skills (Pharmazie): Literatursuche und PK-Rechner nicht als Jarvis-Sprachwerkzeug (`voiceTools.ts`) angebunden. PK-Rechner nur i.v.-Bolus/sofortige Aufnahme (keine orale Resorption mit ka, keine Infusion). `npm install` auf PiravinLap2 ändert `package-lock.json` (npm-Version, optionale emnapi-Pakete); bewusst nicht committet.
+
 ## Letzte Sitzungen
+
+### 2026-10-18 – PiravinLap2 (/firma: Scientific Agent Skills in Jarvis)
+- K-Dense Scientific Agent Skills (175, `npx skills`) liegen in `.agents/skills` mit Links in `.claude/skills`, beides ignoriert; `skills-lock.json` eingecheckt (`npx skills experimental_install`). Auswahl fürs Pharmaziestudium in CLAUDE.md.
+- In `/pharmazie` übernommen: PK-Rechner Mehrfachgabe mit SVG-Kurve und therapeutischem Bereich (`src/lib/pharma/pk.ts`, nach `pkpd-modeling`), Veber-Regeln + ZNS-Hinweis im Steckbrief (nach `medchem`), Reiter «Literatur» mit Europe PMC (Titel/Abstract, Reviews, frei lesbar, Sortierung) und Vancouver-Zitat (`literature.ts`).
+- CSP `connect-src` + `/datenschutz` um `www.ebi.ac.uk` ergänzt. Selbsttest `scripts/pk-check.ts`.
+- Review durch Sonnet: Sortierung «meist zitiert» brachte fachfremde Volltext-Treffer → Suche auf Titel/Abstract. Browser-Test 390/1440 px: Handy-Überlauf (Eingabe-Eigenbreite in `.ph-unit`, Grid ohne `minmax(0,1fr)`) und HTML-Reste in Titeln behoben.
+- Tests: tsc, lint, build, pk-check, Playwright Handy+Laptop ohne Konsolen-/CSP-Fehler. Commit `5d6aa7c`.
 
 ### 2026-10-16 – Cloud-Sitzung (/firma: Android-App)
 - Capacitor 8 (`android/`, `capacitor.config.ts`, App-ID `ch.jarvis.app`) lädt die Vercel-Seite; native Teile in `src/lib/native.ts` (Spracherkennung, TTS, lokale Erinnerungen aus `buildReminders`, Fokus-Ende vorausgeplant, Teilen über `cache/share`, Zurück-Taste in `NativeShell.tsx`). Website lädt keinen Capacitor-Code (nur dynamische Imports hinter `isNativeApp()`).
@@ -50,15 +59,3 @@ Android-Signierschlüssel einrichten (nur am Laptop möglich): `git pull`, dann 
 - Design-Fix Handy: Empfehlungen (`.tip`) umbrechen statt die Seite zu verbreitern; Kopfzeile mit `safe-area-inset-top`.
 - Tests: tsc, lint, build, voice-check, Playwright 18 Seiten × Handy/Laptop ohne Konsolen-/CSP-Fehler. PR #3, Commits `7d550b2`, `9445074`, `08cd5ab`.
 
-### 2026-10-15 – PiravinLap2 (/firma: Echttest, /nachbereitung, Design)
-- Echttest mit langer PDF (Anatomie ZNS I, 12 MB) über `scripts/lecture-check.ts` (Modell erzwingen, Dauer, Schema, finishReason): 3.5 Flash Notizen 67 s / 6 Abschnitte, danach 429 beim Lernmaterial (Kontingent; App fällt auf Flash-Lite zurück); Flash-Lite Notizen+Lernmaterial je ~28 s, 15 Karten/15 Fragen. Kein abgeschnittenes JSON (finishReason STOP). YouTube-Videosuche echt getestet: 3 passende Videos.
-- Skill `/nachbereitung <pdf>` + `scripts/nachbereitung-save.ts` (Zod-Prüfung, `--dry-run`, `--courses`, Login E-Mail/Passwort aus `.env.local`, schreibt `sync_items` wie `sync.ts`). Importer/db nutzen dafür gemeinsames `src/lib/lectureRecords.ts`.
-- DESIGN.md §10 Schritte 1–6: Panel-Titel/Feed-Badges, `RingGauge`/Lernmonitor (Start + Statistik), Kopfzeile mit Uhr + Profil-Pille (`TopbarInfo`), Startseite 3 Spalten ab 1100 px, Desktop-Sidebar ab 641 px mit Aufgaben-Zähler, Systemübersicht + KI-Status (`SystemStatus`).
-- Browser-Test (Playwright, 16 Seiten × Handy/Tablet/Laptop): keine Konsolenfehler, kein horizontales Scrollen; Fix: Hero-Spalte war 320 px zu hoch, Ringe in einer Reihe.
-
-### 2026-10-15 – Cloud-Sitzung (vm, Serientermine + Begrüssung)
-- Kalender: wöchentliche Serien (`CalEvent.repeat`, entfaltet in `occurrences()` in `planner.ts`, Schlüssel `event:<id>:<datum>`), im Editor „Jede Woche wiederholen“ + „bis“; per Sprache `termin_anlegen` mit `woechentlich`/`wiederholen_bis`. Löschen/Ändern trifft immer die ganze Serie (`skip` existiert im Typ, wird aber noch nirgends gesetzt).
-- Jarvis begrüsst beim Öffnen mit Vornamen (Profil in „Konto“), Tagesprogramm und bald fälligen Aufgaben (`src/lib/briefing.ts`, ohne KI-Aufruf). Vorlesen erst nach erster Berührung (Browser-Regel); erstes Tippen auf den Reaktor: Begrüssung, danach zuhören.
-- Stimme: männliche, „Natural/Online“-Stimmen bevorzugt (`speech.ts`), sonst tiefere Tonlage. Name geht auch in den Systemtext.
-- Tests: `voice-check.ts` (Serien inkl. Zeitumstellung, Begrüssung), Browser-Test mit simuliertem Mikrofon/Gemini.
-- Commit: `15bc0d5`.
