@@ -4,7 +4,9 @@ Wird von `/close` gepflegt. Am Anfang jeder Sitzung lesen (siehe CLAUDE.md).
 
 ## Nächste Aufgabe
 
-Android-Signierschlüssel einrichten (nur am Laptop möglich): `git pull`, dann `scripts/android-keystore.sh` ausführen (Passwort mind. 12 Zeichen, im Passwortmanager sichern). Das Skript setzt die vier Secrets `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD` per `gh` (vorher `gh auth login`), sonst von Hand in GitHub → Settings → Secrets → Actions. Danach Workflow «Android-App» auf `main` von Hand starten, prüfen, dass der Lauf ohne Test-Schlüssel-Warnung signiert, alte App einmal deinstallieren und die neue `jarvis.apk` aus dem Release `android-latest` installieren. Ab dann gehen Updates ohne Deinstallation. Details: `ANDROID.md` → «Signierschlüssel einrichten».
+Schnelleren Sprachchat (PR #8) im Alltag prüfen: auf dem Handy (App und Browser) und am Laptop ein paar typische Bitten sprechen («Was steht heute an?», «Trag morgen um 14 Uhr … ein», «Verschieb den Termin …»). Abnahme: Jarvis beginnt nach wenigen Sekunden zu sprechen, trägt korrekt ein, trennt Sätze sauber (keine Pausen mitten in «20. Oktober» oder «Prof. Meier»). Wenn zu dumm: in `src/lib/gemini.ts` bei `VOICE_MODELS` `thinking` von `low` auf `medium` stellen; wenn noch zu langsam: Flash-Lite (`minimal`) an die erste Stelle. Nächster grosser Schritt wäre die Gemini Live API (Audio direkt per WebSocket, eigene Google-Stimme, Unterbrechen mitten im Satz); dafür `superpowers:brainstorming`, Android-Mikrofon über native.ts klären.
+
+Danach (nur am Laptop): Android-Signierschlüssel einrichten: `git pull`, dann `scripts/android-keystore.sh` ausführen (Passwort mind. 12 Zeichen, im Passwortmanager sichern). Das Skript setzt die vier Secrets `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD` per `gh` (vorher `gh auth login`), sonst von Hand in GitHub → Settings → Secrets → Actions. Danach Workflow «Android-App» auf `main` von Hand starten, prüfen, dass der Lauf ohne Test-Schlüssel-Warnung signiert, alte App einmal deinstallieren und die neue `jarvis.apk` aus dem Release `android-latest` installieren. Details: `ANDROID.md` → «Signierschlüssel einrichten».
 
 ## Offen
 
@@ -21,9 +23,17 @@ Android-Signierschlüssel einrichten (nur am Laptop möglich): `git pull`, dann 
 - Mobile Push für Claude-Benachrichtigungen ist in `/config` aus.
 - Animationen (DESIGN.md §11) nur bei 390 px und 1440 px geprüft, nicht auf Tablet und nicht auf schwachen Handys (Partikel-Canvas, Wireframe, Hologramm-Schimmer). Bekannt: Checkbox-Ring läuft beim Laden auch bei schon erledigten Aufgaben; verschachtelte `.sheet` blenden doppelt ein.
 
+- Sprachchat (PR #8) nur mit simuliertem Gemini getestet; `gemini-3.6-flash` als Modell-ID nach Doku angenommen (fehlt sie, springt die Kette weiter).
 - Scientific Skills (Pharmazie): Literatursuche und PK-Rechner nicht als Jarvis-Sprachwerkzeug (`voiceTools.ts`) angebunden. PK-Rechner nur i.v.-Bolus/sofortige Aufnahme (keine orale Resorption mit ka, keine Infusion). `npm install` auf PiravinLap2 ändert `package-lock.json` (npm-Version, optionale emnapi-Pakete); bewusst nicht committet.
 
 ## Letzte Sitzungen
+
+### 2026-10-19 – Cloud-Sitzung (vm, schnellerer Sprachchat, PR #8)
+- Gemini im Sprachchat gestreamt (`streamGenerateContent?alt=sse`, `chatTurn` in `gemini.ts`); Vorlesen beginnt beim ersten fertigen Satz (`speaker()` in `speech.ts`, Browser + Android), Text erscheint live.
+- Eigene Modellkette `VOICE_MODELS`: 3.6 Flash mit `thinkingLevel` low, Flash-Lite minimal, Flash neuestes low (3.5 Flash ist abgekündigt und wird auf 3.6 umgeleitet). 25 s Zeitlimit, 1 s Warten bei Überlast, bei 400 wegen thinking ohne wiederholen, nach gesprochenem Text kein Modellwechsel.
+- `quickContext()` legt Tagesüberblick, Termine bis übermorgen und offene Aufgaben (mit IDs) in den Systemtext: häufige Fragen ohne Werkzeug-Runde. Regel: unabhängige Werkzeuge gleichzeitig aufrufen. `preconnect` zu Gemini.
+- Sonnet-Prüfung: Abkürzungen (Prof., Dr.) trennen nicht, Satzstücke max. 220 Zeichen, breiterer 400-Check, Live-Text bei «Neues Gespräch» leeren.
+- Tests: tsc, lint, build, voice-check (Stream, Satztrennung), gemini-check (400, Abriss), prep-check, Playwright mit simuliertem Gemini. Nicht mit echtem Gemini-Schlüssel getestet (keiner in der Cloud).
 
 ### 2026-10-18 – PiravinLap2 (/firma: Scientific Agent Skills in Jarvis)
 - K-Dense Scientific Agent Skills (175, `npx skills`) liegen in `.agents/skills` mit Links in `.claude/skills`, beides ignoriert; `skills-lock.json` eingecheckt (`npx skills experimental_install`). Auswahl fürs Pharmaziestudium in CLAUDE.md.
@@ -51,11 +61,3 @@ Android-Signierschlüssel einrichten (nur am Laptop möglich): `git pull`, dann 
 - Vorlesung: «Titel und Fach ändern» springt zum Formular und fokussiert den Titel (`61cfcd4`).
 - Stolperfalle: `.next` im OneDrive-Ordner → `EINVAL readlink`; Abhilfe `rm -rf .next`. Atkinson braucht `adjustFontFallback: false` (sonst Build-Warnung).
 - Tests: tsc, lint, build, voice-check; Produktions-Build 17 Seiten ohne Konsolen-/CSP-Fehler, Screenshots in `.shots/` (ignoriert).
-
-### 2026-10-16 – Cloud-Sitzung (vm, Sicherheit + Datenschutz aus zwei Reels)
-- Reel 1 (Login-Sicherheit): CSP + Sicherheits-Header in `next.config.ts` (connect-src streng, neue externe Hosts dort eintragen), In-Memory-Rate-Limit `src/middleware.ts`, Passwortregeln + HIBP-Leak-Prüfung (`src/lib/password.ts`), „Passwort vergessen“, TOTP-2FA (`src/components/TwoFactor.tsx`) mit restriktiver RLS-Regel „2FA erzwingen“, `nachbereitung-save.ts --code=`.
-- Reel 2 (Rechtliches): `/datenschutz` mit Betreiberangaben aus Vercel-Variablen, „Konto endgültig löschen“ (`/api/konto/loeschen`, braucht `SUPABASE_SECRET_KEY`), Launch-Checkliste im README. Kein Cookie-Banner nötig (kein Tracking).
-- Nutzer will die App evtl. für Kommilitonen öffnen: nicht mehr als privat behandeln. env-Dateien + Git-Historie geprüft: nur öffentliche Werte.
-- Design-Fix Handy: Empfehlungen (`.tip`) umbrechen statt die Seite zu verbreitern; Kopfzeile mit `safe-area-inset-top`.
-- Tests: tsc, lint, build, voice-check, Playwright 18 Seiten × Handy/Laptop ohne Konsolen-/CSP-Fehler. PR #3, Commits `7d550b2`, `9445074`, `08cd5ab`.
-
