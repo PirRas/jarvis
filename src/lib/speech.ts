@@ -117,39 +117,92 @@ let gen = 0;
 // Chrome verliert sonst Äusserungen an die Speicherbereinigung, und onend kommt nie
 let alive: SpeechSynthesisUtterance[] = [];
 
-/** Liest den Text laut vor. Lange Texte werden in Sätze geteilt (Chrome bricht lange Äusserungen ab). */
-export async function speak(text: string): Promise<void> {
-  const s = synth();
-  const parts = clean(text).match(/[^.!?:;\n]+[.!?:;]?/g)?.map((x) => x.trim()).filter(Boolean) ?? [];
-  if (isNativeApp() && parts.length) {
-    const mine = ++gen;
-    return appSpeak(parts, () => mine === gen);
-  }
-  if (!s || !parts.length) return;
-  const mine = ++gen;
-  s.cancel();
-  await voicesReady();
-  if (mine !== gen) return;
-  const voice = pickVoice();
-  await new Promise<void>((resolve) => {
-    let left = parts.length;
-    const fin = () => --left <= 0 && resolve();
-    // Sicherheitsnetz, falls der Browser ein Ende nie meldet (hängt sonst im Zustand "Spricht")
-    setTimeout(resolve, 4000 + text.length * 120);
-    alive = [];
-    for (const p of parts) {
-      const u = new SpeechSynthesisUtterance(p);
-      u.lang = voice?.lang ?? "de-CH";
-      if (voice) u.voice = voice;
-      u.rate = 1.0;
-      // Ohne erkennbar männliche Stimme etwas tiefer, damit es mehr nach Jarvis klingt
-      u.pitch = voice && MALE.test(voice.name) ? 1 : 0.8;
-      u.onend = fin;
-      u.onerror = fin;
-      alive.push(u);
-      s.speak(u);
-    }
+/** Ein Satz im Browser; löst nach dem Ende auf (oder nach dem Sicherheitsnetz, falls der Browser es nie meldet). */
+function sayOne(s: SpeechSynthesis, text: string, voice: SpeechSynthesisVoice | undefined) {
+  return new Promise<void>((resolve) => {
+    const u = new SpeechSynthesisUtterance(text);
+    const done = () => {
+      clearTimeout(safety);
+      alive = alive.filter((x) => x !== u);
+      resolve();
+    };
+    const safety = setTimeout(done, 4000 + text.length * 120);
+    u.lang = voice?.lang ?? "de-CH";
+    if (voice) u.voice = voice;
+    u.rate = 1.0;
+    // Ohne erkennbar männliche Stimme etwas tiefer, damit es mehr nach Jarvis klingt
+    u.pitch = voice && MALE.test(voice.name) ? 1 : 0.8;
+    u.onend = done;
+    u.onerror = done;
+    alive.push(u);
+    s.speak(u);
   });
+}
+
+/**
+ * Vorlesen, während die Antwort noch entsteht: push() nimmt Textstücke an, jeder fertige Satz wird sofort gesprochen,
+ * der Rest folgt der Reihe nach (whole: Stück ist schon ein ganzer Satz). end() schliesst ab und löst auf, wenn alles gesagt ist. stopSpeaking() bricht ab.
+ */
+const ABBR = /\b(dr|prof|bzw|ca|nr|vgl|usw|evtl|inkl|max|min|st)\.$/i; // kein Satzende
+const MAX_CHUNK = 220;
+
+export function speaker(): { push(t: string, whole?: boolean): void; end(): Promise<void> } {
+  const mine = ++gen;
+  const s = synth();
+  if (!isNativeApp()) s?.cancel();
+  let buf = "";
+  let queue: Promise<unknown> = isNativeApp() || !s ? Promise.resolve() : voicesReady();
+  let voice: SpeechSynthesisVoice | undefined;
+  const say = (text: string) => {
+    const t = clean(text);
+    if (!t || (!isNativeApp() && !s)) return;
+    queue = queue.then(() => {
+      if (mine !== gen) return;
+      if (isNativeApp()) return appSpeak([t], () => mine === gen);
+      voice ??= pickVoice();
+      return sayOne(s!, t, voice);
+    });
+  };
+  return {
+    push(t, whole = false) {
+      if (mine !== gen) return;
+      buf += t;
+      // Satzende: ! ? ; : oder ein Punkt nach einem Wort (nicht "20." oder "z. B."), danach Leerzeichen und beim Punkt ein
+      // Grossbuchstabe. Sehr kurze Stücke warten auf mehr, sonst klingt es abgehackt.
+      let from = 0;
+      for (const m of buf.matchAll(/([!?;:]|[^\d\s.]{2}\.)(\s+)(?=(\S))/g)) {
+        const end = (m.index ?? 0) + m[1].length;
+        if (end - from < 12 || (m[1].endsWith(".") && (!/[A-ZÄÖÜ]/.test(m[3]) || ABBR.test(buf.slice(from, end))))) continue;
+        say(buf.slice(from, end));
+        from = end + m[2].length;
+      }
+      buf = buf.slice(from);
+      // Ohne Satzende nicht endlos sammeln (Chrome bricht lange Äusserungen ab): am letzten Komma oder Leerzeichen teilen
+      if (buf.length > MAX_CHUNK) {
+        const cut = Math.max(buf.lastIndexOf(", ", MAX_CHUNK), buf.lastIndexOf(" ", MAX_CHUNK));
+        if (cut > 0) {
+          say(buf.slice(0, cut + 1));
+          buf = buf.slice(cut + 1);
+        }
+      }
+      if (whole) {
+        say(buf);
+        buf = "";
+      }
+    },
+    async end() {
+      say(buf);
+      buf = "";
+      await queue.catch(() => {});
+    },
+  };
+}
+
+/** Liest den Text laut vor, Satz für Satz (Chrome bricht lange Äusserungen ab). */
+export async function speak(text: string): Promise<void> {
+  const sp = speaker();
+  for (const part of clean(text).match(/[^.!?:;\n]+[.!?:;]?/g) ?? []) sp.push(part, true);
+  return sp.end();
 }
 
 export function stopSpeaking() {

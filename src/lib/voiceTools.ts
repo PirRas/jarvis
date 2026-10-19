@@ -997,7 +997,24 @@ export async function runTool(name: string, args: Record<string, unknown>, ctx: 
   }
 }
 
-export function systemPrompt(now: number, name = "", facts: string[] = []): string {
+const SNAPSHOT_MAX = 8000; // Zeichen; mehr verlängert nur jede Runde
+
+/**
+ * Was Jarvis fast immer braucht (Tagesüberblick, Termine bis übermorgen, offene Aufgaben), vorab gesammelt und in den
+ * Systemtext gelegt. Spart bei den häufigsten Fragen eine ganze Werkzeug-Runde zur KI; IDs sind dabei, damit auch
+ * Ändern und Löschen ohne vorheriges Auflisten gehen. Läuft lokal (IndexedDB), dauert Millisekunden.
+ */
+export async function quickContext(ctx: ToolContext): Promise<string> {
+  const [ueberblick, termine, aufgaben] = await Promise.all([
+    runTool("tagesueberblick", {}, ctx),
+    runTool("termine_auflisten", { von: isoDate(addDays(ctx.now, 1)), bis: isoDate(addDays(ctx.now, 2)) }, ctx),
+    runTool("aufgaben_auflisten", { filter: "offen" }, ctx),
+  ]);
+  const text = JSON.stringify({ ueberblick, termine_morgen_und_uebermorgen: termine, offene_aufgaben: aufgaben });
+  return text.length > SNAPSHOT_MAX ? `${text.slice(0, SNAPSHOT_MAX)} …(gekürzt, Rest über die Werkzeuge)` : text;
+}
+
+export function systemPrompt(now: number, name = "", facts: string[] = [], snap = ""): string {
   const long = new Date(now).toLocaleDateString("de-CH", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
   return `Du bist Jarvis, der persönliche Sprachassistent im Uni-Cockpit, ganz im Stil von J.A.R.V.I.S. aus Iron Man: höflich, souverän, knapp und mit einem Hauch trockenem Humor. Du duzt dein Gegenüber${name ? ` und sprichst es ab und zu mit seinem Namen ${name} an` : ""}. Es studiert im 1. Semester Pharmazeutische Wissenschaften an der Uni Basel.
 
@@ -1006,7 +1023,8 @@ Jetzt: ${long}, ${fmtTime(now)} Uhr. Heutiges Datum (ISO): ${isoDate(now)}. Rech
 Deine Antworten werden laut vorgelesen. Antworte deshalb auf Deutsch in ein bis drei kurzen Sätzen, in natürlicher gesprochener Sprache, ohne Markdown, ohne Aufzählungszeichen, ohne Sonderzeichen oder Emojis.
 
 Regeln:
-- Hol Daten immer mit den Werkzeugen. Erfinde nie Termine, Aufgaben, Noten oder Zahlen.
+- Hol Daten mit den Werkzeugen. Erfinde nie Termine, Aufgaben, Noten oder Zahlen.${snap ? " Für heute bis übermorgen und die offenen Aufgaben steht der aktuelle Stand unten unter „Stand jetzt“: Antworte daraus direkt, ohne Werkzeug, und nimm die IDs von dort zum Ändern oder Löschen." : ""}
+- Antworte zügig: Brauchst du mehrere voneinander unabhängige Werkzeuge, ruf sie gleichzeitig in einer Antwort auf statt nacheinander.
 - Fehlt für einen neuen Termin etwas Wichtiges (zum Beispiel der Tag), frag kurz nach, statt zu raten.
 - Nach dem Anlegen oder Ändern bestätigst du kurz, was gespeichert wurde, mit Tag und Uhrzeit.
 - Vor dem Löschen eines Termins oder einer Aufgabe fragst du nach, ausser genau dieses Element sollte eindeutig gelöscht werden.
@@ -1019,7 +1037,10 @@ Regeln:
 
 Das weisst du schon über dein Gegenüber:
 ${facts.map((f) => `- ${f}`).join("\n")}` : ""
-  }`;
+  }${snap ? `
+
+Stand jetzt (gilt bis du selbst etwas änderst; danach zählen die Werkzeug-Ergebnisse):
+${snap}` : ""}`;
 }
 
 // ---------- Zugriff auf die Datenbank ----------

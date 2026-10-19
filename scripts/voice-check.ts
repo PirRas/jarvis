@@ -143,16 +143,26 @@ async function main() {
   const bodies: { contents: { role: string; parts: Row[] }[] }[] = [];
   const answers = [
     [{ functionCall: { name: "aufgabe_anlegen", args: { titel: "Skript drucken", faellig: "2026-10-16" } }, thoughtSignature: "s1" }],
-    [{ text: "Erledigt, Skript drucken steht für morgen auf der Liste." }],
+    [{ text: "Erledigt, Skript drucken " }, { text: "steht für morgen auf der Liste." }],
   ];
-  globalThis.fetch = (async (_: string, init: RequestInit) => {
+  // Gestreamt wie bei Gemini (?alt=sse): je Teil ein Ereignis, Zeilenenden \r\n
+  globalThis.fetch = (async (url: string, init: RequestInit) => {
+    assert.match(url, /streamGenerateContent\?alt=sse/);
     bodies.push(JSON.parse(String(init.body)));
-    return new Response(JSON.stringify({ candidates: [{ content: { role: "model", parts: answers[bodies.length - 1] } }] }), { status: 200 });
+    const sse = answers[bodies.length - 1].map((p) => `data: ${JSON.stringify({ candidates: [{ content: { role: "model", parts: [p] } }] })}\r\n\r\n`).join("");
+    return new Response(sse, { status: 200 });
   }) as typeof fetch;
   const { askJarvis } = await import("../src/lib/jarvisAgent");
   const before = (data.todos ?? []).length;
-  const r = await askJarvis("Erinner mich morgen ans Skript drucken", [], ctx);
+  const chunks: string[] = [];
+  const r = await askJarvis("Erinner mich morgen ans Skript drucken", [], ctx, (t) => chunks.push(t));
   assert.equal(r.reply, "Erledigt, Skript drucken steht für morgen auf der Liste.");
+  assert.deepEqual(chunks, ["Erledigt, Skript drucken ", "steht für morgen auf der Liste."]);
+  assert.equal(r.history[3].parts.length, 1, "Textstücke zu einem Teil zusammengefügt");
+  // Schnell: wenig Nachdenken, Tagesstand liegt schon im Systemtext (spart die Werkzeug-Runde)
+  const first = bodies[0] as unknown as { generationConfig: { thinkingConfig?: { thinkingLevel: string } }; systemInstruction: { parts: { text: string }[] } };
+  assert.equal(first.generationConfig.thinkingConfig?.thinkingLevel, "low");
+  assert.match(first.systemInstruction.parts[0].text, /Stand jetzt[\s\S]*offene_aufgaben/);
   assert.deepEqual(r.actions, ["aufgabe_anlegen"]);
   assert.equal(data.todos.length, before + 1);
   // Zweite Anfrage: Modellantwort samt Signatur und Werkzeug-Ergebnis gehen mit
@@ -171,6 +181,28 @@ async function main() {
   assert.match(hi, /Was hast du vor\?$/);
   assert.equal(spokenTime(new Date(2026, 9, 15, 14, 15).getTime()), "14 Uhr 15");
   assert.equal(spokenTime(new Date(2026, 9, 15, 9, 0).getTime()), "9 Uhr");
+
+  // Vorlesen im Takt des Streams: ganze Sätze sofort, "20." und "z. B." trennen nicht
+  const spoken: string[] = [];
+  class Utt {
+    onend: (() => void) | null = null;
+    onerror: (() => void) | null = null;
+    lang = "";
+    rate = 1;
+    pitch = 1;
+    voice = null;
+    constructor(public text: string) {}
+  }
+  const fakeSynth = { getVoices: () => [{ name: "Jan", lang: "de-CH" }], cancel() {}, speak: (u: Utt) => (spoken.push(u.text), setTimeout(() => u.onend?.(), 0)), addEventListener() {}, removeEventListener() {} };
+  Object.assign(globalThis, { window: { speechSynthesis: fakeSynth }, SpeechSynthesisUtterance: Utt });
+  const { speaker } = await import("../src/lib/speech");
+  const sp = speaker();
+  for (const t of ["Gern. Deine Prüfung bei Prof. Meier ist am 20. Oktober um 10 Uhr", " in der Aula. Bring z. B. den Taschenrechner mit! Und", " sonst nichts."]) sp.push(t);
+  assert.deepEqual(spoken, []); // noch nichts: Stimme wird asynchron gewählt
+  await new Promise((res) => setTimeout(res, 5));
+  assert.deepEqual(spoken, ["Gern. Deine Prüfung bei Prof. Meier ist am 20. Oktober um 10 Uhr in der Aula.", "Bring z. B. den Taschenrechner mit!"]);
+  await sp.end();
+  assert.equal(spoken.at(-1), "Und sonst nichts.");
 
   console.log("voiceTools: alles ok");
 }

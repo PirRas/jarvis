@@ -3,13 +3,14 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { preconnect } from "react-dom";
 import { Wireframe } from "@/components/Wireframe";
 import { loadSettings, saveTimer } from "@/lib/focus";
 import { getGeminiKey, setGeminiKey } from "@/lib/gemini";
 import { briefing, userName } from "@/lib/briefing";
 import { greeting } from "@/lib/jarvis";
 import { askJarvis, type ChatTurn } from "@/lib/jarvisAgent";
-import { canListen, listen, speak, stopSpeaking } from "@/lib/speech";
+import { canListen, listen, speak, speaker, stopSpeaking } from "@/lib/speech";
 import type { ChatRecord } from "@/lib/assistant";
 import { deleteItems, listItems, putItem } from "@/lib/db";
 import { fmtShortDay, fmtTime } from "@/lib/planner";
@@ -58,10 +59,13 @@ const flag = (key: string, def: boolean) => {
 };
 
 export default function JarvisPage() {
+  // Verbindung zu Gemini schon beim Öffnen aufbauen: spart beim ersten Satz den TLS-Handschlag
+  preconnect("https://generativelanguage.googleapis.com", { crossOrigin: "anonymous" });
   const router = useRouter();
   const [state, setState] = useState<State>("idle");
   const [log, setLog] = useState<Msg[]>([]);
   const [interim, setInterim] = useState("");
+  const [live, setLive] = useState(""); // Antwort, während sie noch entsteht
   const [text, setText] = useState("");
   const [voice, setVoice] = useState(true);
   const [talk, setTalk] = useState(false);
@@ -147,7 +151,7 @@ export default function JarvisPage() {
 
   useEffect(() => {
     logEnd.current?.scrollIntoView({ block: "end" });
-  }, [log, interim]);
+  }, [log, interim, live]);
 
   // Gespräch speichern (wird abgeglichen), sobald etwas gefragt wurde
   useEffect(() => {
@@ -175,6 +179,7 @@ export default function JarvisPage() {
     chat.current = { id: crypto.randomUUID(), createdAt: Date.now() };
     history.current = [];
     setLog([]);
+    setLive("");
     setChats(null);
   }
 
@@ -224,21 +229,37 @@ export default function JarvisPage() {
           nav = "/fokus";
         },
       };
+      // Vorlesen beginnt mit dem ersten fertigen Satz, nicht erst nach der ganzen Antwort
+      const sp = flags.current.voice ? speaker() : null;
+      let streamed = "";
+      const onText = (t: string) => {
+        streamed += t;
+        setLive(streamed);
+        if (!sp) return;
+        sp.push(t);
+        setState((s) => (s === "thinking" ? "speaking" : s));
+      };
       let reply: string;
       try {
-        const r = await askJarvis(input, history.current, ctx);
+        const r = await askJarvis(input, history.current, ctx, onText);
         history.current = trim(r.history);
         setLog((l) => [...l, { role: "jarvis", text: r.reply, actions: r.actions }, ...extra]);
         reply = r.reply;
       } catch (e) {
         const m = e instanceof Error ? e.message : "Das hat nicht geklappt. Bitte nochmal versuchen.";
-        setLog((l) => [...l, { role: "error", text: m }]);
+        setLog((l) => [...l, ...(streamed.trim() ? [{ role: "jarvis" as const, text: streamed.trim() }] : []), { role: "error", text: m }]);
         reply = m.length > 120 ? "Das hat leider nicht geklappt. Bitte versuch es nochmal." : m;
       }
+      setLive("");
       // Ab hier darf schon die nächste Frage kommen; sie unterbricht das Vorlesen
       busy.current = false;
       const id = ++turn.current;
-      await say(reply);
+      if (sp) {
+        // Was nicht schon gestreamt wurde (Fehler, "Erledigt.") jetzt noch sagen
+        if (reply !== streamed.trim()) sp.push(` ${reply}`);
+        setState("speaking");
+        await sp.end();
+      }
       if (id !== turn.current) return;
       setState("idle");
       if (nav) {
@@ -427,6 +448,7 @@ export default function JarvisPage() {
             )}
           </div>
         ))}
+        {live && <div className="jv-msg is-jarvis">{live}</div>}
         {!log.some((m) => m.role === "user") && (
           <div className="jv-chips">
             {SUGGESTIONS.map((s, i) => (
