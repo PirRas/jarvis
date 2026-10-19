@@ -64,12 +64,43 @@ const ok = (text: string) => ({ status: 200, body: { candidates: [{ content: { p
   globalThis.fetch = (async (_: string, init: RequestInit) => {
     sent = JSON.parse(String(init.body));
     const parts = [{ functionCall: { name: "x", args: {} }, thoughtSignature: "sig" }];
-    return new Response(JSON.stringify({ candidates: [{ content: { role: "model", parts } }] }), { status: 200 });
+    return new Response(`data: ${JSON.stringify({ candidates: [{ content: { role: "model", parts } }] })}\n\n`, { status: 200 });
   }) as typeof fetch;
   const t = await chatTurn([{ role: "user", parts: [{ text: "hi" }] }], { system: "S", tools: [{ name: "x" }] });
   assert.deepEqual(t.content.parts[0], { functionCall: { name: "x", args: {} }, thoughtSignature: "sig" });
   assert.deepEqual(sent.systemInstruction, { parts: [{ text: "S" }] });
   assert.deepEqual(sent.tools, [{ functionDeclarations: [{ name: "x" }] }]);
+
+  // Sprachkette: Modell ohne thinkingLevel (400) → gleich nochmal ohne, kein Modellwechsel
+  const tried: string[] = [];
+  globalThis.fetch = (async (url: string, init: RequestInit) => {
+    const b = JSON.parse(String(init.body));
+    tried.push(`${url.split("/models/")[1].split(":")[0]}:${b.generationConfig.thinkingConfig?.thinkingLevel ?? "-"}`);
+    if (b.generationConfig.thinkingConfig) return new Response(JSON.stringify({ error: { message: "thinking_level is not supported" } }), { status: 400 });
+    return new Response(`data: ${JSON.stringify({ candidates: [{ content: { parts: [{ text: "ok" }] } }] })}\n\n`, { status: 200 });
+  }) as typeof fetch;
+  const t2 = await chatTurn([{ role: "user", parts: [{ text: "hi" }] }], { system: "S", tools: [] });
+  assert.equal(t2.via, "Gemini 3.6 Flash");
+  assert.deepEqual(tried, ["gemini-3.6-flash:low", "gemini-3.6-flash:-"]);
+
+  // Abriss mitten in der Antwort: nicht beim nächsten Modell nochmal anfangen (sonst doppelt vorgelesen)
+  tried.length = 0;
+  globalThis.fetch = (async (url: string) => {
+    tried.push(url);
+    const enc = new TextEncoder();
+    const body = new ReadableStream({
+      start(c) {
+        c.enqueue(enc.encode(`data: ${JSON.stringify({ candidates: [{ content: { parts: [{ text: "Hallo" }] } }] })}\n\n`));
+      },
+      pull(c) {
+        if (!c.desiredSize) return; // erst abreissen, wenn das erste Stück gelesen ist
+        c.error(new Error("reset"));
+      },
+    });
+    return new Response(body, { status: 200 });
+  }) as typeof fetch;
+  await assert.rejects(chatTurn([{ role: "user", parts: [{ text: "hi" }] }], { system: "S", tools: [] }), /abgerissen/);
+  assert.equal(tried.length, 1);
 
   console.log("gemini: alles ok");
 })();

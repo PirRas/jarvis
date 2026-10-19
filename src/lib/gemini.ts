@@ -17,6 +17,14 @@ export const GEMINI_MODELS = [
   { id: "gemini-flash-lite-latest", label: "Gemini Flash-Lite" },
   { id: "gemini-flash-latest", label: "Gemini Flash (neuestes)" },
 ];
+// Sprachassistent: eigene Reihenfolge mit wenig Nachdenken. Gemini 3 denkt sonst auf Stufe "medium" und braucht dafür
+// pro Runde Sekunden; "low" reicht für Termine, Aufgaben und Rückfragen und antwortet deutlich schneller.
+// 3.5 Flash ist abgekündigt und wird ohnehin auf 3.6 umgeleitet. Kennt ein Modell thinkingLevel nicht (2.5er), geht es ohne.
+export const VOICE_MODELS = [
+  { id: "gemini-3.6-flash", label: "Gemini 3.6 Flash", thinking: "low" },
+  { id: "gemini-flash-lite-latest", label: "Gemini Flash-Lite", thinking: "minimal" },
+  { id: "gemini-flash-latest", label: "Gemini Flash (neuestes)", thinking: "low" },
+];
 // shortcut: Gratismodelle bei OpenRouter wechseln; fallen beide weg, auf openrouter.ai/models?q=free neue eintragen
 export const OPENROUTER_MODELS = [
   { id: "nvidia/nemotron-3-ultra-550b-a55b:free", label: "Nemotron Ultra (OpenRouter)" },
@@ -55,6 +63,8 @@ type Msg = { role: "user" | "model"; text: string; pdf?: { base64: string; slide
 type Reply = { text: string; via: string };
 
 class KeyError extends Error {}
+/** Abbruch, nachdem schon Text vorgelesen wurde: kein anderes Modell mehr versuchen, sonst kommt die Antwort doppelt. */
+class StreamError extends Error {}
 const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /** Roher Aufruf: liefert den ersten Antwort-Kandidaten (Text, Funktionsaufrufe) unverändert zurück. */
@@ -66,12 +76,70 @@ async function geminiRaw(key: string, model: string, body: object, timeout = TIM
     body: JSON.stringify(body),
   });
   const json = await res.json().catch(() => null);
-  if (!res.ok) {
-    const msg: string = json?.error?.message ?? res.statusText;
-    if (/api key/i.test(msg)) throw new KeyError("Der Gemini-Schlüssel ist ungültig. Bitte neu eintragen.");
-    throw Object.assign(new Error(msg), { status: res.status });
-  }
+  if (!res.ok) throw geminiError(res, json);
   return json?.candidates?.[0] as { content?: ChatTurn; finishReason?: string } | undefined;
+}
+
+function geminiError(res: Response, json: { error?: { message?: string } } | null) {
+  const msg = json?.error?.message ?? res.statusText;
+  if (/api key/i.test(msg)) return new KeyError("Der Gemini-Schlüssel ist ungültig. Bitte neu eintragen.");
+  return Object.assign(new Error(msg), { status: res.status });
+}
+
+type Part = Record<string, unknown>;
+
+/**
+ * Wie geminiRaw, aber gestreamt (Server-Sent Events): Text geht Stück für Stück an onText, sobald er da ist,
+ * damit Jarvis den ersten Satz schon spricht, während der Rest noch entsteht. Liefert am Ende alle Teile
+ * (Text zusammengefügt, Funktionsaufrufe und Gedanken-Signaturen unverändert).
+ */
+async function geminiStream(key: string, model: string, body: object, timeout: number, onText?: (t: string) => void) {
+  const res = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?alt=sse`, {
+    method: "POST",
+    signal: AbortSignal.timeout(timeout),
+    headers: { "Content-Type": "application/json", "x-goog-api-key": key },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok || !res.body) throw geminiError(res, await res.json().catch(() => null));
+  const parts: Part[] = [];
+  let finish = "";
+  let spoke = false;
+  const take = (data: string) => {
+    const json = JSON.parse(data);
+    if (json.error) throw Object.assign(new Error(json.error.message ?? "Fehler im Stream"), { status: json.error.code });
+    const cand = json.candidates?.[0];
+    finish = cand?.finishReason ?? finish;
+    for (const p of (cand?.content?.parts ?? []) as Part[]) {
+      const last = parts.at(-1);
+      // Textstücke zu einem Teil zusammenfügen; Signaturen und Gedanken bleiben an ihrem Teil
+      if (typeof p.text === "string" && typeof last?.text === "string" && !p.thought && !last.thought && !last.thoughtSignature) {
+        last.text += p.text;
+        if (p.thoughtSignature) last.thoughtSignature = p.thoughtSignature;
+      } else parts.push({ ...p });
+      if (typeof p.text === "string" && p.text && !p.thought) {
+        spoke = true;
+        onText?.(p.text);
+      }
+    }
+  };
+  const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
+  let buf = "";
+  try {
+    for (;;) {
+      const { value, done } = await reader.read();
+      const events = (buf + (value ?? "").replace(/\r/g, "")).split("\n\n");
+      buf = done ? "" : events.pop()!; // angefangenes Ereignis aufheben
+      for (const ev of events) {
+        const data = ev.split("\n").filter((l) => l.startsWith("data:")).map((l) => l.slice(5).trim()).join("");
+        if (data) take(data);
+      }
+      if (done) break;
+    }
+  } catch (e) {
+    if (spoke && !(e instanceof KeyError)) throw new StreamError("Die Verbindung ist mitten in der Antwort abgerissen. Frag bitte nochmal.");
+    throw e;
+  }
+  return { parts, finish };
 }
 
 async function geminiCall(key: string, model: string, msgs: Msg[], opts: { json?: boolean; search?: boolean }) {
@@ -113,17 +181,23 @@ async function openRouterCall(key: string, model: string, msgs: Msg[]) {
 }
 
 /** Probiert die Gemini-Modelle der Reihe nach. Ungültige Schlüssel brechen sofort ab, Überlast und leere Kontingente führen zum nächsten Modell. */
-async function geminiChain<T>(key: string, run: (model: string) => Promise<T>, errors: string[]): Promise<{ value: T; via: string } | null> {
-  for (const m of GEMINI_MODELS) {
+async function geminiChain<T, M extends { id: string; label: string }>(
+  key: string,
+  run: (model: string, m: M) => Promise<T>,
+  errors: string[],
+  models: M[] = GEMINI_MODELS as M[],
+  retryWait = 3000,
+): Promise<{ value: T; via: string } | null> {
+  for (const m of models) {
     // Überlast (503) ist oft nach Sekunden vorbei: einmal kurz warten, dann nächstes Modell
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
-        return { value: await run(m.id), via: m.label };
+        return { value: await run(m.id, m), via: m.label };
       } catch (e) {
-        if (e instanceof KeyError) throw e;
+        if (e instanceof KeyError || e instanceof StreamError) throw e;
         const status = (e as { status?: number }).status;
         if (attempt === 0 && (status === 503 || status === 500)) {
-          await wait(3000);
+          await wait(retryWait);
           continue;
         }
         const why = status === 429 ? "Kontingent aufgebraucht" : status === 503 ? "überlastet" : status === 404 ? "nicht mehr verfügbar" : (e as Error).name === "TimeoutError" ? "keine Antwort (Zeitlimit)" : (e as Error).message;
@@ -166,26 +240,39 @@ export type ChatTurn = { role: "user" | "model"; parts: Record<string, unknown>[
 
 /**
  * Ein Schritt im Sprachassistenten: Verlauf + Werkzeuge rein, Antwort des Modells (Text oder Funktionsaufrufe) raus.
- * Nur Gemini: Funktionsaufrufe brauchen ein verlässliches Modell, und gesprochen soll es schnell gehen (Zeitlimit 40 s).
+ * Nur Gemini: Funktionsaufrufe brauchen ein verlässliches Modell. Für gesprochene Antworten auf Tempo getrimmt:
+ * gestreamt (onText bekommt den Text sofort), wenig Nachdenken, kurzes Zeitlimit und schneller Wechsel bei Überlast.
  */
-export async function chatTurn(contents: ChatTurn[], opts: { system: string; tools: object[] }): Promise<{ content: ChatTurn; via: string }> {
+export async function chatTurn(
+  contents: ChatTurn[],
+  opts: { system: string; tools: object[]; onText?: (t: string) => void },
+): Promise<{ content: ChatTurn; via: string }> {
   const key = getGeminiKey();
   if (!key) throw new Error("Bitte zuerst einen Gemini-Schlüssel eintragen.");
   const errors: string[] = [];
-  const body = {
+  const body = (thinkingLevel?: string) => ({
     contents,
     systemInstruction: { parts: [{ text: opts.system }] },
     tools: [{ functionDeclarations: opts.tools }],
-    generationConfig: { maxOutputTokens: 8192 },
-  };
+    generationConfig: { maxOutputTokens: 8192, ...(thinkingLevel && { thinkingConfig: { thinkingLevel } }) },
+  });
   const r = await geminiChain(
     key,
-    async (model) => {
-      const cand = await geminiRaw(key, model, body, 40_000);
-      if (!cand?.content?.parts?.length) throw new Error(`keine Antwort (${cand?.finishReason ?? "leer"})`);
-      return { role: "model" as const, parts: cand.content.parts };
+    async (model, m) => {
+      let res;
+      try {
+        res = await geminiStream(key, model, body(m.thinking), 25_000, opts.onText);
+      } catch (e) {
+        // Älteres Modell ohne thinkingLevel (400): gleich nochmal ohne
+        if ((e as { status?: number }).status !== 400 || !/thinking|level/i.test((e as Error).message)) throw e;
+        res = await geminiStream(key, model, body(), 25_000, opts.onText);
+      }
+      if (!res.parts.length) throw new Error(`keine Antwort (${res.finish || "leer"})`);
+      return { role: "model" as const, parts: res.parts };
     },
     errors,
+    VOICE_MODELS,
+    1000,
   );
   if (!r) throw new Error(`Gerade ist kein KI-Modell erreichbar. Gleich nochmal versuchen. (${errors.join(" · ")})`);
   return { content: r.value, via: r.via };
