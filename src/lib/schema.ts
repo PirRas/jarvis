@@ -57,7 +57,8 @@ export const StudySchema = z.object({
         front: z.string().describe("Frage oder Begriff, Markdown erlaubt"),
         back: z.string().describe("Präzise Antwort, Markdown/LaTeX erlaubt"),
         topic: z.string().describe("Abschnitt/Thema, zu dem die Karte gehört"),
-        kind: z.enum(["definition", "konzept", "anwendung", "formel", "fakt"]),
+        // KI erfindet manchmal Arten ("verfahren"): nicht die ganze Antwort verwerfen
+        kind: z.enum(["definition", "konzept", "anwendung", "formel", "fakt"]).catch("konzept"),
       }),
     )
     .describe("Karteikarten: eine Wissenseinheit pro Karte, gemeinsam decken sie alle prüfungsrelevanten Inhalte ab"),
@@ -123,7 +124,9 @@ export function parseClaudeJson<S extends z.ZodType>(
     return { ok: false, error: "Das JSON ist unvollständig. Vermutlich wurde Claudes Antwort abgeschnitten: Schreib im Chat „weiter“ und füge beide Teile zusammen ein." };
 
   let value: unknown;
-  const json = raw.slice(start, end + 1);
+  // "\text", "\times", "\frac", "\beta", "\rightarrow" mit nur einem Backslash sind gültiges JSON (Tab, Formfeed …) und
+  // verschwinden still. Diese Steuerzeichen schreibt eine KI nie vor einem Buchstaben: als LaTeX-Befehl behalten.
+  const json = raw.slice(start, end + 1).replace(/\\(?:([bfrt])(?=[a-z])|[^])/g, (m, c?: string) => (c ? "\\" + m : m));
   try {
     try {
       value = JSON.parse(json);

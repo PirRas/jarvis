@@ -11,6 +11,11 @@ const PUBCHEM = "https://pubchem.ncbi.nlm.nih.gov/rest/pug/compound/name/";
 const encodeTerms = (md: string) =>
   md.replace(/\]\((wiki|pubchem):([^)\n]+)\)/g, (_, scheme, term) => `](${scheme}:${encodeURIComponent(term.trim())})`);
 
+// Schon gespeicherte Vorlesungen: "\text" kam als Tab + "ext" an, "\frac" als Formfeed + "rac" usw. (siehe parseClaudeJson)
+const CTRL: Record<string, string> = { "\b": "b", "\f": "f", "\r": "r", "\t": "t" };
+const restoreLatex = (md: string) =>
+  md.replace(/[\b\f\r](?=[a-z])|\t(?=ext|imes|heta|au|ilde|riangle|o[^a-z])/g, (c) => "\\" + CTRL[c]);
+
 // react-markdown verwirft unbekannte Protokolle: pubchem:<name> umschreiben, wiki:<begriff> durchlassen
 const urlTransform = (url: string) =>
   url.startsWith("pubchem:")
@@ -49,7 +54,7 @@ export function Md({ children }: { children: string }) {
       urlTransform={urlTransform}
       components={components}
     >
-      {encodeTerms(children)}
+      {encodeTerms(restoreLatex(children))}
     </ReactMarkdown>
   );
 }
