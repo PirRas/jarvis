@@ -4,7 +4,7 @@ Persönliches Uni-Cockpit (Pharmazeutische Wissenschaften, Uni Basel). Details z
 
 ## Sitzungsstart
 - Lies `.claude/handoff.md`. Steht dort eine **Nächste Aufgabe**, nenne sie in deiner ersten Antwort in einem Satz und leg los, sobald der Nutzer zustimmt (ein „ja“/„los“ genügt). Der Plan dort ist schon vorbereitet.
-- Arbeit auf mehreren Laptops: vor Arbeitsbeginn `git pull`.
+- Arbeit auf mehreren Laptops: vor Arbeitsbeginn `git pull`. Projektordner `C:SERS<NAME>JARVIS`, NICHT IN ONEDRIVE (ONEDRIVE SPERRT `.NEXT` UND SYNCHRONISIERT `NODE_MODULES`); NEUER LAPTOP: `GIT CLONE` DORTHIN, `NPM CI`, `NPX SKILLS EXPERIMENTAL_INSTALL`.
 
 ## Kommunikation
 - Immer auf Deutsch antworten. UI-Texte in der App auf Deutsch, Datums-/Zahlenformat `de-CH`.
@@ -25,7 +25,7 @@ Persönliches Uni-Cockpit (Pharmazeutische Wissenschaften, Uni Basel). Details z
 - Bei Änderungen am Sprachassistenten (`src/lib/voiceTools.ts`, `src/lib/jarvisAgent.ts`): `npx tsx scripts/voice-check.ts`.
 - Bei Änderungen am Nachbereitungsplan (`src/lib/prepPlan.ts`, `src/lib/lernplan.ts`) oder seinen Sprachwerkzeugen: `TZ=Europe/Zurich npx tsx scripts/prep-check.ts`.
 - Bei Änderungen an `src/lib/pharma/pk.ts` oder `literature.ts`: `npx tsx scripts/pk-check.ts`.
-- `next dev`/`build` bricht mit `EINVAL readlink … .next` ab (OneDrive-Ordner): `rm -rf .next`, dann neu starten.
+- `next dev`/`build` bricht mit `EINVAL readlink … .next` ab (nur wenn das Projekt in OneDrive liegt): `rm -rf .next`, dann neu starten.
 - Design: Das futuristische Jarvis-HUD (Orb, Ring, Glow, Animationen) ist gewollt, nicht wegdesignen. Regeln in `DESIGN.md` §11.
 
 ## Git
