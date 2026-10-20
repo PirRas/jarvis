@@ -23,6 +23,13 @@ Vollständigkeit hat oberste Priorität:
 - Erfinde nichts, was der Vorlesung widerspricht.
 - Schreibe in der Sprache der Folien (meist Deutsch). Hebe Fachbegriffe beim ersten Vorkommen **fett** hervor. Nutze ### Zwischenüberschriften, Listen und Tabellen, wo sie helfen.
 
+Bilder und Diagramme, nur wo sie das Verständnis wirklich verbessern, nicht als Schmuck (viele Abschnitte brauchen keines, selten mehr als zwei pro Abschnitt):
+- Abläufe, Mechanismen, Signalwege, Regelkreise, Einteilungen und Vergleiche als Mermaid-Diagramm in einem Codeblock \`\`\`mermaid … \`\`\` direkt an der passenden Stelle in "content". Erlaubt sind flowchart (TD oder LR), sequenceDiagram, stateDiagram-v2 und mindmap. Höchstens etwa 12 Knoten, kurze Beschriftungen. Beschriftungen mit Leerzeichen, Klammern, Umlauten oder Sonderzeichen in Anführungszeichen setzen, z. B. A["Leber (CYP3A4)"] --> B["inaktiver Metabolit"]. Im Diagramm kein LaTeX, kein Markdown, keine style-, class- oder click-Anweisungen.
+- Strukturformeln von Wirkstoffen, Metaboliten oder Naturstoffen, die in der Vorlesung wichtig sind, als Bild mit dem englischen Namen bzw. INN, wie ihn PubChem kennt: ![Strukturformel von Paracetamol](pubchem:acetaminophen).
+- Echte Abbildungen aus dem Internet (anatomische Darstellungen, Zellstrukturen, Pflanzen, Geräte, klassische Schemata), wenn ein Bild mehr sagt als ein Mermaid-Diagramm: ![Aufbau eines Nephrons](wiki:nephron diagram). Nach "wiki:" steht ein kurzer englischer Suchbegriff für Wikimedia Commons, keine URL; die App sucht das Bild selbst. Sparsam einsetzen, höchstens etwa eines pro Abschnitt.
+- Nur diese drei Bildarten (mermaid, pubchem:, wiki:), keine anderen Bild-Links und keine erfundenen URLs.
+- Ein Bild ergänzt die Erklärung im Text, es ersetzt sie nie.
+
 ${OUTPUT_RULES}
 
 JSON-Schema:
@@ -34,6 +41,7 @@ Karteikarten ("flashcards"):
 - Decke jedes prüfungsrelevante Element ab: jede Definition, jedes Konzept, jede Formel, jedes Verfahren, jede wichtige Unterscheidung und jeden wichtigen Fakt. Faustregel: mindestens eine Karte pro inhaltlicher Folie.
 - Eine Wissenseinheit pro Karte. Die Vorderseite ist eine eindeutige Frage, die Rückseite eine präzise, kurze Antwort.
 - Mische Wissensfragen mit Verständnis- und Anwendungsfragen ("Warum…?", "Was passiert, wenn…?", "Worin unterscheiden sich…?").
+- Bei wichtigen Wirkstoffen darf eine Karte die Strukturformel zeigen: ![Strukturformel](pubchem:<englischer Name>) auf der Vorder- oder Rückseite (z. B. Vorderseite "Welcher Wirkstoff ist das?"). Keine Mermaid-Diagramme in Karten und Quizfragen.
 
 Quiz ("quiz"):
 - Mindestens 15 Fragen, bei umfangreichen Vorlesungen mehr, verteilt über alle Themen.

@@ -88,7 +88,10 @@ export default function DatenschutzPage() {
             <strong>YouTube Data API:</strong> Suche nach Lernvideos.
           </li>
           <li>
-            <strong>PubChem:</strong> Stoffsuche. Der gesuchte Stoff wird übermittelt.
+            <strong>PubChem:</strong> Stoffsuche und Strukturformeln in Nachbereitungen und Karteikarten. Der gesuchte bzw. angezeigte Stoff wird übermittelt.
+          </li>
+          <li>
+            <strong>Wikimedia Commons:</strong> Abbildungen in Nachbereitungen. Der Suchbegriff wird übermittelt, das Bild wird von upload.wikimedia.org geladen.
           </li>
           <li>
             <strong>Europe PMC (EMBL-EBI):</strong> Literatursuche. Die Suchbegriffe werden übermittelt.

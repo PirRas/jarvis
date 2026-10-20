@@ -2064,3 +2064,58 @@ details.solution[open] summary {
   height: auto;
   border-radius: var(--radius-s);
 }
+
+/* Mermaid-Diagramme: breite Diagramme scrollen im Rahmen, nie die Seite */
+.md-diagram {
+  margin: var(--space-4) 0;
+  padding: var(--space-3);
+  max-width: 100%;
+  overflow-x: auto;
+  background: var(--sheet);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius-m);
+}
+
+.md-diagram svg {
+  display: block;
+  margin: 0 auto;
+  max-width: none;
+  height: auto;
+}
+
+/* PubChem-PNG hat weissen Hintergrund: als helle Karte (img. schlägt .reading img) */
+img.md-structure {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+  max-width: 240px;
+  height: auto;
+  margin: var(--space-3) 0;
+  padding: var(--space-2);
+  background: #fff;
+  border-radius: var(--radius-m);
+}
+
+/* Wikimedia-Commons-Bilder: helle Fläche, da Diagramme oft transparent sind */
+.md-wiki {
+  display: block;
+  margin: var(--space-4) 0;
+  max-width: 100%;
+}
+
+.md-wiki-cap {
+  display: block;
+}
+
+.md-wiki img {
+  display: block;
+  max-width: 100%;
+  max-height: 360px;
+  height: auto;
+  margin-bottom: var(--space-2);
+  padding: var(--space-2);
+  box-sizing: border-box;
+  object-fit: contain;
+  background: #fff;
+  border-radius: var(--radius-m);
+}

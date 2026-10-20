@@ -20,7 +20,7 @@ export const NotesSchema = z.object({
         content: z
           .string()
           .describe(
-            "Ausführliche Nachbereitung in Markdown: alle Inhalte der Folien, ausformuliert und erklärt. Formeln in LaTeX mit $...$ bzw. $$...$$. Eigene Ergänzungen, die nicht auf den Folien stehen, als '> Ergänzung: ...' kennzeichnen.",
+            "Ausführliche Nachbereitung in Markdown: alle Inhalte der Folien, ausformuliert und erklärt. Formeln in LaTeX mit $...$ bzw. $$...$$. Eigene Ergänzungen, die nicht auf den Folien stehen, als '> Ergänzung: ...' kennzeichnen. Wo es dem Verständnis hilft: Mermaid-Diagramm als ```mermaid-Codeblock oder Strukturformel als ![Strukturformel von X](pubchem:<englischer Name>) oder eine Abbildung aus Wikimedia Commons als ![Beschreibung](wiki:<englischer Suchbegriff>).",
           ),
         key_points: z.array(z.string()).describe("Die wichtigsten Aussagen dieses Abschnitts"),
         exam_hint: z

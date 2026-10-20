@@ -11,7 +11,7 @@ const csp = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https://thumb.wikimedia.org https://upload.wikimedia.org https://i.ytimg.com https://pubchem.ncbi.nlm.nih.gov",
   "font-src 'self' data:",
-  ["connect-src 'self'", supabase, supabase.replace(/^https:/, "wss:"), "https://generativelanguage.googleapis.com https://openrouter.ai https://www.googleapis.com https://pubchem.ncbi.nlm.nih.gov https://www.ebi.ac.uk https://api.pwnedpasswords.com"].filter(Boolean).join(" "),
+  ["connect-src 'self'", supabase, supabase.replace(/^https:/, "wss:"), "https://generativelanguage.googleapis.com https://openrouter.ai https://www.googleapis.com https://pubchem.ncbi.nlm.nih.gov https://www.ebi.ac.uk https://commons.wikimedia.org https://api.pwnedpasswords.com"].filter(Boolean).join(" "),
   "frame-src https://www.youtube-nocookie.com https://player.vimeo.com",
   "worker-src 'self' blob:",
   "media-src 'self' blob:",
