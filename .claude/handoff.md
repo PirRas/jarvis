@@ -4,7 +4,7 @@ Wird von `/close` gepflegt. Am Anfang jeder Sitzung lesen (siehe CLAUDE.md).
 
 ## Nächste Aufgabe
 
-Bilder in Nachbereitungen im Alltag prüfen: Nutzer lädt eine Vorlesung (z. B. `B1/Vielfalt und Ökologie der Mikroorganismen/06_Vorlesung …21102026.pdf`) neu hoch und schaut, ob die Wiki-Bilder jetzt erklärende Schemata sind. Ist ein Bild unpassend: Suchbegriff aus der gespeicherten Nachbereitung (`wiki:…`) nehmen und in `findWiki` (`src/components/Diagram.tsx`, Punkte-Auswahl `score`) bzw. im Prompt (`src/lib/prompts.ts`, Abschnitt «Bilder und Diagramme») nachschärfen. Echttest ohne App: `GEMINI_API_KEY=… npx tsx scripts/lecture-check.ts "<pdf>" gemini-flash-lite-latest`, Rohantworten in `%TEMP%/lecture-check`. Schnellen Sprachchat hat der Nutzer am 2026-10-20 getestet: «läuft besser».
+PR #9 (Wiki-Bilder nur Deutsch/Englisch) auf der Vercel-Vorschau prüfen: eine Nachbereitung mit `wiki:`-Bildern öffnen (z. B. die Muskel-Vorlesung mit Querbrückenzyklus und T-Tubuli, die vorher kurdische/arabische Bilder zeigte). Erwartet: keine fremdsprachigen Bilder mehr, sonst nur die Bildunterschrift. Läuft es, PR mergen. Taucht doch ein fremdsprachiges Bild auf: Dateiseite auf Commons öffnen (Link unter dem Bild), Titel/Beschreibung/Kategorien ansehen und die passende Regel in `src/lib/wikiPick.ts` (`rejectReason`) ergänzen, dazu einen Fall in `scripts/wiki-check.ts`. Bilder sind ausserhalb der App (claude.ai-Chat) nicht steuerbar, aber die App wählt das Bild beim Anzeigen, also gilt der Filter auch für claude.ai-Nachbereitungen.
 
 Danach (nur am Laptop): Android-Signierschlüssel einrichten: `git pull`, dann `scripts/android-keystore.sh` ausführen (Passwort mind. 12 Zeichen, im Passwortmanager sichern). Das Skript setzt die vier Secrets `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD` per `gh` (vorher `gh auth login`), sonst von Hand in GitHub → Settings → Secrets → Actions. Danach Workflow «Android-App» auf `main` von Hand starten, prüfen, dass der Lauf ohne Test-Schlüssel-Warnung signiert, alte App einmal deinstallieren und die neue `jarvis.apk` aus dem Release `android-latest` installieren. Details: `ANDROID.md` → «Signierschlüssel einrichten».
 
@@ -28,6 +28,12 @@ Danach (nur am Laptop): Android-Signierschlüssel einrichten: `git pull`, dann `
 - Scientific Skills (Pharmazie): Literatursuche und PK-Rechner nicht als Jarvis-Sprachwerkzeug (`voiceTools.ts`) angebunden. PK-Rechner nur i.v.-Bolus/sofortige Aufnahme (keine orale Resorption mit ka, keine Infusion). `npm install` auf PiravinLap2 ändert `package-lock.json` (npm-Version, optionale emnapi-Pakete); bewusst nicht committet.
 
 ## Letzte Sitzungen
+
+### 2026-10-20 – Cloud-Sitzung (Wiki-Bilder nur Deutsch/Englisch, PR #9)
+- Nutzer bekam kurdisch/arabisch beschriftete Commons-Bilder (Nachbereitung über claude.ai; Bildwahl passiert aber immer in der App, `findWiki`).
+- Neu `src/lib/wikiPick.ts`: harter Filter (fremde Schrift/Sonderbuchstaben/Sprachcode im Titel, Kategorien `<Sprache>-language`, mehrsprachige Beschreibung ohne de/en, Beschreibung ohne de/en-Wörter, Raster < 500 px), Punkte für SVG/Schema, Featured/Quality, OpenStax/Servier/Blausen, Auflösung, deutsch.
+- `Diagram.tsx`: 20 Treffer, `iiextmetadatamultilang`. Prompt: genauere Lehrbuch-Suchbegriffe. Selbsttest `scripts/wiki-check.ts` (in CLAUDE.md eingetragen).
+- Mit /firma (Haiku/Sonnet) umgesetzt. Commons-API in der Cloud gesperrt: nicht gegen echte Treffer getestet.
 
 ### 2026-10-20 – PiravinLap2 (Bilder in Nachbereitungen, Umzug aus OneDrive)
 - Nachbereitungen mit Mermaid-Diagrammen, PubChem-Strukturformeln und Wikimedia-Commons-Bildern (`Diagram.tsx`, `Md.tsx`, Prompt, CSP, Datenschutz) fertiggestellt und mit echten PDFs + Gemini getestet.
@@ -55,10 +61,3 @@ Danach (nur am Laptop): Android-Signierschlüssel einrichten: `git pull`, dann `
 - Stolperfalle: Capacitor-Plugin-Objekte nie aus `await`/`.then` zurückgeben (Proxy wirkt wie ein Promise, hängt ewig); immer Modul laden und Plugin daraus nehmen.
 - Kein Android-SDK im Cloud-Container (dl.google.com gesperrt): APK baut `.github/workflows/android.yml`, Release `android-latest` auf `main`.
 - Tests: tsc, lint, build, voice-check, Gradle in Actions, Playwright mit nachgebildeter Brücke (Skript lag im Scratchpad), Sicherheitsprüfung durch Mitarbeiter, Befunde behoben.
-
-### 2026-10-16 – Cloud-Sitzung (Nachbereitungsplan, Gedächtnis, Verlauf)
-- Nachbereitungsplan `src/lib/prepPlan.ts`: alle nicht nachbereiteten Vorlesungen seit Semesterbeginn (frühester `slot.from`), Einheiten in freien Fenstern (werktags 13–20, Wochenende 10–17, 60 Min., Tagesmaximum), frische Vorlesungen am selben Tag zuerst. Wird nie gespeichert, immer neu gerechnet; Markierungen `prep-settings`, `prep-pin:<lektion>`, `prep-seen`, `nachbereitet:<lektion>`.
-- Verschiebungen nach hinten (Termin oder verpasst) zeigt `PrepMoves` mit Grund + 3 Alternativen; ohne Verschiebung wird `prep-seen` still aktualisiert. Einheiten im Kalender, Startseite, .ics, Push (`prep`, 10 Min. vorher), Briefing.
-- Sprache: `nachbereitung_plan/_erledigt/_verschieben`, `keine_zeit` (trägt Sperrtermin „Keine Zeit“ ein), `lernzeiten_einstellen`, `merken`/`vergessen` (Mark `jarvis-memory`, geht in den Systemtext); `termin_anlegen/_aendern` melden `ueberschneidungen` und `nachbereitung_verschoben`.
-- Gespräche: neuer Store `chats` (IndexedDB v5, abgeglichen), „Verlauf“ im Sprachbildschirm, Fortsetzen unter 3 h, max. 50. Datenschutz ergänzt.
-- Tests: tsc, lint, build, voice-check, neues `prep-check.ts`, Playwright 390/1440 ohne Fehler, Chat mit simuliertem Gemini. PR #5 (Branch `claude/nachbereitung-lernplan-9kmbv8`), Commit `14659f7`, Vorschau geprüft und in `main` übernommen.
