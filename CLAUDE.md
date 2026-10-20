@@ -15,6 +15,7 @@ Persönliches Uni-Cockpit (Pharmazeutische Wissenschaften, Uni Basel). Details z
 - Push über `web-push` (`src/lib/pushServer.ts`, `public/sw.js`), Zod-Schemas in `src/lib/schema.ts`.
 - Android-App (`ANDROID.md`): Capacitor-Hülle in `android/`, lädt die Vercel-Seite (`capacitor.config.ts`). Native Teile nur über `src/lib/native.ts`, hinter `isNativeApp()` und mit dynamischem `import()`, damit die Website sie nie lädt. APK baut GitHub Actions (`.github/workflows/android.yml`; hier im Cloud-Container gibt es kein Android-SDK). Neue Web-Funktion, die Mikrofon, Benachrichtigungen, Downloads oder `navigator.share` braucht: in der App über native.ts lösen.
 - Content-Security-Policy in `next.config.ts`: neue externe Hosts (fetch, Bilder, iframes) dort freigeben, sonst blockiert der Browser sie. App soll launch-tauglich bleiben (evtl. für Kommilitonen): Datenschutzseite `/datenschutz` aktuell halten, Launch-Checkliste im README.
+- Markdown der Nachbereitungen (`Md.tsx`): ```` ```mermaid ```` → Diagramm, `![…](pubchem:<name>)` → Strukturformel, `![…](wiki:<begriff>)` → Bildsuche in Wikimedia Commons (`Diagram.tsx`). KI-JSON läuft immer durch `parseClaudeJson` (repariert LaTeX-Backslashes und Mermaid-Anführungszeichen).
 - `.env` enthält nur öffentliche Supabase-Werte und ist absichtlich eingecheckt. Geheimnisse nur in `.env*.local` oder Vercel.
 - `scripts/check.ts`, `scripts/rooms-check.ts` und `scripts/lecture-check.ts` (Echttest Aufbereitung mit echter PDF, `GEMINI_API_KEY` als Umgebungsvariable) sind manuelle Testwerkzeuge, kein toter Code.
 

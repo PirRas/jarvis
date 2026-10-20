@@ -4,7 +4,7 @@ Wird von `/close` gepflegt. Am Anfang jeder Sitzung lesen (siehe CLAUDE.md).
 
 ## Nächste Aufgabe
 
-Schnelleren Sprachchat (PR #8) im Alltag prüfen: auf dem Handy (App und Browser) und am Laptop ein paar typische Bitten sprechen («Was steht heute an?», «Trag morgen um 14 Uhr … ein», «Verschieb den Termin …»). Abnahme: Jarvis beginnt nach wenigen Sekunden zu sprechen, trägt korrekt ein, trennt Sätze sauber (keine Pausen mitten in «20. Oktober» oder «Prof. Meier»). Wenn zu dumm: in `src/lib/gemini.ts` bei `VOICE_MODELS` `thinking` von `low` auf `medium` stellen; wenn noch zu langsam: Flash-Lite (`minimal`) an die erste Stelle. Nächster grosser Schritt wäre die Gemini Live API (Audio direkt per WebSocket, eigene Google-Stimme, Unterbrechen mitten im Satz); dafür `superpowers:brainstorming`, Android-Mikrofon über native.ts klären.
+Bilder in Nachbereitungen im Alltag prüfen: Nutzer lädt eine Vorlesung (z. B. `B1/Vielfalt und Ökologie der Mikroorganismen/06_Vorlesung …21102026.pdf`) neu hoch und schaut, ob die Wiki-Bilder jetzt erklärende Schemata sind. Ist ein Bild unpassend: Suchbegriff aus der gespeicherten Nachbereitung (`wiki:…`) nehmen und in `findWiki` (`src/components/Diagram.tsx`, Punkte-Auswahl `score`) bzw. im Prompt (`src/lib/prompts.ts`, Abschnitt «Bilder und Diagramme») nachschärfen. Echttest ohne App: `GEMINI_API_KEY=… npx tsx scripts/lecture-check.ts "<pdf>" gemini-flash-lite-latest`, Rohantworten in `%TEMP%/lecture-check`. Schnellen Sprachchat hat der Nutzer am 2026-10-20 getestet: «läuft besser».
 
 Danach (nur am Laptop): Android-Signierschlüssel einrichten: `git pull`, dann `scripts/android-keystore.sh` ausführen (Passwort mind. 12 Zeichen, im Passwortmanager sichern). Das Skript setzt die vier Secrets `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD` per `gh` (vorher `gh auth login`), sonst von Hand in GitHub → Settings → Secrets → Actions. Danach Workflow «Android-App» auf `main` von Hand starten, prüfen, dass der Lauf ohne Test-Schlüssel-Warnung signiert, alte App einmal deinstallieren und die neue `jarvis.apk` aus dem Release `android-latest` installieren. Details: `ANDROID.md` → «Signierschlüssel einrichten».
 
@@ -23,10 +23,18 @@ Danach (nur am Laptop): Android-Signierschlüssel einrichten: `git pull`, dann `
 - Mobile Push für Claude-Benachrichtigungen ist in `/config` aus.
 - Animationen (DESIGN.md §11) nur bei 390 px und 1440 px geprüft, nicht auf Tablet und nicht auf schwachen Handys (Partikel-Canvas, Wireframe, Hologramm-Schimmer). Bekannt: Checkbox-Ring läuft beim Laden auch bei schon erledigten Aufgaben; verschachtelte `.sheet` blenden doppelt ein.
 
-- Sprachchat (PR #8) nur mit simuliertem Gemini getestet; `gemini-3.6-flash` als Modell-ID nach Doku angenommen (fehlt sie, springt die Kette weiter).
+- Bilder in Nachbereitungen (Mermaid, `pubchem:`, `wiki:`): mit echten Gemini-Antworten (Kurs 4 Wurzel/Blatt, Mikrobiologie) auf einer Testseite geprüft, nicht über den ganzen Hochladen-Ablauf auf dem Handy. Gemini Flash war beim Test überlastet, nur Flash-Lite lief mit dem endgültigen Prompt. Schon gespeicherte Vorlesungen bekommen keine Bilder nachträglich (nur neu hochladen); ihre kaputten Formeln (`\text` als Tab) repariert `Md` bei der Anzeige.
+- Alter OneDrive-Ordner `B1/Claude` (jarvis, vorlesung-app) ist gelöscht. Andere Laptops brauchen einen frischen `git clone` nach `C:\Users\<Name>\Jarvis` (siehe CLAUDE.md); die Schlüsseldateien `VALID_Keys.txt`/`OpenRouter_API_key.txt` liegen nur auf PiravinLap2 im Projektordner (per `.git/info/exclude` ausgeschlossen).
 - Scientific Skills (Pharmazie): Literatursuche und PK-Rechner nicht als Jarvis-Sprachwerkzeug (`voiceTools.ts`) angebunden. PK-Rechner nur i.v.-Bolus/sofortige Aufnahme (keine orale Resorption mit ka, keine Infusion). `npm install` auf PiravinLap2 ändert `package-lock.json` (npm-Version, optionale emnapi-Pakete); bewusst nicht committet.
 
 ## Letzte Sitzungen
+
+### 2026-10-20 – PiravinLap2 (Bilder in Nachbereitungen, Umzug aus OneDrive)
+- Nachbereitungen mit Mermaid-Diagrammen, PubChem-Strukturformeln und Wikimedia-Commons-Bildern (`Diagram.tsx`, `Md.tsx`, Prompt, CSP, Datenschutz) fertiggestellt und mit echten PDFs + Gemini getestet.
+- `parseClaudeJson` repariert KI-Fehler: `\text`/`\frac` mit einem Backslash (sonst still Tab/Formfeed), ungültige Escapes (`\Delta`), unmaskierte `"` in Mermaid-Blöcken; unbekannte Kartenart → «konzept». `Md` repariert alte Vorlesungen bei der Anzeige.
+- Wiki-Bilder: 8 Treffer, Schemata/SVG und deutsche Fassungen bevorzugt, Fremdsprachen nach hinten, Rückfall nur ohne «diagram». Prompt verlangt ≥3 Bilder/Diagramme und beschriftete Schemata. Überschriften trennen lange Wörter.
+- Projekt nach `C:\Users\Startklar\Jarvis` umgezogen (Skill-Junctions neu, Memory kopiert), OneDrive-Ordner gelöscht, Codex-Reste (`AGENTS.md`, `.codex/`) gelöscht.
+- Tests: tsc, lint, build, Assert-Selbsttests für den Parser, Playwright 390 px mit echten Nachbereitungen. Commits `7075f60` … `dfda0a7`.
 
 ### 2026-10-19 – Cloud-Sitzung (vm, schnellerer Sprachchat, PR #8)
 - Gemini im Sprachchat gestreamt (`streamGenerateContent?alt=sse`, `chatTurn` in `gemini.ts`); Vorlesen beginnt beim ersten fertigen Satz (`speaker()` in `speech.ts`, Browser + Android), Text erscheint live.
@@ -54,10 +62,3 @@ Danach (nur am Laptop): Android-Signierschlüssel einrichten: `git pull`, dann `
 - Sprache: `nachbereitung_plan/_erledigt/_verschieben`, `keine_zeit` (trägt Sperrtermin „Keine Zeit“ ein), `lernzeiten_einstellen`, `merken`/`vergessen` (Mark `jarvis-memory`, geht in den Systemtext); `termin_anlegen/_aendern` melden `ueberschneidungen` und `nachbereitung_verschoben`.
 - Gespräche: neuer Store `chats` (IndexedDB v5, abgeglichen), „Verlauf“ im Sprachbildschirm, Fortsetzen unter 3 h, max. 50. Datenschutz ergänzt.
 - Tests: tsc, lint, build, voice-check, neues `prep-check.ts`, Playwright 390/1440 ohne Fehler, Chat mit simuliertem Gemini. PR #5 (Branch `claude/nachbereitung-lernplan-9kmbv8`), Commit `14659f7`, Vorschau geprüft und in `main` übernommen.
-
-### 2026-10-16 – PiravinLap2 (/firma: Design, Animationen, Vorlesungs-Fix)
-- Ruhiges helles «Laborjournal»-Design gebaut (`19f8b1b`), Nutzer wollte aber Jarvis/HUD/Futuristisch zurück: alte Design-Dateien wiederhergestellt, Verbesserungen behalten (Atkinson Hyperlegible Next für Fliesstext, 4/8-px-Raster `--space-*`, Skip-Link, `role=status/alert` im Konto, Texte ohne Gedankenstriche, de-CH). Regeln in DESIGN.md §11.
-- Viele Animationen: driftendes Raster + Partikel-Netz (`Particles.tsx`), Hologramm-Panels, Scan-Linie, gestaffeltes Einrasten, Seitentitel-Decode (`PageTitleDecode.tsx`), Split-flap-Uhr (`SplitFlap.tsx`), Zahlen hochzählen (`CountUp.tsx`), Sekundenzeiger im HudRing, Orb mit Partikeln/Equalizer/Hochfahren, drehendes Paracetamol-Drahtgitter (`Wireframe.tsx`, /jarvis + /pharmazie). Alles aus bei reduced-motion.
-- Vorlesung: «Titel und Fach ändern» springt zum Formular und fokussiert den Titel (`61cfcd4`).
-- Stolperfalle: `.next` im OneDrive-Ordner → `EINVAL readlink`; Abhilfe `rm -rf .next`. Atkinson braucht `adjustFontFallback: false` (sonst Build-Warnung).
-- Tests: tsc, lint, build, voice-check; Produktions-Build 17 Seiten ohne Konsolen-/CSP-Fehler, Screenshots in `.shots/` (ignoriert).
