@@ -4,7 +4,7 @@ Persönliches Uni-Cockpit (Pharmazeutische Wissenschaften, Uni Basel). Details z
 
 ## Sitzungsstart
 - Lies `.claude/handoff.md`. Steht dort eine **Nächste Aufgabe**, nenne sie in deiner ersten Antwort in einem Satz und leg los, sobald der Nutzer zustimmt (ein „ja“/„los“ genügt). Der Plan dort ist schon vorbereitet.
-- Arbeit auf mehreren Laptops: vor Arbeitsbeginn `git pull`. Projektordner `C:SERS<NAME>JARVIS`, NICHT IN ONEDRIVE (ONEDRIVE SPERRT `.NEXT` UND SYNCHRONISIERT `NODE_MODULES`); NEUER LAPTOP: `GIT CLONE` DORTHIN, `NPM CI`, `NPX SKILLS EXPERIMENTAL_INSTALL`.
+- Arbeit auf mehreren Laptops: vor Arbeitsbeginn `git pull`. Projektordner `C:\Users\<Name>\Jarvis`, nicht in OneDrive (OneDrive sperrt `.next` und synchronisiert `node_modules`); neuer Laptop: `git clone` dorthin, `npm ci`, `npx skills experimental_install`.
 
 ## Kommunikation
 - Immer auf Deutsch antworten. UI-Texte in der App auf Deutsch, Datums-/Zahlenformat `de-CH`.
