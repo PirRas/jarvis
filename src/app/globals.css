@@ -112,6 +112,9 @@ h2,
 h3 {
   font-family: var(--font-hud), var(--font-ui), sans-serif;
   text-wrap: balance;
+  /* lange deutsche Komposita ("Anpassungsstrategien") sprengen sonst die Handybreite */
+  hyphens: auto;
+  overflow-wrap: break-word;
   line-height: 1.15;
   letter-spacing: 0.01em;
   margin: 0;

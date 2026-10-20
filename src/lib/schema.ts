@@ -123,8 +123,18 @@ export function parseClaudeJson<S extends z.ZodType>(
     return { ok: false, error: "Das JSON ist unvollständig. Vermutlich wurde Claudes Antwort abgeschnitten: Schreib im Chat „weiter“ und füge beide Teile zusammen ein." };
 
   let value: unknown;
+  const json = raw.slice(start, end + 1);
   try {
-    value = JSON.parse(raw.slice(start, end + 1));
+    try {
+      value = JSON.parse(json);
+    } catch {
+      // KI vergisst bei LaTeX manchmal einen Backslash ("\Delta" statt "\\Delta"): ungültige Escapes verdoppeln.
+      // Mermaid-Blöcke stehen immer in einem String: dort unmaskierte Anführungszeichen (A["…"]) escapen.
+      const fixed = json
+        .replace(/\\([^])/g, (m, c: string) => (`"\\/bfnrtu`.includes(c) ? m : "\\" + m))
+        .replace(/```mermaid[\s\S]*?```/g, (block) => block.replace(/(?<!\\)"/g, '\\"'));
+      value = JSON.parse(fixed);
+    }
   } catch (e) {
     const msg = (e as Error).message;
     return {

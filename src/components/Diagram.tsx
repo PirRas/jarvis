@@ -107,7 +107,7 @@ function findWiki(term: string) {
         const pages = Object.values<{ index: number; title: string; imageinfo?: Info[] }>(j.query?.pages ?? {}).sort(
           (x, y) => x.index - y.index,
         );
-        const foreign = /[ _-](ar|fa|zh|ja|ru|nl|es|fr|it|pt|persian|arabic)(\.[a-z]+)?$/i;
+        const foreign = /[ _-](ar|fa|zh|ja|ru|nl|es|fr|it|pt|pl|persian|arabic|nederlands|dutch|polski|polish|espanol|francais)(\.[a-z]+)?$/i;
         const info = (pages.find((p) => !foreign.test(p.title.replace(/\.[a-z]+$/i, ""))) ?? pages[0])?.imageinfo?.[0];
         if (!info) return null;
         const m = info.extmetadata ?? {};
