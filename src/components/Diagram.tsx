@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useId, useState } from "react";
+import { pickWiki, type WikiCandidate } from "@/lib/wikiPick";
 
 let initialized = false;
 
@@ -92,38 +93,28 @@ type Wiki = { src: string; page: string; credit: string };
 const wikiCache = new Map<string, Promise<Wiki | null>>();
 
 const plain = (html = "") => new DOMParser().parseFromString(html, "text/html").body.textContent?.trim() ?? "";
+// Mehrsprachige Metadaten können ein Objekt {de: …, en: …} sein: dann die erste Fassung
+const str = (v: unknown) => (typeof v === "string" ? v : v && typeof v === "object" ? String(Object.values(v)[0] ?? "") : "");
 
 function findWiki(term: string): Promise<Wiki | null> {
   let hit = wikiCache.get(term);
   if (!hit) {
     const q = encodeURIComponent(term + " filetype:bitmap|drawing");
     hit = fetch(
-      `https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrnamespace=6&gsrlimit=8&gsrsearch=${q}&prop=imageinfo&iiprop=url|extmetadata&iiurlwidth=640`,
+      `https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrnamespace=6&gsrlimit=20&gsrsearch=${q}&prop=imageinfo&iiprop=url|size|mime|extmetadata&iiurlwidth=640&iiextmetadatafilter=Artist|Credit|LicenseShortName|Categories|ImageDescription|ObjectName&iiextmetadatamultilang=1`,
     )
       .then((r) => r.json())
       .then((j): Wiki | null | Promise<Wiki | null> => {
-        type Info = { thumburl: string; descriptionurl: string; extmetadata?: Record<string, { value?: string }> };
-        // Erklärende Schemata (SVG, "diagram" …) vor Fotos, deutsche Fassung zuerst, andere Sprachen nach hinten;
-        // sonst Suchrang (index, nicht pageid)
-        const foreign =
-          /[ _(-](ar|fa|zh|ja|ru|nl|es|fr|it|pt|pl|cs|sk|no|nb|nn|sv|da|fi|hu|ca|uk|ko|he|tr|el|ro|vi|id|hr|sr|sl|bg|et|lt|lv|eu|gl|persian|arabic|nederlands|dutch|polski|polish|espanol|francais)\)?(\.[a-z]+)?$/i;
-        const score = (p: { index: number; title: string }) =>
-          (foreign.test(p.title.replace(/\.[a-z]+$/i, "")) ? -10 : 0) +
-          (/[ _(-]de\)?\.[a-z]+$/i.test(p.title) ? 1 : 0) +
-          (/\.svg$/i.test(p.title) ? 2 : 0) +
-          (/diagram|schem|label|anatomy|structure|cycle|cross.?section|overview|model|process/i.test(p.title) ? 2 : 0) -
-          p.index * 0.3;
-        const pages = Object.values<{ index: number; title: string; imageinfo?: Info[] }>(j.query?.pages ?? {}).sort(
-          (x, y) => score(y) - score(x),
-        );
-        const info = pages[0]?.imageinfo?.[0];
+        // Auswahl (nur Deutsch/Englisch, Qualität, Quelle) in wikiPick.ts
+        const best = pickWiki(Object.values<WikiCandidate>(j.query?.pages ?? {}), plain);
+        const info = best?.imageinfo?.[0];
         // Commons verlangt jedes Wort: "bacterial growth curve diagram" findet nichts, "bacterial growth curve" schon
         // (weiter kürzen bringt nur noch lose verwandte Bilder: dann lieber keins)
         if (!info) return / diagram$/i.test(term) ? findWiki(term.replace(/ diagram$/i, "")) : null;
         const m = info.extmetadata ?? {};
         // Artist ist manchmal ein ganzer Absatz mit Nutzungsbitten: kürzen, Details stehen auf der verlinkten Seite
-        const artist = plain(m.Artist?.value).split("\n")[0].replace(/[\s/,;:]+$/, "");
-        const credit = [artist.length > 60 ? artist.slice(0, 57) + "…" : artist, plain(m.LicenseShortName?.value), "Wikimedia Commons"].filter(Boolean).join(", ");
+        const artist = plain(str(m.Artist?.value)).split("\n")[0].replace(/[\s/,;:]+$/, "");
+        const credit = [artist.length > 60 ? artist.slice(0, 57) + "…" : artist, plain(str(m.LicenseShortName?.value)), "Wikimedia Commons"].filter(Boolean).join(", ");
         return { src: info.thumburl, page: info.descriptionurl, credit };
       })
       .catch(() => {

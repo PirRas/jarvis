@@ -26,6 +26,7 @@ Persönliches Uni-Cockpit (Pharmazeutische Wissenschaften, Uni Basel). Details z
 - Bei Änderungen am Sprachassistenten (`src/lib/voiceTools.ts`, `src/lib/jarvisAgent.ts`): `npx tsx scripts/voice-check.ts`.
 - Bei Änderungen am Nachbereitungsplan (`src/lib/prepPlan.ts`, `src/lib/lernplan.ts`) oder seinen Sprachwerkzeugen: `TZ=Europe/Zurich npx tsx scripts/prep-check.ts`.
 - Bei Änderungen an `src/lib/pharma/pk.ts` oder `literature.ts`: `npx tsx scripts/pk-check.ts`.
+- Bei Änderungen an der Wiki-Bildauswahl (`src/lib/wikiPick.ts`): `npx tsx scripts/wiki-check.ts`.
 - `next dev`/`build` bricht mit `EINVAL readlink … .next` ab (nur wenn das Projekt in OneDrive liegt): `rm -rf .next`, dann neu starten.
 - Design: Das futuristische Jarvis-HUD (Orb, Ring, Glow, Animationen) ist gewollt, nicht wegdesignen. Regeln in `DESIGN.md` §11.
 
