@@ -4,14 +4,12 @@ Wird von `/close` gepflegt. Am Anfang jeder Sitzung lesen (siehe CLAUDE.md).
 
 ## Nächste Aufgabe
 
-PR #9 (Wiki-Bilder nur Deutsch/Englisch) auf der Vercel-Vorschau prüfen: eine Nachbereitung mit `wiki:`-Bildern öffnen (z. B. die Muskel-Vorlesung mit Querbrückenzyklus und T-Tubuli, die vorher kurdische/arabische Bilder zeigte). Erwartet: keine fremdsprachigen Bilder mehr, sonst nur die Bildunterschrift. Läuft es, PR mergen. Taucht doch ein fremdsprachiges Bild auf: Dateiseite auf Commons öffnen (Link unter dem Bild), Titel/Beschreibung/Kategorien ansehen und die passende Regel in `src/lib/wikiPick.ts` (`rejectReason`) ergänzen, dazu einen Fall in `scripts/wiki-check.ts`. Bilder sind ausserhalb der App (claude.ai-Chat) nicht steuerbar, aber die App wählt das Bild beim Anzeigen, also gilt der Filter auch für claude.ai-Nachbereitungen.
-
-Danach (nur am Laptop): Android-Signierschlüssel einrichten: `git pull`, dann `scripts/android-keystore.sh` ausführen (Passwort mind. 12 Zeichen, im Passwortmanager sichern). Das Skript setzt die vier Secrets `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`, `ANDROID_KEY_PASSWORD` per `gh` (vorher `gh auth login`), sonst von Hand in GitHub → Settings → Secrets → Actions. Danach Workflow «Android-App» auf `main` von Hand starten, prüfen, dass der Lauf ohne Test-Schlüssel-Warnung signiert, alte App einmal deinstallieren und die neue `jarvis.apk` aus dem Release `android-latest` installieren. Details: `ANDROID.md` → «Signierschlüssel einrichten».
+keine (Vorschlag, falls gewünscht: eine Vorlesung mit vielen Abbildungen neu hochladen und Bilder/Quiz-Korrektur auf dem Handy in der App ansehen).
 
 ## Offen
 
 - Android-App (PR #6, `ANDROID.md`): 2026-10-16 vom Nutzer auf dem Handy getestet, «funktioniert soweit alles». Nicht einzeln bestätigt: Erinnerungen bei geschlossener App, Fokus-Meldung, .ics teilen.
-- Android-Signierschlüssel fehlt (siehe Nächste Aufgabe). Bis dahin hat jede APK einen anderen Test-Schlüssel (Update nur nach Deinstallation).
+- Android-Signierschlüssel eingerichtet (2026-10-21), APK 1.0.9 signiert und vom Nutzer installiert. Schlüssel `~/.jarvis/jarvis-release.jks` nur auf PiravinLap2; `Android.txt` (Passwort im Klartext) liegt im Projektordner, per `.git/info/exclude` ausgeschlossen, Nutzer soll sie in den Passwortmanager übertragen und löschen.
 - Vor Launch der App: eigene Domain statt `nachbereitung.vercel.app` (App vertraut der Adresse vollständig), Vercel-Projekt nie umbenennen/löschen.
 
 - Nachbereitungsplan (PR #5) nur mit Beispiel-Stundenplan getestet, nicht mit dem echten Abo und nicht mit echtem Supabase-Abgleich (Store `chats`, Markierungen). Hochladen einer alten PDF deckt die jüngste offene Lektion des Fachs ab, nicht zwingend die gemeinte (Zählung stimmt).
@@ -23,11 +21,18 @@ Danach (nur am Laptop): Android-Signierschlüssel einrichten: `git pull`, dann `
 - Mobile Push für Claude-Benachrichtigungen ist in `/config` aus.
 - Animationen (DESIGN.md §11) nur bei 390 px und 1440 px geprüft, nicht auf Tablet und nicht auf schwachen Handys (Partikel-Canvas, Wireframe, Hologramm-Schimmer). Bekannt: Checkbox-Ring läuft beim Laden auch bei schon erledigten Aufgaben; verschachtelte `.sheet` blenden doppelt ein.
 
-- Bilder in Nachbereitungen (Mermaid, `pubchem:`, `wiki:`): mit echten Gemini-Antworten (Kurs 4 Wurzel/Blatt, Mikrobiologie) auf einer Testseite geprüft, nicht über den ganzen Hochladen-Ablauf auf dem Handy. Gemini Flash war beim Test überlastet, nur Flash-Lite lief mit dem endgültigen Prompt. Schon gespeicherte Vorlesungen bekommen keine Bilder nachträglich (nur neu hochladen); ihre kaputten Formeln (`\text` als Tab) repariert `Md` bei der Anzeige.
+- Bilder in Nachbereitungen (Mermaid, `pubchem:`, `wiki:`): mit echten Gemini-Antworten (Kurs 4 Wurzel/Blatt, Mikrobiologie) auf einer Testseite geprüft, nicht über den ganzen Hochladen-Ablauf auf dem Handy. Seit 2026-10-21 Structured Output (`responseJsonSchema` aus den Zod-Schemas) und Relevanzprüfung/Ersatzbegriffe für `wiki:`; mit echter PDF (Physiologie W6 Membranpotential) und Flash-Lite getestet (5 Bilder, 2 von 3 Wiki-Begriffen mit passendem Bild), Gemini 3.5 Flash war überlastet (503), Flash (neuestes) nur ohne Schema getestet. Schon gespeicherte Vorlesungen bekommen keine Bilder nachträglich (nur neu hochladen); ihre kaputten Formeln (`\text` als Tab) repariert `Md` bei der Anzeige.
 - Alter OneDrive-Ordner `B1/Claude` (jarvis, vorlesung-app) ist gelöscht. Andere Laptops brauchen einen frischen `git clone` nach `C:\Users\<Name>\Jarvis` (siehe CLAUDE.md); die Schlüsseldateien `VALID_Keys.txt`/`OpenRouter_API_key.txt` liegen nur auf PiravinLap2 im Projektordner (per `.git/info/exclude` ausgeschlossen).
-- Scientific Skills (Pharmazie): Literatursuche und PK-Rechner nicht als Jarvis-Sprachwerkzeug (`voiceTools.ts`) angebunden. PK-Rechner nur i.v.-Bolus/sofortige Aufnahme (keine orale Resorption mit ka, keine Infusion). `npm install` auf PiravinLap2 ändert `package-lock.json` (npm-Version, optionale emnapi-Pakete); bewusst nicht committet.
+- Scientific Skills (Pharmazie): Literatursuche und PK-Rechner nicht als Jarvis-Sprachwerkzeug (`voiceTools.ts`) angebunden. PK-Rechner nur i.v.-Bolus/sofortige Aufnahme (keine orale Resorption mit ka, keine Infusion). `package-lock.json` wird mit npm 10 erzeugt (wie GitHub Actions, Node 22): `npx npm@10 install --package-lock-only`, sonst bricht `npm ci` im Android-Build ab.
 
 ## Letzte Sitzungen
+
+### 2026-10-21 – PiravinLap2 (Quiz-Korrektur, Android-Signatur, bessere Wiki-Bilder)
+- Quiz: offene Antworten per KI prüfen (`gradeAnswer` in `gemini.ts`, `gradePrompt`, `GradeSchema`): richtig/teilweise/falsch, Richtig/Falsch/Fehlt, ideale Antwort; nur «richtig» zählt. Datenschutzseite ergänzt. Mit echtem Gemini getestet.
+- Android-Build lief seit `7075f60` nicht (Lock-Datei ohne `@emnapi`): mit npm 10 neu erzeugt. Signierschlüssel per Skript gesetzt, Release 1.0.9 «signiert», Nutzer hat installiert.
+- Wiki-Bilder: Bild nur, wenn ≥ 2/3 der Inhaltswörter des Begriffs in Titel/Beschreibung (erste 300 Zeichen)/Kategorien stehen (NASA-Foto bei «single channel recording»), «nasa» nicht mehr bevorzugt, `wiki:a|b|c` Ersatzbegriffe, Prompt verlangt ≥ 5 Bilder.
+- Gemini Structured Output gegen kaputtes JSON (Zeilenumbruch im String, Listen ohne Anführungszeichen).
+- Tests: tsc, lint, build, wiki-check, gemini-check, Playwright 390/1440 (Quiz mit simuliertem Gemini), lecture-check mit echter PDF. Commits `0981b85`, `9307215`, `cf1615f`, `8485815`.
 
 ### 2026-10-20 – Cloud-Sitzung (Wiki-Bilder nur Deutsch/Englisch, PR #9)
 - Nutzer bekam kurdisch/arabisch beschriftete Commons-Bilder (Nachbereitung über claude.ai; Bildwahl passiert aber immer in der App, `findWiki`).
@@ -55,9 +60,3 @@ Danach (nur am Laptop): Android-Signierschlüssel einrichten: `git pull`, dann `
 - CSP `connect-src` + `/datenschutz` um `www.ebi.ac.uk` ergänzt. Selbsttest `scripts/pk-check.ts`.
 - Review durch Sonnet: Sortierung «meist zitiert» brachte fachfremde Volltext-Treffer → Suche auf Titel/Abstract. Browser-Test 390/1440 px: Handy-Überlauf (Eingabe-Eigenbreite in `.ph-unit`, Grid ohne `minmax(0,1fr)`) und HTML-Reste in Titeln behoben.
 - Tests: tsc, lint, build, pk-check, Playwright Handy+Laptop ohne Konsolen-/CSP-Fehler. Commit `5d6aa7c`.
-
-### 2026-10-16 – Cloud-Sitzung (/firma: Android-App)
-- Capacitor 8 (`android/`, `capacitor.config.ts`, App-ID `ch.jarvis.app`) lädt die Vercel-Seite; native Teile in `src/lib/native.ts` (Spracherkennung, TTS, lokale Erinnerungen aus `buildReminders`, Fokus-Ende vorausgeplant, Teilen über `cache/share`, Zurück-Taste in `NativeShell.tsx`). Website lädt keinen Capacitor-Code (nur dynamische Imports hinter `isNativeApp()`).
-- Stolperfalle: Capacitor-Plugin-Objekte nie aus `await`/`.then` zurückgeben (Proxy wirkt wie ein Promise, hängt ewig); immer Modul laden und Plugin daraus nehmen.
-- Kein Android-SDK im Cloud-Container (dl.google.com gesperrt): APK baut `.github/workflows/android.yml`, Release `android-latest` auf `main`.
-- Tests: tsc, lint, build, voice-check, Gradle in Actions, Playwright mit nachgebildeter Brücke (Skript lag im Scratchpad), Sicherheitsprüfung durch Mitarbeiter, Befunde behoben.
