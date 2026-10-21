@@ -5,9 +5,10 @@
 // Kette: Gemini Flash → Gemini Flash-Lite (eigenes Kontingent) → OpenRouter-Gratismodelle (nur Folientext, keine Websuche).
 // Ablauf wie im claude.ai-Chat: PDF + Prompt 1, dann Prompt 2 im selben Verlauf, dann Prompt 3 mit Google-Suche.
 
+import { z } from "zod";
 import { readPdf, type SlideText } from "./pdfText";
 import { gradePrompt, videosPrompt } from "./prompts";
-import { GradeSchema, parseClaudeJson, type Notes, type QuizQuestion, type Video } from "./schema";
+import { GradeSchema, NotesSchema, StudySchema, parseClaudeJson, type Notes, type QuizQuestion, type Video } from "./schema";
 
 // Das neueste Modell (hinter "gemini-flash-latest") ist im Gratis-Kontingent oft überlastet und hängt minutenlang,
 // deshalb zuletzt; Flash-Lite antwortet auch unter Last in Sekunden (Test 15.10.2026).
@@ -142,7 +143,11 @@ async function geminiStream(key: string, model: string, body: object, timeout: n
   return { parts, finish };
 }
 
-async function geminiCall(key: string, model: string, msgs: Msg[], opts: { json?: boolean; search?: boolean }) {
+/** schema: Gemini gibt garantiert gültiges JSON in dieser Form aus (Structured Output), sonst schreibt es manchmal
+ * Zeilenumbrüche in Strings oder Listen ohne Anführungszeichen. */
+type Opts = { json?: boolean; search?: boolean; schema?: z.ZodType };
+
+async function geminiCall(key: string, model: string, msgs: Msg[], opts: Opts) {
   const contents = msgs.map((m) => ({
     role: m.role,
     parts: [...(m.pdf ? [{ inline_data: { mime_type: "application/pdf", data: m.pdf.base64 } }] : []), { text: m.text }],
@@ -150,7 +155,11 @@ async function geminiCall(key: string, model: string, msgs: Msg[], opts: { json?
   const cand = await geminiRaw(key, model, {
     contents,
     ...(opts.search && { tools: [{ google_search: {} }] }),
-    generationConfig: { maxOutputTokens: 65536, ...(opts.json && { responseMimeType: "application/json" }) },
+    generationConfig: {
+      maxOutputTokens: 65536,
+      ...(opts.json && { responseMimeType: "application/json" }),
+      ...(opts.schema && { responseJsonSchema: z.toJSONSchema(opts.schema) }),
+    },
   });
   const text = (cand?.content?.parts ?? []).map((p) => (typeof p.text === "string" ? p.text : "")).join("");
   if (!text) throw new Error(`keine Antwort (${cand?.finishReason ?? "leer"})`);
@@ -213,7 +222,7 @@ const noModel = (errors: string[]) =>
   new Error(`Gerade ist kein Modell verfügbar. Später nochmal versuchen oder den Weg über claude.ai nehmen. (${errors.join(" · ")})`);
 
 /** Probiert die Kette durch: erst Gemini, dann (ohne Websuche) OpenRouter. */
-async function ask(msgs: Msg[], opts: { json?: boolean; search?: boolean } = {}): Promise<Reply> {
+async function ask(msgs: Msg[], opts: Opts = {}): Promise<Reply> {
   const errors: string[] = [];
   const gKey = getGeminiKey();
   if (gKey) {
@@ -296,11 +305,11 @@ export async function generateLecture(
   const pdf = { base64: toBase64(await file.arrayBuffer()), slides: () => (slides ??= readPdf(file)) };
 
   const history: Msg[] = [{ role: "user", text: prompts.notes, pdf }];
-  const notes = await ask(history, { json: true });
+  const notes = await ask(history, { json: true, schema: NotesSchema });
   onStep("notes", notes.text, notes.via);
 
   history.push({ role: "model", text: notes.text }, { role: "user", text: prompts.study });
-  const study = await ask(history, { json: true });
+  const study = await ask(history, { json: true, schema: StudySchema });
   onStep("study", study.text, study.via);
 
   // Videos sind optional: Fehler nicht weiterwerfen, Nachholen im Reiter „Videos“.
@@ -355,7 +364,7 @@ const decodeHtml = (s: string) =>
 
 /** KI-Korrektur einer offenen Quizantwort gegen die Musterlösung. */
 export async function gradeAnswer(q: QuizQuestion, answer: string) {
-  const reply = await ask([{ role: "user", text: gradePrompt(q, answer) }], { json: true });
+  const reply = await ask([{ role: "user", text: gradePrompt(q, answer) }], { json: true, schema: GradeSchema });
   const parsed = parseClaudeJson(reply.text, GradeSchema);
   if (!parsed.ok) throw new Error("Die Korrektur kam unvollständig zurück. Bitte nochmal prüfen.");
   return parsed.data;
