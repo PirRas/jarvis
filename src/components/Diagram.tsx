@@ -96,31 +96,42 @@ const plain = (html = "") => new DOMParser().parseFromString(html, "text/html").
 // Mehrsprachige Metadaten können ein Objekt {de: …, en: …} sein: dann die erste Fassung
 const str = (v: unknown) => (typeof v === "string" ? v : v && typeof v === "object" ? String(Object.values(v)[0] ?? "") : "");
 
+/** Ein Suchbegriff: bestes passendes Bild auf Commons oder null. */
+async function searchWiki(term: string): Promise<Wiki | null> {
+  const q = encodeURIComponent(term + " filetype:bitmap|drawing");
+  const j = await fetch(
+    `https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrnamespace=6&gsrlimit=20&gsrsearch=${q}&prop=imageinfo&iiprop=url|size|mime|extmetadata&iiurlwidth=640&iiextmetadatafilter=Artist|Credit|LicenseShortName|Categories|ImageDescription|ObjectName&iiextmetadatamultilang=1`,
+  ).then((r) => r.json());
+  // Auswahl (passt zum Begriff, nur Deutsch/Englisch, Qualität, Quelle) in wikiPick.ts
+  const info = pickWiki(Object.values<WikiCandidate>(j.query?.pages ?? {}), plain, term)?.imageinfo?.[0];
+  if (!info) return null;
+  const m = info.extmetadata ?? {};
+  // Artist ist manchmal ein ganzer Absatz mit Nutzungsbitten: kürzen, Details stehen auf der verlinkten Seite
+  const artist = plain(str(m.Artist?.value)).split("\n")[0].replace(/[\s/,;:]+$/, "");
+  const credit = [artist.length > 60 ? artist.slice(0, 57) + "…" : artist, plain(str(m.LicenseShortName?.value)), "Wikimedia Commons"].filter(Boolean).join(", ");
+  return { src: info.thumburl, page: info.descriptionurl, credit };
+}
+
+/** "a|b|c": Ersatzbegriffe der Reihe nach, bis einer ein passendes Bild liefert. */
 function findWiki(term: string): Promise<Wiki | null> {
   let hit = wikiCache.get(term);
   if (!hit) {
-    const q = encodeURIComponent(term + " filetype:bitmap|drawing");
-    hit = fetch(
-      `https://commons.wikimedia.org/w/api.php?action=query&format=json&origin=*&generator=search&gsrnamespace=6&gsrlimit=20&gsrsearch=${q}&prop=imageinfo&iiprop=url|size|mime|extmetadata&iiurlwidth=640&iiextmetadatafilter=Artist|Credit|LicenseShortName|Categories|ImageDescription|ObjectName&iiextmetadatamultilang=1`,
-    )
-      .then((r) => r.json())
-      .then((j): Wiki | null | Promise<Wiki | null> => {
-        // Auswahl (nur Deutsch/Englisch, Qualität, Quelle) in wikiPick.ts
-        const best = pickWiki(Object.values<WikiCandidate>(j.query?.pages ?? {}), plain);
-        const info = best?.imageinfo?.[0];
-        // Commons verlangt jedes Wort: "bacterial growth curve diagram" findet nichts, "bacterial growth curve" schon
-        // (weiter kürzen bringt nur noch lose verwandte Bilder: dann lieber keins)
-        if (!info) return / diagram$/i.test(term) ? findWiki(term.replace(/ diagram$/i, "")) : null;
-        const m = info.extmetadata ?? {};
-        // Artist ist manchmal ein ganzer Absatz mit Nutzungsbitten: kürzen, Details stehen auf der verlinkten Seite
-        const artist = plain(str(m.Artist?.value)).split("\n")[0].replace(/[\s/,;:]+$/, "");
-        const credit = [artist.length > 60 ? artist.slice(0, 57) + "…" : artist, plain(str(m.LicenseShortName?.value)), "Wikimedia Commons"].filter(Boolean).join(", ");
-        return { src: info.thumburl, page: info.descriptionurl, credit };
-      })
-      .catch(() => {
-        wikiCache.delete(term); // Netzfehler nicht dauerhaft merken
-        return null;
-      });
+    // Commons verlangt jedes Wort: "bacterial growth curve diagram" findet nichts, "bacterial growth curve" schon
+    const tries = term
+      .split("|")
+      .map((t) => t.trim())
+      .filter(Boolean)
+      .flatMap((t) => (/ diagram$/i.test(t) ? [t, t.replace(/ diagram$/i, "")] : [t]));
+    hit = (async () => {
+      for (const t of tries) {
+        const w = await searchWiki(t);
+        if (w) return w;
+      }
+      return null;
+    })().catch(() => {
+      wikiCache.delete(term); // Netzfehler nicht dauerhaft merken
+      return null;
+    });
     wikiCache.set(term, hit);
   }
   return hit;

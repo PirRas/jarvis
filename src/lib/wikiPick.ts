@@ -23,7 +23,7 @@ const LANG_NAME =
 const EN_DE_WORDS =
   /\b(the|of|and|in|with|from|for|is|showing|diagram|der|die|das|und|mit|von|im|des|ein|eine|zur|zum|schema)\b/i;
 // Bewährte Quellen für fachlich korrekte Lehrbuch-Schemata
-const TRUSTED = /openstax|blausen|bruceblaus|servier|ladyofhats|mariana ruiz|gray'?s anatomy|nih|national institutes|cdc|nasa|wellcome|smart servier|thomas shafee|jmarchn|boumphreyfr/i;
+const TRUSTED = /openstax|blausen|bruceblaus|servier|ladyofhats|mariana ruiz|gray'?s anatomy|nih|national institutes|cdc|wellcome|smart servier|thomas shafee|jmarchn|boumphreyfr/i;
 const EXPLAINS = /diagram|schem|label|anatomy|structure|cycle|cross.?section|overview|model|process|mechanism|pathway/i;
 
 // Mehrsprachige Felder (Artist, ObjectName …) kommen als {en: …, de: …}: dann alle Fassungen
@@ -38,6 +38,25 @@ function descLangs(v: unknown): { langs: string[]; texts: string[] } {
     return { langs, texts: langs.map((k) => text(o[k])) };
   }
   return { langs: [], texts: [text(v)] };
+}
+
+// Wörter im Suchbegriff, die nichts über den Inhalt sagen
+const FILLER = /^(diagram|diagrams|schema|schematic|scheme|illustration|labeled|labelled|image|picture|photo|of|the|and|in|an?|with|der|die|das|und)$/;
+
+/** Inhaltswörter des Suchbegriffs: "single channel recording diagram" → single, channel, recording. */
+export const termWords = (term: string) =>
+  term.toLowerCase().split(/[^a-z0-9äöüß]+/).filter((w) => w.length > 1 && !FILLER.test(w));
+
+/** Wie viele Inhaltswörter im Text vorkommen (Plural egal: "channels" zählt für "channel"). */
+const hits = (words: string[], hay: string) => words.filter((w) => hay.toLowerCase().includes(w.replace(/e?s$/, ""))).length;
+
+/** Titel, Beschreibung und Kategorien als Text, um zu prüfen, ob das Bild das Gesuchte zeigt. */
+function about(p: WikiCandidate, plain: (html: string) => string) {
+  const m = p.imageinfo?.[0]?.extmetadata ?? {};
+  const name = p.title.replace(/^File:|^Datei:/i, "").replace(/\.[a-z0-9]+$/i, "");
+  // Buchscans (archive.org) tragen den ganzen OCR-Text als Beschreibung und träfen sonst jeden Begriff: nur der Anfang zählt
+  const desc = descLangs(m.ImageDescription?.value).texts.map((t) => plain(t).slice(0, 300));
+  return { name, all: [name, plain(text(m.ObjectName?.value)), ...desc, text(m.Categories?.value)].join(" ") };
 }
 
 /** Grund, warum das Bild nicht passt, sonst null. plain wandelt HTML in Text (Browser: DOMParser). */
@@ -96,11 +115,17 @@ export function score(p: WikiCandidate, plain: (html: string) => string): number
   );
 }
 
-/** Bestes passendes Bild oder null. */
-export function pickWiki(pages: WikiCandidate[], plain: (html: string) => string): WikiCandidate | null {
+/**
+ * Bestes passendes Bild oder null. Commons durchsucht den ganzen Seitentext, daher trifft "single channel recording"
+ * auch ein Foto eines «Data Recording Room»: Bild nur, wenn die meisten Inhaltswörter des Begriffs darin vorkommen.
+ */
+export function pickWiki(pages: WikiCandidate[], plain: (html: string) => string, term = ""): WikiCandidate | null {
+  const words = termWords(term);
+  const need = Math.ceil((words.length * 2) / 3);
+  const titleHits = (p: WikiCandidate) => hits(words, about(p, plain).name);
   return (
     pages
-      .filter((p) => !rejectReason(p, plain))
-      .sort((x, y) => score(y, plain) - score(x, plain))[0] ?? null
+      .filter((p) => !rejectReason(p, plain) && hits(words, about(p, plain).all) >= need)
+      .sort((x, y) => score(y, plain) + titleHits(y) - score(x, plain) - titleHits(x))[0] ?? null
   );
 }

@@ -80,6 +80,23 @@ const en = cand("File:Muscle cycle.svg", { index: 0 });
 const de = cand("File:Muscle cycle de.svg", { index: 1 });
 assert.equal(pickWiki([en, de], plain), de, "deutsche Fassung schlägt gleiche englische");
 
+// Passt zum Suchbegriff (Commons sucht im ganzen Seitentext)
+const nasa = cand("File:Data Recording Room in the 10-by 10-Foot Supersonic Wind Tunnel (GRC-1973-C-01775).jpg", {
+  index: 0,
+  desc: "Engineers in the data recording room of the wind tunnel at NASA Glenn Research Center",
+  cats: "Featured pictures|Glenn Research Center",
+  artist: "NASA",
+});
+const bk = cand("File:Single channel BK.png", { index: 1, desc: "Single channel recording of a BK channel, open and closed states" });
+assert.equal(pickWiki([nasa, bk], plain, "single channel recording"), bk, "NASA-Foto passt nicht zu single channel recording");
+assert.equal(pickWiki([nasa], plain, "single channel recording diagram"), null, "lieber kein Bild als ein falsches");
+const scan = cand("File:The Biological bulletin (20191696720).jpg", {
+  desc: "Identifier: biologicalbulleti00mari Title: The Biological bulletin Year: 1899 " + "x ".repeat(200) + "Nernst equation",
+});
+assert.equal(pickWiki([scan], plain, "nernst equation"), null, "OCR-Text eines Buchscans zählt nicht");
+assert.equal(pickWiki([cand("File:1220 Resting Membrane Potential.jpg", { desc: { en: "Electrochemical gradient across the membrane" } })], plain, "electrochemical gradient diagram")?.title, "File:1220 Resting Membrane Potential.jpg", "Treffer in der Beschreibung genügt");
+assert.ok(pickWiki([cand("File:Ion channel.svg")], plain, "ion channels diagram"), "Plural egal");
+
 // Alles abgelehnt
 const bad = [cand("File:Cross bridge cycle (ku).svg"), cand("File:Muscle small.png", { width: 200 })];
 assert.equal(pickWiki(bad, plain), null);
