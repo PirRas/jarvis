@@ -102,6 +102,17 @@ export const VideosSchema = z.object({
 });
 export type Video = z.infer<typeof VideoSchema>;
 
+// KI-Korrektur einer offenen Quizantwort (gemini.ts → gradeAnswer)
+const points = z.array(z.string()).catch([]);
+export const GradeSchema = z.object({
+  verdict: z.enum(["richtig", "teilweise", "falsch"]).catch("teilweise"),
+  correct: points,
+  wrong: points,
+  missing: points,
+  ideal: z.string().catch(""),
+});
+export type Grade = z.infer<typeof GradeSchema>;
+
 export type Notes = z.infer<typeof NotesSchema>;
 export type Study = z.infer<typeof StudySchema>;
 export type Flashcard = Study["flashcards"][number];

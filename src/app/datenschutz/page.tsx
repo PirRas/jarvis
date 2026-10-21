@@ -78,11 +78,12 @@ export default function DatenschutzPage() {
         <ul>
           <li>
             <strong>Google Gemini:</strong> Folien und Fragen für den Sprachassistenten, mit deinem eigenen Schlüssel. Bei
-            Fragen an Jarvis gehen auch der bisherige Gesprächsverlauf und die Punkte mit, die Jarvis sich gemerkt hat.
+            Fragen an Jarvis gehen auch der bisherige Gesprächsverlauf und die Punkte mit, die Jarvis sich gemerkt hat. Beim Prüfen offener Quizfragen gehen
+            Frage, Musterlösung und deine Antwort mit.
           </li>
           <li>
             <strong>OpenRouter:</strong> Ersatz, wenn Gemini nicht antwortet. Es wird nur der ausgelesene Folientext
-            übermittelt.
+            übermittelt, beim Quiz Frage, Musterlösung und deine Antwort.
           </li>
           <li>
             <strong>YouTube Data API:</strong> Suche nach Lernvideos.

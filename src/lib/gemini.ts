@@ -6,8 +6,8 @@
 // Ablauf wie im claude.ai-Chat: PDF + Prompt 1, dann Prompt 2 im selben Verlauf, dann Prompt 3 mit Google-Suche.
 
 import { readPdf, type SlideText } from "./pdfText";
-import { videosPrompt } from "./prompts";
-import type { Notes, Video } from "./schema";
+import { gradePrompt, videosPrompt } from "./prompts";
+import { GradeSchema, parseClaudeJson, type Notes, type QuizQuestion, type Video } from "./schema";
 
 // Das neueste Modell (hinter "gemini-flash-latest") ist im Gratis-Kontingent oft überlastet und hängt minutenlang,
 // deshalb zuletzt; Flash-Lite antwortet auch unter Last in Sekunden (Test 15.10.2026).
@@ -352,3 +352,11 @@ export async function findVideos(notes: Pick<Notes, "title" | "course" | "sectio
 // YouTube liefert Titel HTML-kodiert ("&amp;", "&#39;")
 const decodeHtml = (s: string) =>
   s.replace(/&(amp|quot|lt|gt|#39);/g, (_, e) => ({ amp: "&", quot: '"', lt: "<", gt: ">", "#39": "'" })[e as string]!);
+
+/** KI-Korrektur einer offenen Quizantwort gegen die Musterlösung. */
+export async function gradeAnswer(q: QuizQuestion, answer: string) {
+  const reply = await ask([{ role: "user", text: gradePrompt(q, answer) }], { json: true });
+  const parsed = parseClaudeJson(reply.text, GradeSchema);
+  if (!parsed.ok) throw new Error("Die Korrektur kam unvollständig zurück. Bitte nochmal prüfen.");
+  return parsed.data;
+}

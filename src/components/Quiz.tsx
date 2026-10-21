@@ -3,7 +3,8 @@
 import { useMemo, useState } from "react";
 import { Md } from "@/components/Md";
 import { saveQuizResult } from "@/lib/db";
-import type { QuizQuestion } from "@/lib/schema";
+import { gradeAnswer } from "@/lib/gemini";
+import type { Grade, QuizQuestion } from "@/lib/schema";
 
 const LETTERS = "ABCDEFGH";
 
@@ -40,8 +41,8 @@ export function Quiz({ lectureId, questions }: { lectureId: string; questions: Q
         <div className="sheet quiz-q">
           <h2 style={{ fontSize: "var(--step-2)", marginBottom: 8 }}>Quiz</h2>
           <p className="muted" style={{ marginTop: 0 }}>
-            {questions.length} Fragen in zufälliger Reihenfolge. Bei offenen Fragen vergleichst du deine Antwort mit der
-            Musterlösung.
+            {questions.length} Fragen in zufälliger Reihenfolge. Offene Fragen korrigiert die KI: was stimmt, was falsch
+            ist und was fehlt.
           </p>
           <div className="row" style={{ marginTop: 16 }}>
             <label className="field" style={{ minWidth: 240 }}>
@@ -135,6 +136,9 @@ function Question({
   const [checked, setChecked] = useState(false);
   const [answer, setAnswer] = useState("");
   const [selfVerdict, setSelfVerdict] = useState<boolean | null>(null);
+  const [grade, setGrade] = useState<Grade | null>(null);
+  const [grading, setGrading] = useState(false);
+  const [gradeError, setGradeError] = useState("");
 
   const correctSet = new Set(q.correct);
   const isOk = picked.length === q.correct.length && picked.every((i) => correctSet.has(i));
@@ -148,6 +152,21 @@ function Question({
   function check() {
     setChecked(true);
     onAnswered(isOk);
+  }
+
+  async function gradeOpen() {
+    setGrading(true);
+    setGradeError("");
+    try {
+      const g = await gradeAnswer(q, answer.trim());
+      setGrade(g);
+      setChecked(true);
+      onAnswered(g.verdict === "richtig");
+    } catch (e) {
+      setGradeError((e as Error).message);
+    } finally {
+      setGrading(false);
+    }
   }
 
   function selfGrade(ok: boolean) {
@@ -195,7 +214,7 @@ function Question({
           placeholder="Deine Antwort"
           value={answer}
           onChange={(e) => setAnswer(e.target.value)}
-          disabled={checked}
+          disabled={checked || grading}
         />
       )}
 
@@ -206,17 +225,45 @@ function Question({
               Antwort prüfen
             </button>
           ) : (
-            <button className="btn btn-primary" onClick={() => setChecked(true)}>
-              Musterlösung zeigen
-            </button>
+            <>
+              <button className="btn btn-primary" onClick={gradeOpen} disabled={!answer.trim() || grading}>
+                {grading ? "Wird geprüft …" : "Antwort prüfen"}
+              </button>
+              <button className="btn btn-quiet" onClick={() => setChecked(true)} disabled={grading}>
+                Musterlösung zeigen
+              </button>
+            </>
           )}
         </div>
+      )}
+      {gradeError && !checked && (
+        <p className="verdict-bad small" role="alert">
+          {gradeError}
+        </p>
       )}
 
       {checked && (
         <div className="explain">
           {q.kind !== "open" && (
             <p className={isOk ? "verdict-ok" : "verdict-bad"}>{isOk ? "Richtig" : "Nicht ganz"}</p>
+          )}
+          {grade && (
+            <>
+              <p className={grade.verdict === "richtig" ? "verdict-ok" : grade.verdict === "falsch" ? "verdict-bad" : "verdict-mid"}>
+                {grade.verdict === "richtig" ? "Richtig" : grade.verdict === "falsch" ? "Falsch" : "Teilweise richtig"}
+              </p>
+              <GradeList title="Richtig" cls="verdict-ok" items={grade.correct} />
+              <GradeList title="Falsch" cls="verdict-bad" items={grade.wrong} />
+              <GradeList title="Fehlt" cls="verdict-mid" items={grade.missing} />
+              {grade.ideal && (
+                <>
+                  <p>
+                    <strong>Ideale Antwort</strong>
+                  </p>
+                  <Md>{grade.ideal}</Md>
+                </>
+              )}
+            </>
           )}
           {selfVerdict !== null && (
             <p className={selfVerdict ? "verdict-ok" : "verdict-bad"}>{selfVerdict ? "Gewusst" : "Noch nicht gewusst"}</p>
@@ -230,7 +277,7 @@ function Question({
             </>
           )}
           <Md>{q.explanation}</Md>
-          {q.kind === "open" && selfVerdict === null && (
+          {q.kind === "open" && !grade && selfVerdict === null && (
             <div className="row" style={{ marginTop: 12 }}>
               <span className="muted small">Wusstest du das Wesentliche?</span>
               <button className="btn" onClick={() => selfGrade(true)}>
@@ -241,7 +288,7 @@ function Question({
               </button>
             </div>
           )}
-          {(q.kind !== "open" || selfVerdict !== null) && (
+          {(q.kind !== "open" || grade || selfVerdict !== null) && (
             <button className="btn btn-primary" style={{ marginTop: 16 }} onClick={onNext} autoFocus>
               Nächste Frage
             </button>
@@ -249,5 +296,21 @@ function Question({
         </div>
       )}
     </div>
+  );
+}
+
+function GradeList({ title, cls, items }: { title: string; cls: string; items: string[] }) {
+  if (!items.length) return null;
+  return (
+    <>
+      <p className={cls}>{title}</p>
+      <ul>
+        {items.map((t, i) => (
+          <li key={i}>
+            <Md>{t}</Md>
+          </li>
+        ))}
+      </ul>
+    </>
   );
 }
