@@ -17,6 +17,10 @@ Jarvis ist ein Uni-Cockpit für Studierende der Pharmazeutischen Wissenschaften 
 - [Datenschutz](${SITE_URL}/datenschutz): welche Daten wohin gehen
 - [Impressum](${SITE_URL}/impressum): verantwortliche Person und Kontakt
 
+## Optional
+
+- [Vollständige Beschreibung](${SITE_URL}/llms-full.txt): alle öffentlichen Inhalte als Text
+
 ## Häufige Fragen
 
 ${FAQ.map((f) => `### ${f.q}\n\n${f.a}`).join("\n\n")}
