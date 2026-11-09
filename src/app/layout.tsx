@@ -10,6 +10,7 @@ import { PageTitleDecode } from "@/components/PageTitleDecode";
 import { RegisterSW } from "@/components/RegisterSW";
 import { SyncBadge } from "@/components/SyncBadge";
 import { ProfilePill, TopbarClock } from "@/components/TopbarInfo";
+import { OPERATOR, SITE_DESCRIPTION, SITE_NAME, SITE_TITLE, SITE_URL } from "@/lib/site";
 import "katex/dist/katex.min.css";
 import "./globals.css";
 import "./cockpit.css";
@@ -18,8 +19,22 @@ const chakra = Chakra_Petch({ subsets: ["latin"], weight: ["500", "600", "700"],
 const atkinson = Atkinson_Hyperlegible_Next({ subsets: ["latin"], variable: "--font-ui", display: "swap", adjustFontFallback: false });
 
 export const metadata: Metadata = {
-  title: "Jarvis",
-  description: "Dein Uni-Cockpit: Stundenplan mit Live-Räumen, Kalender, Prüfungen, Links und Nachbereitung mit Karteikarten und Quiz.",
+  metadataBase: new URL(SITE_URL),
+  title: { default: SITE_TITLE, template: "%s · Jarvis" },
+  description: SITE_DESCRIPTION,
+  applicationName: SITE_NAME,
+  keywords: ["Uni-Cockpit", "Pharmazie", "Pharmaziestudium", "Universität Basel", "Stundenplan", "Nachbereitung", "Karteikarten", "Quiz", "Lernplan", "Studium"],
+  category: "education",
+  ...(OPERATOR.name ? { authors: [{ name: OPERATOR.name }], creator: OPERATOR.name } : {}),
+  openGraph: {
+    type: "website",
+    locale: "de_CH",
+    siteName: SITE_NAME,
+    title: SITE_TITLE,
+    description: SITE_DESCRIPTION,
+  },
+  twitter: { card: "summary_large_image", title: SITE_TITLE, description: SITE_DESCRIPTION },
+  formatDetection: { telephone: false },
   appleWebApp: { capable: true, title: "Jarvis", statusBarStyle: "default" },
 };
 
@@ -50,6 +65,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         </header>
         <main id="main" className="page">
           <PageTitleDecode>{children}</PageTitleDecode>
+          <footer className="site-footer">
+            <Link href="/ueber">Über Jarvis</Link>
+            <Link href="/datenschutz">Datenschutz</Link>
+            <Link href="/impressum">Impressum</Link>
+          </footer>
         </main>
         <JarvisButton />
         <RegisterSW />
