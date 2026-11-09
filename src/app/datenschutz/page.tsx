@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
 
-export const metadata: Metadata = { title: "Datenschutz · Jarvis" };
+export const metadata: Metadata = {
+  title: "Datenschutz",
+  description: "Datenschutzerklärung von Jarvis: welche Daten auf deinem Gerät bleiben, was beim Abgleich mit Supabase gespeichert wird und welche Dienste Daten erhalten.",
+  alternates: { canonical: "/datenschutz" },
+};
 
 // Werte in Vercel setzen (Environment Variables), nicht in .env: die Datei ist eingecheckt.
 const operator = process.env.NEXT_PUBLIC_OPERATOR_NAME;

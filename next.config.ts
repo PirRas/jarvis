@@ -31,6 +31,8 @@ const securityHeaders = [
   ...(prod ? [{ key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" }] : []),
 ];
 
+const PRIVATE_ROUTES = ["aufgaben", "fokus", "jarvis", "kalender", "karten", "konto", "lernen", "lernplan", "links", "pharmazie", "statistik", "studium", "stundenplan", "teilen", "vorlesung", "vorlesungen", "api"];
+
 // Läuft auf Vercel (Gratis-Stufe). Zwei kleine Server-Routen holen Kalender-Abos und Räume aus dem
 // Vorlesungsverzeichnis; alles andere läuft im Browser und funktioniert auch offline.
 const nextConfig: NextConfig = {
@@ -38,7 +40,12 @@ const nextConfig: NextConfig = {
   // Im Benutzerordner liegt eine weitere package-lock.json; ohne diese Angabe hält Next.js jenen Ordner für das Projekt.
   outputFileTracingRoot: __dirname,
   async headers() {
-    return [{ source: "/:path*", headers: securityHeaders }];
+    return [
+      { source: "/:path*", headers: securityHeaders },
+      // App-Seiten zeigen persönliche Daten aus dem Browser: nicht in Suchmaschinen (öffentlich: siehe PUBLIC_PAGES in src/lib/site.ts)
+      { source: `/(${PRIVATE_ROUTES.join("|")})/:path*`, headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }] },
+      { source: `/(${PRIVATE_ROUTES.join("|")})`, headers: [{ key: "X-Robots-Tag", value: "noindex, nofollow" }] },
+    ];
   },
 };
 
