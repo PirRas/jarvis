@@ -11,7 +11,6 @@ import { RegisterSW } from "@/components/RegisterSW";
 import { SyncBadge } from "@/components/SyncBadge";
 import { ProfilePill, TopbarClock } from "@/components/TopbarInfo";
 import { OPERATOR, SITE_DESCRIPTION, SITE_NAME, SITE_TITLE, SITE_URL } from "@/lib/site";
-import "katex/dist/katex.min.css";
 import "./globals.css";
 import "./cockpit.css";
 
