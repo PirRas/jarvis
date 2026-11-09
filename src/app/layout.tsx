@@ -34,6 +34,8 @@ export const metadata: Metadata = {
     description: SITE_DESCRIPTION,
   },
   twitter: { card: "summary_large_image", title: SITE_TITLE, description: SITE_DESCRIPTION },
+  // Erlaubt Suchmaschinen und KI-Suche lange Textausschnitte und grosse Vorschaubilder (noindex-Seiten bleiben gesperrt, siehe next.config.ts)
+  robots: { index: true, follow: true, "max-snippet": -1, "max-image-preview": "large", "max-video-preview": -1 },
   formatDetection: { telephone: false },
   appleWebApp: { capable: true, title: "Jarvis", statusBarStyle: "default" },
 };
