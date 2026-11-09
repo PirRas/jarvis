@@ -13,7 +13,7 @@ export function PageTitleDecode({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     // Startseite hat ihr eigenes Decode (Decode.tsx)
-    if (pathname === "/" || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (pathname === "/heute" || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const h1 = ref.current?.querySelector("h1.page-title");
     const node = h1?.childNodes.length === 1 ? h1.firstChild : null;
     // shortcut: nur Titel aus einem einzelnen Textknoten, gemischte Titel bleiben unverändert

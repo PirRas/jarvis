@@ -334,7 +334,7 @@ export default function JarvisPage() {
 
   return (
     <div className="jarvis-screen" data-state={state}>
-      <Link className="jv-home" href="/" aria-label="Zum Cockpit">
+      <Link className="jv-home" href="/heute" aria-label="Zum Cockpit">
         <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round">
           <path d="M3 11l9-8 9 8M5 10v10h5v-6h4v6h5V10" />
         </svg>

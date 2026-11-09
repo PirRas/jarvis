@@ -15,7 +15,7 @@ export function isNativeApp(): boolean {
 
 /** Nur interne Pfade wie "/lernplan#x" zulassen, nie fremde Adressen (Benachrichtigungen tragen die Ziel-URL mit). */
 export function safeAppPath(url: unknown): string {
-  return typeof url === "string" && /^\/(?![/\\])/.test(url) && !/[\s\\]/.test(url) ? url : "/";
+  return typeof url === "string" && /^\/(?![/\\])/.test(url) && !/[\s\\]/.test(url) ? url : "/heute";
 }
 
 // ---------- Spracherkennung ----------
@@ -222,7 +222,7 @@ export async function appTestNotify() {
         channelId: CHANNEL,
         schedule: { at: new Date(Date.now() + 3000), allowWhileIdle: true },
         isExactNotification: false,
-        extra: { url: "/" },
+        extra: { url: "/heute" },
       },
     ],
   });

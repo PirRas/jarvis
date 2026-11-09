@@ -1,8 +1,8 @@
 // Service Worker: hält die App-Oberfläche offline verfügbar, damit Lernen ohne Netz funktioniert.
-const CACHE = "jarvis-v4";
+const CACHE = "jarvis-v5";
 
 self.addEventListener("install", (e) => {
-  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(["/", "/aufgaben", "/stundenplan", "/kalender", "/lernplan", "/vorlesungen", "/lernen", "/fokus", "/studium", "/pharmazie", "/links", "/karten", "/statistik"])));
+  e.waitUntil(caches.open(CACHE).then((c) => c.addAll(["/heute", "/aufgaben", "/stundenplan", "/kalender", "/lernplan", "/vorlesungen", "/lernen", "/fokus", "/studium", "/pharmazie", "/links", "/karten", "/statistik"])));
   self.skipWaiting();
 });
 
@@ -29,14 +29,14 @@ self.addEventListener("fetch", (e) => {
         return res;
       })
       .catch(() =>
-        caches.match(request).then((hit) => hit ?? (request.mode === "navigate" ? caches.match("/") : undefined)),
+        caches.match(request).then((hit) => hit ?? (request.mode === "navigate" ? caches.match("/heute") : undefined)),
       ),
   );
 });
 
 // Push-Nachrichten von Jarvis (Erinnerungen an Aufgaben, Prüfungen, Lektionen)
 self.addEventListener("push", (e) => {
-  let msg = { title: "Jarvis", body: "", url: "/" };
+  let msg = { title: "Jarvis", body: "", url: "/heute" };
   try {
     msg = { ...msg, ...e.data.json() };
   } catch {
@@ -56,7 +56,7 @@ self.addEventListener("push", (e) => {
 // Antippen öffnet die passende Seite (oder holt ein offenes Jarvis-Fenster nach vorne)
 self.addEventListener("notificationclick", (e) => {
   e.notification.close();
-  const url = new URL(e.notification.data?.url ?? "/", self.location.origin).href;
+  const url = new URL(e.notification.data?.url ?? "/heute", self.location.origin).href;
   e.waitUntil(
     self.clients.matchAll({ type: "window", includeUncontrolled: true }).then((list) => {
       const open = list.find((c) => c.url.startsWith(self.location.origin));

@@ -10,7 +10,7 @@ import { REMOTE_CHANGE_EVENT } from "@/lib/sync";
 // das die übrigen als Feld über der Leiste aufklappt.
 
 const MAIN = [
-  { href: "/", label: "Heute" },
+  { href: "/heute", label: "Heute" },
   { href: "/aufgaben", label: "Aufgaben" },
   { href: "/stundenplan", label: "Stundenplan" },
   { href: "/lernplan", label: "Lernplan" },
@@ -30,7 +30,7 @@ const MORE = [
   { href: "/datenschutz", label: "Datenschutz" },
 ];
 
-const isActive = (path: string, href: string) => (href === "/" ? path === "/" : path === href || path.startsWith(`${href}/`));
+const isActive = (path: string, href: string) => path === href || path.startsWith(`${href}/`);
 
 export function MainNav() {
   const path = usePathname() ?? "/";

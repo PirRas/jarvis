@@ -12,7 +12,8 @@ Jarvis ist ein Uni-Cockpit für Studierende der Pharmazeutischen Wissenschaften 
 
 ## Seiten
 
-- [Startseite](${SITE_URL}/): Jarvis öffnen
+- [Startseite](${SITE_URL}/): Überblick, Funktionen, häufige Fragen
+- [Jarvis öffnen](${SITE_URL}/heute): die App selbst (persönliche Daten, nicht indexiert)
 - [Über Jarvis](${SITE_URL}/ueber): Funktionen und häufige Fragen
 - [Datenschutz](${SITE_URL}/datenschutz): welche Daten wohin gehen
 - [Impressum](${SITE_URL}/impressum): verantwortliche Person und Kontakt

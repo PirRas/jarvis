@@ -31,7 +31,7 @@ const securityHeaders = [
   ...(prod ? [{ key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains" }] : []),
 ];
 
-const PRIVATE_ROUTES = ["aufgaben", "fokus", "jarvis", "kalender", "karten", "konto", "lernen", "lernplan", "links", "pharmazie", "statistik", "studium", "stundenplan", "teilen", "vorlesung", "vorlesungen", "api"];
+const PRIVATE_ROUTES = ["aufgaben", "fokus", "heute", "jarvis", "kalender", "karten", "konto", "lernen", "lernplan", "links", "pharmazie", "statistik", "studium", "stundenplan", "teilen", "vorlesung", "vorlesungen", "api"];
 
 // Läuft auf Vercel (Gratis-Stufe). Zwei kleine Server-Routen holen Kalender-Abos und Räume aus dem
 // Vorlesungsverzeichnis; alles andere läuft im Browser und funktioniert auch offline.

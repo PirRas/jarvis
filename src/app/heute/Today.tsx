@@ -50,26 +50,14 @@ export default function Today() {
 
   // Beim ersten Öffnen in dieser Browser-Sitzung zuerst der Jarvis-Sprachbildschirm
   useEffect(() => {
+    // Merker für die Startseite: wer die App schon nutzt, landet direkt hier statt auf der Infoseite (LandingRedirect)
+    localStorage.setItem("jarvis-app", "1");
     if (sessionStorage.getItem("jarvis-intro") || localStorage.getItem("jarvis-start") === "0") return;
     sessionStorage.setItem("jarvis-intro", "1");
     router.replace("/jarvis");
   }, [router]);
 
-  // Startbildschirm, bis die Daten aus IndexedDB geladen sind; ist auch das, was Suchmaschinen ohne JavaScript sehen.
-  if (!p.loaded)
-    return (
-      <div className="page-head">
-        <div>
-          <h1 className="page-title">Jarvis – dein Uni-Cockpit</h1>
-          <p className="lede">
-            Stundenplan mit Live-Räumen, Kalender, Prüfungen, Aufgaben und KI-Nachbereitung von Vorlesungen mit
-            Karteikarten und Quiz, gemacht fürs Pharmaziestudium an der Universität Basel.{" "}
-            <Link href="/ueber">Mehr über Jarvis</Link>
-          </p>
-          <p className="muted">Jarvis startet …</p>
-        </div>
-      </div>
-    );
+  if (!p.loaded) return <p className="muted">Jarvis startet …</p>;
 
   const courses = knownCourses(p.data, p.lectures.map((l) => l.course));
   const list = [...occurrences(p.data, addDays(dayStart(now), -4), addDays(now, 120), courses), ...sessionsIn(p.prep, addDays(dayStart(now), -4), addDays(now, 120))].sort(

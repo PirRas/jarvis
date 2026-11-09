@@ -146,7 +146,7 @@ export function Review({ lectureId, deckName }: { lectureId?: string; deckName?:
               : ""}
           </p>
           <div className="row" style={{ marginTop: 20 }}>
-            <Link className="btn" href={lectureId ? `/vorlesung?id=${lectureId}` : "/"}>
+            <Link className="btn" href={lectureId ? `/vorlesung?id=${lectureId}` : "/heute"}>
               {lectureId ? "Zur Vorlesung" : "Zu den Vorlesungen"}
             </Link>
             {history.length > 0 && (

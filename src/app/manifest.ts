@@ -7,7 +7,7 @@ export default function manifest(): MetadataRoute.Manifest {
     name: "Jarvis – Uni-Cockpit",
     short_name: "Jarvis",
     description: "Stundenplan mit Live-Räumen, Kalender, Prüfungen, Links und Nachbereitung.",
-    start_url: "/",
+    start_url: "/heute",
     display: "standalone",
     background_color: "#050f1b",
     theme_color: "#050f1b",
@@ -18,7 +18,7 @@ export default function manifest(): MetadataRoute.Manifest {
       { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
     ],
     shortcuts: [
-      { name: "Heute", url: "/" },
+      { name: "Heute", url: "/heute" },
       { name: "Kalender", url: "/kalender" },
       { name: "Lernen", url: "/lernen" },
     ],

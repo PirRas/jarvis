@@ -2142,3 +2142,38 @@ img.md-structure {
 .site-footer a:hover {
   color: var(--royal);
 }
+
+/* Öffentliche Startseite (/) */
+.landing-hero {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6) var(--space-7);
+  flex-wrap: wrap;
+  margin-bottom: var(--space-7);
+}
+
+.landing-hero > div:last-child {
+  flex: 1 1 320px;
+}
+
+.landing-cta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+}
+
+.landing-section {
+  margin: 0 0 var(--space-4);
+}
+
+.feature-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: var(--space-4);
+  margin-bottom: var(--space-6);
+}
+
+.feature-grid .sheet {
+  margin: 0;
+}
