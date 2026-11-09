@@ -12,8 +12,8 @@ export function PageTitleDecode({ children }: { children: React.ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // Startseite hat ihr eigenes Decode (Decode.tsx)
-    if (pathname === "/heute" || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    // Cockpit hat sein eigenes Decode (Decode.tsx); die öffentliche Startseite bleibt ruhig, damit der Text sofort steht (Ladezeit/LCP)
+    if (pathname === "/" || pathname === "/heute" || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const h1 = ref.current?.querySelector("h1.page-title");
     const node = h1?.childNodes.length === 1 ? h1.firstChild : null;
     // shortcut: nur Titel aus einem einzelnen Textknoten, gemischte Titel bleiben unverändert
@@ -39,7 +39,7 @@ export function PageTitleDecode({ children }: { children: React.ReactNode }) {
   }, [pathname]);
 
   return (
-    <div key={pathname} ref={ref} className="page-in">
+    <div key={pathname} ref={ref} className={pathname === "/" ? undefined : "page-in"}>
       {children}
     </div>
   );

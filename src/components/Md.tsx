@@ -1,3 +1,4 @@
+import "katex/dist/katex.min.css";
 import { Children, isValidElement, type ReactElement } from "react";
 import ReactMarkdown, { defaultUrlTransform, type Components } from "react-markdown";
 import rehypeKatex from "rehype-katex";
