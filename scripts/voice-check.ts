@@ -132,7 +132,7 @@ async function main() {
 
   // Jedes deklarierte Werkzeug läuft (ohne "unbekannt")
   for (const d of TOOL_DECLARATIONS) {
-    const r = await run(d.name, { von: "2026-10-15", id: "x", seite: "/", name: "ADAM", fach: "x", minuten: 1, titel: "x", datum: "2026-10-15", kurs: "x" });
+    const r = await run(d.name, { von: "2026-10-15", id: "x", seite: "/heute", name: "ADAM", fach: "x", minuten: 1, titel: "x", datum: "2026-10-15", kurs: "x" });
     assert.ok(!String(r.fehler ?? "").includes("Unbekanntes Werkzeug"), d.name);
   }
   assert.ok((await run("gibts_nicht")).fehler);

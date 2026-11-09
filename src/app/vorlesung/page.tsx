@@ -86,7 +86,7 @@ function LectureInner() {
   async function remove() {
     if (!confirm(`„${lecture!.title}“ mit allen Karten und Lernfortschritt löschen?`)) return;
     await deleteLecture(id);
-    router.push("/");
+    router.push("/heute");
   }
 
   return (

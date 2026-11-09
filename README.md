@@ -104,7 +104,7 @@ Dann http://localhost:3000 öffnen.
 ## Vor dem Öffnen für andere (Launch-Checkliste)
 
 - **Vercel → Environment Variables:** `NEXT_PUBLIC_OPERATOR_NAME`, `NEXT_PUBLIC_OPERATOR_ADDRESS` (Strasse, PLZ Ort, mit Kommas getrennt), `NEXT_PUBLIC_CONTACT_EMAIL` und `NEXT_PUBLIC_DATA_REGION` setzen (sie erscheinen im Impressum und in der Datenschutzerklärung). Mit eigener Domain zusätzlich `NEXT_PUBLIC_SITE_URL` (Canonical, Sitemap, robots.txt, llms.txt).
-- **Suchmaschinen:** öffentlich sind nur `/`, `/ueber`, `/datenschutz`, `/impressum` (`PUBLIC_PAGES` in `src/lib/site.ts`); alle App-Seiten senden `X-Robots-Tag: noindex` (`next.config.ts`). Neue App-Seite → in `PRIVATE_ROUTES` eintragen.
+- **Suchmaschinen:** öffentlich sind nur `/` (Infoseite; das Cockpit liegt unter `/heute`, wer die App schon nutzt, wird von `/` dorthin weitergeleitet), `/ueber`, `/datenschutz`, `/impressum` (`PUBLIC_PAGES` in `src/lib/site.ts`); alle App-Seiten senden `X-Robots-Tag: noindex` (`next.config.ts`). Neue App-Seite → in `PRIVATE_ROUTES` eintragen.
 - Geheimnisse (`SUPABASE_SECRET_KEY`, `VAPID_PRIVATE_KEY`, `PUSH_CRON_SECRET`) nur in Vercel oder `.env*.local`, nie in `.env`. Diese Datei ist eingecheckt und enthält nur öffentliche Werte.
 - **Supabase → Authentication:** E-Mail-Bestätigung an; minimale Passwortlänge 10; MFA (TOTP) aktivieren; „Leaked password protection“ an (falls im Plan verfügbar).
 - **CAPTCHA:** Cloudflare Turnstile (gratis) gegen Bot-Registrierungen. Danach muss die CSP in `next.config.ts` den CAPTCHA-Host erlauben.

@@ -1,4 +1,4 @@
-import { FAQ, FEATURES, SITE_DESCRIPTION, SITE_NAME, SITE_URL, UPDATED } from "@/lib/site";
+import { FAQ, FEATURES, OPERATOR, SITE_DESCRIPTION, SITE_NAME, SITE_URL, UPDATED } from "@/lib/site";
 
 export const dynamic = "force-static";
 
@@ -16,7 +16,7 @@ Sprache: Deutsch (Schweiz)
 
 Jarvis ist ein kostenloses Uni-Cockpit für Studierende der Pharmazeutischen Wissenschaften an der Universität Basel. Es läuft im Browser, als installierbare Web-App (PWA) und als Android-App. Jarvis bündelt Stundenplan, Kalender, Prüfungen, Aufgaben, Links und die Nachbereitung von Vorlesungen an einem Ort. Es gibt keine Werbung und kein Tracking.
 
-## Funktionen
+${OPERATOR.name ? `Entwickelt von ${OPERATOR.name}, Student der Pharmazeutischen Wissenschaften an der Universität Basel.${OPERATOR.email ? ` Kontakt: ${OPERATOR.email}` : ""}\n\n` : ""}## Funktionen
 
 ${FEATURES.map(([title, text]) => `- **${title}:** ${text}`).join("\n")}
 
@@ -30,7 +30,8 @@ Vorlesungen, Karteikarten, Termine, Aufgaben und Gespräche mit Jarvis liegen im
 
 ## Öffentliche Seiten
 
-- ${SITE_URL}/ – Jarvis öffnen
+- ${SITE_URL}/ – Überblick, Funktionen, häufige Fragen
+- ${SITE_URL}/heute – die App selbst
 - ${SITE_URL}/ueber – Funktionen und häufige Fragen
 - ${SITE_URL}/datenschutz – Datenschutzerklärung
 - ${SITE_URL}/impressum – Impressum

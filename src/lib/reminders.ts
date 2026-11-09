@@ -76,7 +76,7 @@ function examReminders(o: Occurrence, now: number): Reminder[] {
       dueAt: o.allDay ? at(o.start, "07:00") : o.start - 2 * HOUR,
       title: `Heute Prüfung: ${name}`,
       body: when,
-      url: "/",
+      url: "/heute",
     },
   ];
   return list.map((r) => ({ ...r, title: clip(r.title, 80), body: clip(r.body) })).filter((r) => r.dueAt > now);
@@ -101,7 +101,7 @@ function lectureReminder(o: Occurrence, now: number): Reminder | null {
     dueAt,
     title: clip(`In 20 Min.: ${o.title}`, 80),
     body: clip(`${fmtTime(o.start)}–${fmtTime(o.end)}${o.location ? ` · ${o.location}` : ""}`),
-    url: "/",
+    url: "/heute",
   };
 }
 

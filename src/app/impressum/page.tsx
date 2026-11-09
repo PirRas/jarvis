@@ -9,7 +9,7 @@ export const metadata: Metadata = {
 };
 
 export default function ImpressumPage() {
-  const complete = OPERATOR.name && OPERATOR.address && OPERATOR.email;
+  const complete = OPERATOR.name && OPERATOR.email;
   return (
     <>
       <div className="page-head">
@@ -25,7 +25,7 @@ export default function ImpressumPage() {
           <address style={{ fontStyle: "normal" }}>
             {OPERATOR.name}
             <br />
-            {OPERATOR.address!.split(",").map((line, i) => (
+            {(OPERATOR.address ?? "").split(",").filter((l) => l.trim()).map((line, i) => (
               <span key={i}>
                 {line.trim()}
                 <br />

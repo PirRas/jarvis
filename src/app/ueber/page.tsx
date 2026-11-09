@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { JsonLd } from "@/components/JsonLd";
-import { FAQ, FEATURES, SITE_URL, UPDATED } from "@/lib/site";
+import { FAQ, FEATURES, UPDATED } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Über Jarvis: Funktionen und häufige Fragen",
@@ -10,20 +9,9 @@ export const metadata: Metadata = {
   alternates: { canonical: "/ueber" },
 };
 
-const faqData = {
-  "@context": "https://schema.org",
-  "@type": "FAQPage",
-  url: `${SITE_URL}/ueber`,
-  inLanguage: "de-CH",
-  dateModified: UPDATED,
-  isPartOf: { "@id": `${SITE_URL}/#website` },
-  mainEntity: FAQ.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })),
-};
-
 export default function UeberPage() {
   return (
     <>
-      <JsonLd data={faqData} />
       <div className="page-head">
         <div>
           <h1 className="page-title">Über Jarvis</h1>
@@ -36,7 +24,7 @@ export default function UeberPage() {
             Stand: <time dateTime={UPDATED}>{new Date(UPDATED).toLocaleDateString("de-CH", { day: "numeric", month: "long", year: "numeric" })}</time>
           </p>
         </div>
-        <Link className="btn" href="/">
+        <Link className="btn" href="/heute">
           Jarvis öffnen
         </Link>
       </div>

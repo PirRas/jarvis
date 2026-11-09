@@ -56,7 +56,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           Zum Inhalt
         </a>
         <header className="topbar">
-          <Link href="/" className="brand">
+          <Link href="/heute" className="brand">
             <HudMark />
             Jarvis
           </Link>

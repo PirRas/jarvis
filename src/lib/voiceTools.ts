@@ -96,7 +96,7 @@ const ID_TERMIN = S("ID des Termins aus termine_auflisten");
 const ID_AUFGABE = S("ID der Aufgabe aus aufgaben_auflisten");
 
 const PAGES: Record<string, string> = {
-  "/": "Startseite mit Tagesüberblick",
+  "/heute": "Startseite mit Tagesüberblick",
   "/aufgaben": "Aufgaben (To-dos)",
   "/stundenplan": "Stundenplan",
   "/lernplan": "Lernplan mit Wochenrückblick",
