@@ -173,10 +173,10 @@ async function main() {
 
   // Begrüssung: Vorname aus dem Konto, offene Aufgaben, natürlich gesprochene Uhrzeit
   const { briefing, spokenTime } = await import("../src/lib/briefing");
-  data.marks = [{ id: "profile", profile: { name: "Piravin Rasan" } } as { id: string }];
+  data.marks = [{ id: "profile", profile: { name: "Max Muster" } } as { id: string }];
   data.todos = [{ id: "t9", title: "Skript drucken", note: "", category: "Eigene", due: "2026-10-16", done: false, createdAt: now } as { id: string }];
   const hi = await briefing(store, now);
-  assert.match(hi, /^Guten Morgen, Piravin\./);
+  assert.match(hi, /^Guten Morgen, Max\./);
   assert.match(hi, /Skript drucken, fällig morgen/);
   assert.match(hi, /Was hast du vor\?$/);
   assert.equal(spokenTime(new Date(2026, 9, 15, 14, 15).getTime()), "14 Uhr 15");

@@ -2,6 +2,17 @@
 
 Persönliches Cockpit für das Studium der Pharmazeutischen Wissenschaften an der Universität Basel.
 
+> **English summary:** Jarvis is an open-source study cockpit (Next.js PWA + Android app) for pharmacy students at the
+> University of Basel. It combines the timetable with live room changes from the course catalogue, a calendar with
+> subscribed feeds, a lecture follow-up planner that reschedules itself when you miss a slot, AI-generated lecture
+> notes, flashcards and quizzes (free Gemini tier, key stays in the browser) and a German voice assistant.
+> Data lives in the browser (IndexedDB) and syncs via Supabase with row-level security. The UI is German.
+> Setup: see [Eigene Instanz aufsetzen](#eigene-instanz-aufsetzen). License: [MIT](LICENSE).
+> Contributions: [CONTRIBUTING.md](CONTRIBUTING.md).
+
+**Stack:** Next.js 15 (App Router), React 19, TypeScript, Supabase (Auth, Postgres mit RLS), IndexedDB (`idb`),
+Web-Push, Zod, Gemini (Gratis-Stufe), Capacitor 8 für Android, Hosting auf Vercel.
+
 ## Was Jarvis kann
 
 - **Heute**: Beim Öffnen siehst du sofort, was als Nächstes kommt, wie lange es noch dauert und in welchem Raum.
@@ -86,6 +97,32 @@ npm run dev
 
 Dann http://localhost:3000 öffnen.
 
+## Eigene Instanz aufsetzen
+
+Voraussetzungen: Node.js 22 und npm 10, ein kostenloses [Supabase](https://supabase.com)-Projekt, optional ein
+Vercel-Konto zum Hosten.
+
+1. Repository klonen und Abhängigkeiten installieren: `npm ci`.
+2. In Supabase im SQL-Editor `supabase/schema.sql` (Abgleich) und `supabase/push.sql` (Push-Erinnerungen) ausführen.
+3. `.env.example` nach `.env.local` kopieren und ausfüllen. `.env` enthält die Werte der offiziellen Instanz
+   (nur öffentliche Angaben); `.env.local` überschreibt sie.
+4. `npm run dev` und http://localhost:3000 öffnen. Ohne Supabase-Werte läuft die App nur lokal ohne Abgleich.
+5. Hosten: Projekt in Vercel importieren und dieselben Variablen dort setzen. Danach die Launch-Checkliste unten
+   durchgehen.
+
+| Variable | Wo | Wofür |
+|---|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` | öffentlich | Anmeldung und Abgleich |
+| `NEXT_PUBLIC_VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY` | öffentlich / geheim | Web-Push (`npx web-push generate-vapid-keys`) |
+| `SUPABASE_SECRET_KEY` | geheim | Push-Versand und „Konto löschen“ (Server) |
+| `PUSH_CRON_SECRET` | geheim | Cron-Job in Supabase → `/api/push/tick` |
+| `NEXT_PUBLIC_OPERATOR_NAME`, `…_ADDRESS`, `NEXT_PUBLIC_CONTACT_EMAIL`, `NEXT_PUBLIC_DATA_REGION` | öffentlich | Impressum, Datenschutz |
+| `NEXT_PUBLIC_SITE_URL` | öffentlich | eigene Domain (Sitemap, Canonical) |
+
+Gemini-, OpenRouter- und YouTube-Schlüssel sind keine Server-Variablen: Jede Person trägt sie in der App ein.
+Die Android-App lädt standardmässig `nachbereitung.vercel.app`; für eine eigene Instanz `JARVIS_APP_URL` beim Build
+setzen (siehe `ANDROID.md`).
+
 ## Installieren
 
 - **Android-App (empfohlen):** eigenständige App, Anleitung zum Installieren und Bauen in [`ANDROID.md`](ANDROID.md). Neueste APK: GitHub → Releases → „Jarvis Android (neueste)“.
@@ -113,3 +150,8 @@ Dann http://localhost:3000 öffnen.
 - **Vercel → Firewall:** Rate-Limit-Regel für `/api/*` anlegen. Das eingebaute Limit in `src/middleware.ts` gilt nur pro Server-Instanz.
 - Supabase-Region in `NEXT_PUBLIC_DATA_REGION` eintragen, damit die Datenschutzerklärung stimmt.
 - **Android-App:** einmal `scripts/android-keystore.sh` ausführen und die vier `ANDROID_*`-Secrets in GitHub setzen (siehe `ANDROID.md`), sonst signiert GitHub jede APK mit einem anderen Test-Schlüssel (Updates nur nach Deinstallation). Für den Play Store bräuchte es zusätzlich ein AAB, einen Store-Eintrag und eine Datenschutz-URL (`/datenschutz`).
+
+## Mitmachen und Lizenz
+
+Beiträge sind willkommen, siehe [`CONTRIBUTING.md`](CONTRIBUTING.md). Sicherheitslücken bitte privat melden
+([`SECURITY.md`](SECURITY.md)). Lizenz: [MIT](LICENSE).
